@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 819478855cc46d4488d511a805e4a839, type: 3}
+  m_Name: Battle Shout
+  m_EditorClassIdentifier: Assembly-CSharp::AbilityData
+  abilityName: Battle Shout
+  description: An envigorating shout
+  icon: {fileID: 21300000, guid: fee7eb2f5d1c7a64597bf638938274bd, type: 3}
+  type: 2
+  isSelfCast: 1
+  cooldown: 180
+  globalCooldown: 1
+  castTime: 0
+  effects:
+  - {fileID: 11400000, guid: 3eb8b8d4191583f46b62025f7dccc5a0, type: 2}

@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c2b6001d748cdc4896cad54b3c6d55c, type: 3}
+  m_Name: Rough Blue Linen Tunic
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  itemName: Rough Blue Linen Tunic
+  worldSprite: {fileID: 0}
+  rarity: 1
+  frontSprite: {fileID: 21300000, guid: 300647c645d50d14c89bc4d68dac7769, type: 3}
+  backSprite: {fileID: 21300000, guid: ba0a1117a5dcba1478e693e13465f636, type: 3}
+  leftSprite: {fileID: 21300000, guid: 9cde53cafd8494c4193bed9f51a7f0c7, type: 3}
+  rightSprite: {fileID: 21300000, guid: ef015792ef747c14c9203824167efb4a, type: 3}
+  hideHair: 0
+  hideBeard: 0
+  hideHead: 0
+  hideArms: 0
+  hideTorso: 0
+  hideLegs: 0
+  hideFeet: 0
+  description: '"A bit itchy"'
+  icon: {fileID: 21300000, guid: a541306bd88ba4d40bd94a5678a55de4, type: 3}
+  itemType: 3
+  equippable: 1
+  stackable: 0
+  maxStack: 1
+  damageBonus: 0
+  armorBonus: 0
+  strengthBonus: 0
+  healthBonus: 2
+  buyPrice: 153
+  sellMultiplier: 0.6

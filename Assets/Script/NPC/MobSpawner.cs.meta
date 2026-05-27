@@ -1,0 +1,12 @@
+fileFormatVersion: 2
+guid: f6f185688a22b0e48824383d59fb592b
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - wolfPrefab: {fileID: 3459725347379031730, guid: 45a548be7878f974180f2e7e5e9a8599, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

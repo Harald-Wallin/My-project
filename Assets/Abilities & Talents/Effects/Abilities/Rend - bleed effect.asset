@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb7176cf3fb46a148b3b5765d850eb97, type: 3}
+  m_Name: Rend - bleed effect
+  m_EditorClassIdentifier: Assembly-CSharp::BleedEffect
+  icon: {fileID: 21300000, guid: cf96efd9c25ffeb4abb1612b12f29b10, type: 3}
+  stackable: 1
+  maxStacks: 3
+  refreshDurationOnStack: 1
+  removeOnDeath: 1
+  damagePerTick: 2
+  duration: 12
+  tickInterval: 2

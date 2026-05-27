@@ -1,0 +1,38 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+public class PlayerBaseAttackCollection : MonoBehaviour
+{
+    [SerializeField]
+    private List<BaseAttackData> learnedAttacks =
+        new();
+
+    [SerializeField]
+    private BaseAttackData equippedAttack;
+
+    public List<BaseAttackData> GetLearnedAttacks()
+    {
+        return learnedAttacks;
+    }
+
+    public BaseAttackData GetEquippedAttack()
+    {
+        return equippedAttack;
+    }
+
+    public void EquipAttack(BaseAttackData attack)
+    {
+        equippedAttack = attack;
+    }
+
+    public void LearnAttack(BaseAttackData attack)
+    {
+        if (attack == null)
+            return;
+
+        if (learnedAttacks.Contains(attack))
+            return;
+
+        learnedAttacks.Add(attack);
+    }
+}

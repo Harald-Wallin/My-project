@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c2b6001d748cdc4896cad54b3c6d55c, type: 3}
+  m_Name: rich_green_hoses
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  itemName: Rich Green Hoses
+  worldSprite: {fileID: 0}
+  rarity: 3
+  frontSprite: {fileID: 21300000, guid: 1ec6099d016f05e4187efc9abd7186d7, type: 3}
+  backSprite: {fileID: 21300000, guid: 7bb81eff00da5f34f812e97650403266, type: 3}
+  leftSprite: {fileID: 21300000, guid: c8b2dd747522c1f48896f991c97a3c79, type: 3}
+  rightSprite: {fileID: 21300000, guid: a205df793535a044faee92a80ac2a51a, type: 3}
+  hideHair: 0
+  hideBeard: 0
+  hideHead: 0
+  hideArms: 0
+  hideTorso: 0
+  hideLegs: 0
+  hideFeet: 0
+  description: 'Pants worn by the more fortuned men '
+  icon: {fileID: 21300000, guid: b372300e261b65248a29439fc30f1bd5, type: 3}
+  itemType: 6
+  equippable: 1
+  stackable: 0
+  maxStack: 1
+  damageBonus: 0
+  armorBonus: 0
+  strengthBonus: 2
+  healthBonus: 12
+  useLevelRequirement: 1
+  requiredLevel: 5
+  reputationFaction: {fileID: 11400000, guid: c5488bdfa9793df41979c93540acac0b, type: 2}
+  useReputationRequirement: 1
+  requiredReputation: 4
+  buyPrice: 56
+  sellMultiplier: 0.6

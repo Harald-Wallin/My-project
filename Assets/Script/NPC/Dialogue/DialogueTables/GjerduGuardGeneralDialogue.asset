@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6dc9be06d9a5f8640bb512aafbe586cc, type: 3}
+  m_Name: GjerduGuardGeneralDialogue
+  m_EditorClassIdentifier: Assembly-CSharp::NPCDialogueTable
+  faction: {fileID: 11400000, guid: c5488bdfa9793df41979c93540acac0b, type: 2}
+  minReputationLevel: 1
+  lines:
+  - english: Move along
+    swedish: Ror pa pakarna
+  - english: Greetings
+    swedish: Var halsad
+  - english: Good day
+    swedish: God dag
+  - english: How do you do?
+    swedish: Allt val
+  - english: Good day to you
+    swedish: En god dag till dig
+  - english: Yes?
+    swedish: Na
+  - english: Can I help you?
+    swedish: Kan jag dig hjalpa
+  - english: "G\xE9fru the tanner is asking for sturdy wolf pelts.\nIf you come by
+      any, you should to him talk."
+    swedish: 'Garvare Gefru soker vargpalsar av gott slag '
+  - english: Those cursed wolves...
+    swedish: Dessa fargjordade varjar...
+  - english: I should be hunting wolf
+    swedish: Jag borde jaga varg
+  - english: Bandits are lurking in the wild. Be aware.
+    swedish: Banditer ruvar i det vilda. Tag dig i akt.
+  - english: No dawdling
+    swedish: Sta inte har och dra
+  - english: Come now
+    swedish: Sesa
+  - english: What wouldn't I do for a pint
+    swedish: Jag skulle ge mycket for en slurk ol just nu
+  - english: No idling
+    swedish: Slosa inte min tid
+  - english: Do not tarry
+    swedish: Droj icke
+  - english: Any problem?
+    swedish: Nagot fel
+  - english: All these wolf attacks...
+    swedish: Alla dessa varganfall...
+  - english: I swear, he was only as tall as my boot!
+    swedish: Jag svar, han var hog som min stovel!
+  - english: Sad, that about the poor girl...
+    swedish: Sorg over den stackars flickan...

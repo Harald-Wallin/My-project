@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c2b6001d748cdc4896cad54b3c6d55c, type: 3}
+  m_Name: TestAxe
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  itemName: Test Axe
+  worldSprite: {fileID: 0}
+  rarity: 1
+  frontSprite: {fileID: 0}
+  backSprite: {fileID: 0}
+  leftSprite: {fileID: 0}
+  rightSprite: {fileID: 0}
+  hideHair: 0
+  hideBeard: 0
+  hideHead: 0
+  hideArms: 0
+  hideTorso: 0
+  hideLegs: 0
+  hideFeet: 0
+  description: An old worn axe
+  icon: {fileID: 21300000, guid: 147681c50c5a31d41a48b9dda8bf6234, type: 3}
+  itemType: 1
+  equippable: 1
+  stackable: 0
+  maxStack: 1
+  damageBonus: 4
+  armorBonus: 0
+  strengthBonus: 2
+  healthBonus: 5
+  buyPrice: 10
+  sellMultiplier: 0.6

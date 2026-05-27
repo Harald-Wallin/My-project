@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c2b6001d748cdc4896cad54b3c6d55c, type: 3}
+  m_Name: GjerduGuardHelmet
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  itemName: Gjerdu Guard Helmet
+  worldSprite: {fileID: 21300000, guid: ffc50bde367c3e44980af89b0a7a322b, type: 3}
+  rarity: 2
+  frontSprite: {fileID: 21300000, guid: ffc50bde367c3e44980af89b0a7a322b, type: 3}
+  backSprite: {fileID: 21300000, guid: 539ec95b39d05d54fa7ec3397f0d1f05, type: 3}
+  leftSprite: {fileID: 21300000, guid: 56357fade74b2584da91b0995e688039, type: 3}
+  rightSprite: {fileID: 21300000, guid: 747a668bed7ab3446b625c307bd85095, type: 3}
+  hideHair: 1
+  hideBeard: 0
+  hideHead: 0
+  hideArms: 0
+  hideTorso: 0
+  hideLegs: 0
+  hideFeet: 0
+  description: '"A piece of the Gjerdu gurads attire"'
+  icon: {fileID: 21300000, guid: eba71880dbce3b841a5c0fa7eae6e31b, type: 3}
+  itemType: 2
+  equippable: 1
+  stackable: 0
+  maxStack: 1
+  damageBonus: 0
+  armorBonus: 6
+  strengthBonus: 3
+  healthBonus: 25
+  buyPrice: 10
+  sellMultiplier: 0.6

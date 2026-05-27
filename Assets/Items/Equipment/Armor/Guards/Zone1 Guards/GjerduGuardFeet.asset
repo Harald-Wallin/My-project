@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c2b6001d748cdc4896cad54b3c6d55c, type: 3}
+  m_Name: GjerduGuardFeet
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  itemName: Gjerdu Guard Shoes
+  worldSprite: {fileID: 0}
+  rarity: 2
+  frontSprite: {fileID: 21300000, guid: 0728c8d856d636d4c9a7776490c930f6, type: 3}
+  backSprite: {fileID: 21300000, guid: 8a16d34c463c9eb43992b6bc3c51f14e, type: 3}
+  leftSprite: {fileID: 21300000, guid: fab8c7f41425fa842bfbf5532568d54e, type: 3}
+  rightSprite: {fileID: 21300000, guid: e219594f4529f4f4cb5a5bb119f948e2, type: 3}
+  hideHair: 0
+  hideBeard: 0
+  hideHead: 0
+  hideArms: 0
+  hideTorso: 0
+  hideLegs: 0
+  hideFeet: 0
+  description: '"A piece of the Gjerdu gurads attire"'
+  icon: {fileID: 21300000, guid: 59588eca79262e34abde90d10d0af8d0, type: 3}
+  itemType: 7
+  equippable: 1
+  stackable: 0
+  maxStack: 1
+  damageBonus: 0
+  armorBonus: 1
+  strengthBonus: 1
+  healthBonus: 12
+  buyPrice: 10
+  sellMultiplier: 0.6

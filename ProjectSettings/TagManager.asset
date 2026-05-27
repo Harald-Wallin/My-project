@@ -1,0 +1,61 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!78 &1
+TagManager:
+  serializedVersion: 3
+  tags:
+  - Enemy
+  layers:
+  - Default
+  - TransparentFX
+  - Ignore Raycast
+  - 
+  - Water
+  - UI
+  - Hitbox
+  - Player
+  - NPC
+  - HostileMob
+  - World
+  - Transp.Interactable
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  m_SortingLayers:
+  - name: Default
+    uniqueID: 0
+    locked: 0
+  - name: Ground
+    uniqueID: 3610908363
+    locked: 0
+  - name: Items
+    uniqueID: 3857265599
+    locked: 0
+  - name: Characters
+    uniqueID: 1959689973
+    locked: 0
+  - name: AbovePlayer
+    uniqueID: 2900314581
+    locked: 0
+  - name: UI
+    uniqueID: 809265379
+    locked: 0
+  m_RenderingLayers:
+  - Default

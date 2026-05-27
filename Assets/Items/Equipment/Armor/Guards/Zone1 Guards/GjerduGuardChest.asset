@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c2b6001d748cdc4896cad54b3c6d55c, type: 3}
+  m_Name: GjerduGuardChest
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  itemName: Gjerdu Guard Tunic
+  worldSprite: {fileID: 0}
+  rarity: 2
+  frontSprite: {fileID: 21300000, guid: 41775447d0b4d634a8ecafc6a2e0e1dd, type: 3}
+  backSprite: {fileID: 21300000, guid: 93e667241a9d962418b3545302fc007e, type: 3}
+  leftSprite: {fileID: 21300000, guid: 7c90ddbeb191f084fbb53836c30b9441, type: 3}
+  rightSprite: {fileID: 21300000, guid: 0b56a19ed75f63343ae67bf819ad0581, type: 3}
+  hideHair: 0
+  hideBeard: 0
+  hideHead: 0
+  hideArms: 0
+  hideTorso: 1
+  hideLegs: 0
+  hideFeet: 0
+  description: '"A piece of the Gjerdu gurads attire"'
+  icon: {fileID: 21300000, guid: be9698dd25ce45b49b46cd5fab0985fc, type: 3}
+  itemType: 3
+  equippable: 1
+  stackable: 0
+  maxStack: 1
+  damageBonus: 0
+  armorBonus: 6
+  strengthBonus: 7
+  healthBonus: 18
+  buyPrice: 10
+  sellMultiplier: 0.6
