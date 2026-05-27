@@ -12,26 +12,12 @@ public class BaseAttackData : AbilityData
     public float damageMultiplier = 1f;
 
     public override void Use(
-        CharacterStats caster,
-        CharacterStats target
-    )
+    CharacterStats caster,
+    CharacterStats target
+)
     {
         if (caster == null || target == null)
             return;
-
-        int baseDamage =
-            caster.GetAttackDamage();
-
-        int scaledDamage =
-            Mathf.RoundToInt(
-                baseDamage * damageMultiplier
-            );
-
-        CombatResolver.DealDamage(
-            caster,
-            target,
-            scaledDamage
-        );
 
         foreach (var effect in effects)
         {

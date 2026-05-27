@@ -15,7 +15,6 @@ GameObject:
   - component: {fileID: 4847994093137756465}
   - component: {fileID: 558947386393904139}
   - component: {fileID: 2834215142199529430}
-  - component: {fileID: 4804377804265100916}
   - component: {fileID: 3520048928441293711}
   - component: {fileID: 6069970325683136558}
   - component: {fileID: 8211094807883814740}
@@ -255,18 +254,6 @@ MonoBehaviour:
   maxHoldDistanceFromSpawn: 50
   selfStats: {fileID: 0}
   reaggroCooldown: 3
---- !u!114 &4804377804265100916
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3459725347379031730}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe72e3341d933104b8b3d926d344508a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyAttack
 --- !u!114 &3520048928441293711
 MonoBehaviour:
   m_ObjectHideFlags: 0

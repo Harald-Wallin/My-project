@@ -3,19 +3,23 @@ using UnityEngine;
 public static class CombatTargeting
 {
     public static bool CanAttack(
-        CharacterStats attacker,
-        CharacterStats target
-    )
+    CharacterStats attacker,
+    CharacterStats target
+)
     {
         Debug.Log($"CanAttack? {attacker.name} -> {target.name}");
 
         if (attacker == null || target == null)
-            Debug.Log("FAILED: reason");
-        return false;
+        {
+            Debug.Log("FAILED: null attacker or target");
+            return false;
+        }
 
         if (attacker == target)
-            Debug.Log("FAILED: reason");
-        return false;
+        {
+            Debug.Log("FAILED: attacker == target");
+            return false;
+        }
 
         // =========================
         // PLAYER RULES
@@ -33,12 +37,15 @@ public static class CombatTargeting
         // NPC RULES
         // =========================
 
-        AgressiveMobAI ai = attacker.GetComponent<AgressiveMobAI>();
+        AgressiveMobAI ai =
+            attacker.GetComponent<AgressiveMobAI>();
 
         if (ai != null)
         {
             if (ai.CurrentTarget == target)
+            {
                 return true;
+            }
         }
 
         return attacker.IsHostileTo(target);

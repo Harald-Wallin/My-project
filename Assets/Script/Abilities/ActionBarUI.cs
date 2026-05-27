@@ -40,8 +40,20 @@ public class ActionBarUI : MonoBehaviour
 
         for (int i = 0; i < slots.Length; i++)
         {
-            AbilityData ability = i < abilities.Length ? abilities[i] : null;
-            slots[i].Initialize(abilityController, ability, i);
+            if (slots[i] == null)
+            {
+                //Debug.LogError($"Action slot {i} is NULL!");
+                continue;
+            }
+
+            AbilityData ability =
+                i < abilities.Length ? abilities[i] : null;
+
+            slots[i].Initialize(
+                abilityController,
+                ability,
+                i
+            );
         }
     }
 }
