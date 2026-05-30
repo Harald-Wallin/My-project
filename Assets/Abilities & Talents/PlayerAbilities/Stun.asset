@@ -16,10 +16,15 @@ MonoBehaviour:
   description: Stuns the target, making them incapable of moving or attacking for
     5 seconds
   icon: {fileID: 21300000, guid: f1bc065709a614d41b8f49b92578973f, type: 3}
-  type: 0
-  isSelfCast: 0
+  types: 0
+  tags: 0100000015000000
   cooldown: 5
   globalCooldown: 0.8
   castTime: 0
+  alwaysHits: 0
+  canCrit: 1
+  canMiss: 1
+  isSelfCast: 0
+  requiresHitCheck: 1
   effects:
   - {fileID: 11400000, guid: 5187ab0d5873a25448e7c6f3e2171c32, type: 2}

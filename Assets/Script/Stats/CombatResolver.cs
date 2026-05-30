@@ -97,4 +97,93 @@ public static class CombatResolver
 
         return 1;
     }
+
+    public static DamageResult ResolveEffectDamage(
+    CharacterStats attacker,
+    CharacterStats target,
+    int baseDamage,
+    AbilityData ability
+)
+    {
+        DamageResult result = new DamageResult();
+
+        if (attacker == null || target == null)
+            return result;
+
+        bool shouldRollHit =
+            ability != null &&
+            ability.canMiss &&
+            !ability.alwaysHits;
+
+        // MISS
+        if (shouldRollHit)
+        {
+            if (!RollHit(attacker, target))
+            {
+                result.isMiss = true;
+                return result;
+            }
+
+            // EVADE
+            if (RollDodge(attacker, target))
+            {
+                result.isEvaded = true;
+                return result;
+            }
+        }
+
+        float damage = baseDamage;
+
+        // VARIATION
+        damage *= Random.Range(0.8f, 1.2f);
+
+        bool isCrit = false;
+
+        bool canCrit =
+            ability == null || ability.canCrit;
+
+        if (canCrit)
+        {
+            float critChance =
+                attacker.GetStat(StatType.CritChance);
+
+            float critMultiplier =
+                attacker.GetStat(StatType.CritMultiplier);
+
+            isCrit = Random.value < critChance;
+
+            if (isCrit)
+            {
+                damage *= critMultiplier;
+            }
+        }
+
+        // ARMOR
+        float armor =
+            target.GetStat(StatType.Armor);
+
+        damage *= 100f / (100f + armor);
+
+        result.damage =
+            Mathf.Max(1, Mathf.FloorToInt(damage));
+
+        result.isCrit = isCrit;
+
+        return result;
+    }
+
+    public static DamageResult ResolveAbilityHit(
+    CharacterStats attacker,
+    CharacterStats target,
+    int baseDamage
+)
+    {
+        return DamageCalculator.CalculateDamage(
+            baseDamage,
+            attacker.GetStat(StatType.CritChance),
+            attacker.GetStat(StatType.CritMultiplier),
+            attacker,
+            target
+        );
+    }
 }

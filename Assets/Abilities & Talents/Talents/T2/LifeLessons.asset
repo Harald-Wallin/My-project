@@ -18,3 +18,6 @@ MonoBehaviour:
   maxPoints: 3
   effects:
   - {fileID: 11400000, guid: 32a381e576851154584b2eb11f6600db, type: 2}
+  unlockedAbility: {fileID: 0}
+  tier: 3
+  unlockedBaseAttack: {fileID: 0}

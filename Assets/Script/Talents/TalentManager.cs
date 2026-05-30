@@ -12,10 +12,12 @@ public class TalentManager : MonoBehaviour
 
     private PlayerStats player;
 
+    PlayerStats Player =>
+        PlayerReference.Player;
+
     void Awake()
     {
         Instance = this;
-        player = PlayerReference.Player;
 
         Initialize(allTalents);
         
@@ -33,16 +35,16 @@ public class TalentManager : MonoBehaviour
 
     public bool TrySpendPoint(TalentRuntime talent)
     {
-        if (availablePoints <= 0)
-            return false;
+        //Debug.Log("TRY SPEND POINT");
 
-        if (talent.currentPoints >= talent.data.maxPoints)
+        if (!CanLearnTalent(talent))
             return false;
 
         talent.currentPoints++;
         availablePoints--;
 
         ApplyTalent(talent);
+        //Debug.Log("CALLING HANDLE UNLOCKS");
         HandleUnlocks(talent);
 
         return true;
@@ -50,7 +52,7 @@ public class TalentManager : MonoBehaviour
 
     void ApplyTalent(TalentRuntime talent)
     {
-        var player = PlayerReference.Player;
+        var player = Player;
         // 🔥 ta bort gamla modifiers från denna talent
         player.RemoveModifiersFromSource(talent);
 
@@ -73,7 +75,9 @@ public class TalentManager : MonoBehaviour
 
     void HandleUnlocks(TalentRuntime talent)
     {
-        var player = PlayerReference.Player;
+        //Debug.Log("HANDLE UNLOCKS RUNNING");
+
+        var player = Player;
 
         if (player == null)
             return;
@@ -107,7 +111,44 @@ public class TalentManager : MonoBehaviour
 
         if (spellbook != null)
         {
+            //Debug.Log("Refreshing spellbook");
+            //Debug.Log(spellbook);
             spellbook.Refresh();
         }
+    }
+
+    public bool CanLearnTalent(TalentRuntime talent)
+    {
+        if (talent == null)
+            return false;
+
+        // No points
+        if (availablePoints <= 0)
+            return false;
+
+        // Max rank reached
+        if (talent.currentPoints >= talent.data.maxPoints)
+            return false;
+
+        int talentTier = talent.data.tier;
+
+        // Tier 1 always available
+        if (talentTier <= 1)
+            return true;
+
+        int requiredPoints =
+            (talentTier - 1) * 3;
+
+        int spentPointsInPreviousTiers = 0;
+
+        foreach (var t in talents)
+        {
+            if (t.data.tier < talentTier)
+            {
+                spentPointsInPreviousTiers += t.currentPoints;
+            }
+        }
+
+        return spentPointsInPreviousTiers >= requiredPoints;
     }
 }

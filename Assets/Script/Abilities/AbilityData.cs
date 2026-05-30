@@ -17,20 +17,55 @@ public class AbilityData : ScriptableObject, ITooltipProvider
     public Sprite icon;
 
     [Header("Type")]
-    public AbilityType type;
-    public bool isSelfCast = false;
+    public AbilityType types;
+
+    [Header("Tags")]
+    public AbilityTag[] tags;
 
     [Header("Timing")]
     public float cooldown = 5f;
     public float globalCooldown = 0.8f;
     public float castTime = 0f;
 
+    [Header("Combat Rules")]
+    public bool alwaysHits = false;
+    public bool canCrit = true;
+    public bool canMiss = true;
+    public bool isSelfCast = false;
+    public bool requiresHitCheck = false;
+
     [Header("Effects")]
     public AbilityEffect[] effects;
 
     public virtual void Use(CharacterStats caster, CharacterStats target)
     {
-        if (target == null) return;
+        if (target == null)
+            return;
+
+        if (requiresHitCheck)
+        {
+            if (!CombatResolver.RollHit(caster, target))
+            {
+                DamageResult missResult = new DamageResult
+                {
+                    isMiss = true
+                };
+
+                target.TakeDamage(missResult, caster);
+                return;
+            }
+
+            if (CombatResolver.RollDodge(caster, target))
+            {
+                DamageResult evadeResult = new DamageResult
+                {
+                    isEvaded = true
+                };
+
+                target.TakeDamage(evadeResult, caster);
+                return;
+            }
+        }
 
         foreach (var effect in effects)
         {
@@ -43,7 +78,7 @@ public class AbilityData : ScriptableObject, ITooltipProvider
         TooltipData data = new TooltipData();
 
         data.title = abilityName;
-        data.subtitle = type.ToString();
+        data.subtitle = types.ToString();
         data.description = description;
 
         foreach (var effect in effects)

@@ -15,10 +15,15 @@ MonoBehaviour:
   abilityName: Heroic strike
   description: 
   icon: {fileID: 21300000, guid: f4ce3af5ae408f94c9087617c874e8c0, type: 3}
-  type: 0
-  isSelfCast: 0
+  types: 0
+  tags: 0100000018000000
   cooldown: 5
   globalCooldown: 1
   castTime: 0
+  alwaysHits: 0
+  canCrit: 1
+  canMiss: 1
+  isSelfCast: 0
+  requiresHitCheck: 1
   effects:
   - {fileID: 11400000, guid: 730292bf745f9554492927718f465689, type: 2}

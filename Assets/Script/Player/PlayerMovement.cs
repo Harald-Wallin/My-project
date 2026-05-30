@@ -1,5 +1,7 @@
-﻿using Unity.VisualScripting.Antlr3.Runtime.Misc;
+﻿using TMPro;
+using Unity.VisualScripting.Antlr3.Runtime.Misc;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class PlayerMovement : MonoBehaviour
 
@@ -43,6 +45,14 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
+
+        if (IsTypingInInputField())
+        {
+            // Om spelaren skriver i ett inputfält, ignorera rörelseinput   
+            rb.linearVelocity = Vector2.zero;
+            return;
+        }
+
         // --- Läs movement ---
         Vector2 currentMovement;
         currentMovement.x = Input.GetAxisRaw("Horizontal");
@@ -81,6 +91,20 @@ public class PlayerMovement : MonoBehaviour
         if (equipment != null)
             equipment.UpdateVisualDirection(FacingDirection);
 
+    }
+
+    bool IsTypingInInputField()
+    {
+        if (EventSystem.current == null)
+            return false;
+
+        GameObject selected =
+            EventSystem.current.currentSelectedGameObject;
+
+        if (selected == null)
+            return false;
+
+        return selected.GetComponent<TMP_InputField>() != null;
     }
 
     void UpdateFacingDirectionFromMouse()

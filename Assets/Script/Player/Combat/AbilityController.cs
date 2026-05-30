@@ -72,8 +72,11 @@ public class AbilityController : MonoBehaviour
         if (target == null)
             return false;
 
-        if (!CombatTargeting.CanAttack(stats, target))
-            return false;
+        if (!ability.isSelfCast)
+        {
+            if (!CombatTargeting.CanAttack(stats, target))
+                return false;
+        }
 
         ability.Use(stats, target);
 

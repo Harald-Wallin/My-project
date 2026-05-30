@@ -35,4 +35,6 @@ public class PlayerBaseAttackCollection : MonoBehaviour
 
         learnedAttacks.Add(attack);
     }
+
+
 }

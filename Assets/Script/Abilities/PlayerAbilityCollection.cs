@@ -75,4 +75,26 @@ public class PlayerAbilityCollection : MonoBehaviour
     {
         equippedBaseAttack = attack;
     }
+
+    public List<AbilityData> GetAllSpellbookEntries()
+    {
+        List<AbilityData> result =
+            new List<AbilityData>();
+
+        result.AddRange(learnedAbilities);
+
+        PlayerBaseAttackCollection attacks =
+            GetComponent<PlayerBaseAttackCollection>();
+
+        if (attacks != null)
+        {
+            foreach (var attack in attacks.GetLearnedAttacks())
+            {
+                result.Add(attack);
+            }
+        }
+
+        Debug.Log("Spellbook entries: " + result.Count);
+        return result;
+    }
 }

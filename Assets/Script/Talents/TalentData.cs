@@ -16,6 +16,9 @@ public class TalentData : ScriptableObject
     [Header("Unlocks")]
     public AbilityData unlockedAbility;
 
+    [Header("Tier")]
+    public int tier = 1;
+
     public BaseAttackData unlockedBaseAttack;
 
     public TooltipData GetTooltipData(CharacterStats caster, int currentPoints)

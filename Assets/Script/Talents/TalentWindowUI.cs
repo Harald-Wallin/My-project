@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 
@@ -8,25 +9,76 @@ public class TalentWindowUI : MonoBehaviour
     [SerializeField] private GameObject tierPrefab;
     [SerializeField] private GameObject talentSlotPrefab;
     [SerializeField] private TMP_Text availablePointsText;
+    [SerializeField] private List<TalentData> allTalents;
 
-    [SerializeField] private List<TalentTier> tiers;
     [Header("Visibility")]
     [SerializeField] private CanvasGroup canvasGroup;
 
     void Start()
     {
         BuildUI();
-        // Keep component active so Update() receives input, but hide visually if a CanvasGroup is assigned.
+
         if (canvasGroup != null)
         {
             canvasGroup.alpha = 0f;
             canvasGroup.interactable = false;
             canvasGroup.blocksRaycasts = false;
         }
-        else
+    }
+
+    void BuildUI()
+    {
+        Debug.Log($"All talents count: {allTalents.Count}");
+
+        foreach (Transform child in tierContainer)
         {
-            // Fallback to disabling the GameObject (Update won't run while disabled)
-            gameObject.SetActive(false);
+            Destroy(child.gameObject);
+        }
+
+        Dictionary<int, List<TalentData>> tierMap =
+            new Dictionary<int, List<TalentData>>();
+
+        foreach (var talent in allTalents)
+        {
+            Debug.Log($"Talent found: {talent.name}");
+
+            if (!tierMap.ContainsKey(talent.tier))
+            {
+                tierMap.Add(
+                    talent.tier,
+                    new List<TalentData>()
+                );
+            }
+
+            tierMap[talent.tier].Add(talent);
+        }
+
+        foreach (var tier in tierMap.OrderBy(t => t.Key))
+        {
+            GameObject tierGO = Instantiate(tierPrefab,tierContainer);
+            TalentTierHeader header = tierGO.GetComponent<TalentTierHeader>();
+            Transform talentContainer = tierGO.transform.Find("TalentContainer");
+
+            if (header != null)
+            {
+                header.Setup(tier.Key);
+            }
+
+            foreach (var talentData in tier.Value)
+            {
+                TalentRuntime runtime =
+                    TalentManager.Instance.talents
+                    .Find(t => t.data == talentData);
+
+                if (runtime == null)
+                    continue;
+
+                GameObject slotGO = Instantiate(talentSlotPrefab,talentContainer);
+
+                slotGO
+                    .GetComponent<TalentSlotUI>()
+                    .Setup(runtime);
+            }
         }
     }
 
@@ -37,27 +89,6 @@ public class TalentWindowUI : MonoBehaviour
         {
             availablePointsText.text =
                 $"Talent points: {TalentManager.Instance.availablePoints}";
-        }
-    }
-
-    void BuildUI()
-    {
-        foreach (Transform child in tierContainer)
-            Destroy(child.gameObject);
-
-        foreach (var tier in tiers)
-        {
-            GameObject tierGO = Instantiate(tierPrefab, tierContainer);
-
-            foreach (var talentData in tier.talents)
-            {
-                var runtime = TalentManager.Instance.talents
-                    .Find(t => t.data == talentData);
-
-                var slotGO = Instantiate(talentSlotPrefab, tierGO.transform);
-
-                slotGO.GetComponent<TalentSlotUI>().Setup(runtime);
-            }
         }
     }
 
@@ -86,6 +117,17 @@ public class TalentWindowUI : MonoBehaviour
         }
         else
             gameObject.SetActive(true);
+    }
+
+    public void RefreshAllSlots()
+    {
+        TalentSlotUI[] slots =
+            GetComponentsInChildren<TalentSlotUI>();
+
+        foreach (var slot in slots)
+        {
+            slot.ForceRefresh();
+        }
     }
 
     public void Close()

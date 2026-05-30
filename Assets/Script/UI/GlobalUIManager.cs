@@ -1,4 +1,6 @@
+using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class GlobalUIManager : MonoBehaviour
 {
@@ -6,6 +8,9 @@ public class GlobalUIManager : MonoBehaviour
 
     void Update()
     {
+        if (IsTypingInInputField())
+            return;
+
         if (Input.GetKeyDown(KeyCode.B))
             ToggleSpellbook();
 
@@ -25,14 +30,35 @@ public class GlobalUIManager : MonoBehaviour
             CloseAll();
     }
 
+    bool IsTypingInInputField()
+    {
+        if (EventSystem.current == null)
+            return false;
+
+        GameObject selected =
+            EventSystem.current.currentSelectedGameObject;
+
+        if (selected == null)
+            return false;
+
+        return selected.GetComponent<TMP_InputField>() != null;
+    }
+
     // =========================
     // TOGGLES
     // =========================
 
+    /*ublic void ToggleSpellbook()
+     {
+         if (spellbook != null)
+             spellbook.SetActive(!spellbook.activeSelf);
+     }*/
+
     public void ToggleSpellbook()
     {
-        if (spellbook != null)
-            spellbook.SetActive(!spellbook.activeSelf);
+        var sb = FindFirstObjectByType<SpellbookUI>(FindObjectsInactive.Include);
+        if (sb != null)
+            sb.Toggle();
     }
 
     public void ToggleInventory()
@@ -103,108 +129,3 @@ public class GlobalUIManager : MonoBehaviour
             don.Close();
     }
 }
-
-
-
-/*using UnityEngine;
-
-public class GlobalUIManager : MonoBehaviour
-{
-    [Header("Direct references (optional but recommended)")]
-    [SerializeField] private GameObject spellbook;
-
-    void Update()
-    {
-        HandleHotkeys();
-        HandleEscape();
-    }
-
-    void HandleHotkeys()
-    {
-        if (Input.GetKeyDown(KeyCode.B))
-            ToggleSpellbook();
-
-        if (Input.GetKeyDown(KeyCode.I))
-            ToggleInventory();
-
-        if (Input.GetKeyDown(KeyCode.P))
-            TogglePlayerWindow();
-
-        if (Input.GetKeyDown(KeyCode.R)) // ex reputation
-            ToggleReputationWindow();
-
-        if (Input.GetKeyDown(KeyCode.T)) // ex talents
-            ToggleTalentWindow();
-    }
-
-    void HandleEscape()
-    {
-        if (!Input.GetKeyDown(KeyCode.Escape))
-            return;
-
-        CloseIfOpen<TalentWindowUI>();
-        CloseIfOpen<SpellbookUI>();
-        CloseIfOpen<VendorUI>();
-        CloseIfOpen<InventoryUI>();
-        CloseIfOpen<LootUI>();
-        CloseIfOpen<PlayerWindowController>();
-        CloseIfOpen<ReputationWindowUI>();
-    }
-
-    // 🔥 GENERISK CLOSE
-    void CloseIfOpen<T>() where T : MonoBehaviour
-    {
-        var ui = FindFirstObjectByType<T>();
-
-        if (ui == null)
-            return;
-
-        if (ui.gameObject.activeSelf)
-            ui.gameObject.SetActive(false);
-    }
-
-    // =========================
-    // BUTTON / HOTKEY FUNCTIONS
-    // =========================
-
-    public void ToggleSpellbook()
-    {
-        if (spellbook != null)
-        {
-            spellbook.SetActive(!spellbook.activeSelf);
-            return;
-        }
-
-        var ui = FindFirstObjectByType<SpellbookUI>();
-        if (ui != null)
-            ui.gameObject.SetActive(!ui.gameObject.activeSelf);
-    }
-
-    public void ToggleInventory()
-    {
-        var ui = FindFirstObjectByType<InventoryUI>();
-        if (ui != null)
-            ui.gameObject.SetActive(!ui.gameObject.activeSelf);
-    }
-
-    public void TogglePlayerWindow()
-    {
-        var ui = FindFirstObjectByType<PlayerWindowController>();
-        if (ui != null)
-            ui.Toggle(); // denna har redan Toggle()
-    }
-
-    public void ToggleReputationWindow()
-    {
-        var ui = FindFirstObjectByType<ReputationWindowUI>();
-        if (ui != null)
-            ui.gameObject.SetActive(!ui.gameObject.activeSelf);
-    }
-
-    public void ToggleTalentWindow()
-    {
-        var ui = FindFirstObjectByType<TalentWindowUI>();
-        if (ui != null)
-            ui.gameObject.SetActive(!ui.gameObject.activeSelf);
-    }
-}*/

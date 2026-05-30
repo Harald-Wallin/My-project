@@ -15,10 +15,15 @@ MonoBehaviour:
   abilityName: Battle Shout
   description: An envigorating shout
   icon: {fileID: 21300000, guid: fee7eb2f5d1c7a64597bf638938274bd, type: 3}
-  type: 2
-  isSelfCast: 1
+  types: 0
+  tags: 0a000000
   cooldown: 180
   globalCooldown: 1
   castTime: 0
+  alwaysHits: 1
+  canCrit: 0
+  canMiss: 0
+  isSelfCast: 1
+  requiresHitCheck: 0
   effects:
   - {fileID: 11400000, guid: 5320805c683de7642810f83524cf693a, type: 2}

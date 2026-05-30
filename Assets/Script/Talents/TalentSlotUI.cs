@@ -10,6 +10,7 @@ public class TalentSlotUI : MonoBehaviour,
 {
     [SerializeField] Image icon;
     [SerializeField] TMP_Text pointsText;
+    [SerializeField] private Image lockOverlay;
 
     private TalentRuntime talent;
 
@@ -28,21 +29,41 @@ public class TalentSlotUI : MonoBehaviour,
         Refresh();
     }
 
+    public void ForceRefresh()
+    {
+        Refresh();
+    }
+
     void Refresh()
     {
-        pointsText.text = $"{talent.currentPoints}/{talent.data.maxPoints}";
+        pointsText.text =
+            $"{talent.currentPoints}/{talent.data.maxPoints}";
+
+        bool canLearn =
+            TalentManager.Instance.CanLearnTalent(talent);
+
+        if (!canLearn && talent.currentPoints <= 0)
+        {
+            icon.color = new Color(0.35f, 0.35f, 0.35f, 1f);
+        }
+        else
+        {
+            icon.color = Color.white;
+        }
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
         if (TalentManager.Instance.TrySpendPoint(talent))
         {
-            Refresh();
-            ItemTooltip.Instance.ShowTalent(
-                talent.data,
-                talent.currentPoints,
-                icon.rectTransform
-            );
+            TalentWindowUI window =GetComponentInParent<TalentWindowUI>();
+
+            if (window != null)
+            {
+                window.RefreshAllSlots();
+            }
+
+            ItemTooltip.Instance.ShowTalent(talent.data,talent.currentPoints,icon.rectTransform);
         }
 
     }

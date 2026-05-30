@@ -1,0 +1,28 @@
+public enum AbilityTag
+{
+    BaseAttack,
+    Melee,
+    Ranged,
+    Spell,
+    Fire,
+    Frost,
+    Lightning,
+    Bleed,
+    Poison,
+    Curse,
+    Buff,
+    Heal,
+    Physical,
+    Shadow,
+    Holy,
+    Nature,
+    Arcane,
+    CrowdControl,
+    Mobility,
+    Summon,
+    Defensive,
+    Stun,
+    Silence,
+    Snare,
+    Strike
+}
