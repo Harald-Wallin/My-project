@@ -134,6 +134,7 @@ GameObject:
   - component: {fileID: 7740983866361900362}
   - component: {fileID: 8144840735393303260}
   - component: {fileID: 4809851477537448337}
+  - component: {fileID: 1802090772005005079}
   m_Layer: 6
   m_Name: NonHostileHumanoid
   m_TagString: Enemy
@@ -448,6 +449,20 @@ MonoBehaviour:
   maxHoldDistanceFromSpawn: 50
   selfStats: {fileID: 0}
   reaggroCooldown: 3
+--- !u!114 &1802090772005005079
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b3c9e946478baa47a6c0b7c8c0a5b4d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DamageReaction
+  pushDistance: 0.08
+  pushDuration: 0.05
 --- !u!1001 &6559884275791562813
 PrefabInstance:
   m_ObjectHideFlags: 0

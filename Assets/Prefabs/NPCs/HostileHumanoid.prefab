@@ -20,6 +20,7 @@ GameObject:
   - component: {fileID: 17746861532873532}
   - component: {fileID: -6276876268285353313}
   - component: {fileID: 5122081960522985903}
+  - component: {fileID: 6658034871447627093}
   m_Layer: 8
   m_Name: HostileHumanoid
   m_TagString: Enemy
@@ -344,6 +345,20 @@ MonoBehaviour:
   reactionType: 0
   hostilityDuration: 300
   alertDuration: 10
+--- !u!114 &6658034871447627093
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b3c9e946478baa47a6c0b7c8c0a5b4d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DamageReaction
+  pushDistance: 0.08
+  pushDuration: 0.05
 --- !u!1 &3778626201625969471
 GameObject:
   m_ObjectHideFlags: 0

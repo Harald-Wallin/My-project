@@ -9,7 +9,7 @@ public class TalentWindowUI : MonoBehaviour
     [SerializeField] private GameObject tierPrefab;
     [SerializeField] private GameObject talentSlotPrefab;
     [SerializeField] private TMP_Text availablePointsText;
-    [SerializeField] private List<TalentData> allTalents;
+    //[SerializeField] private List<TalentData> allTalents;
 
     [Header("Visibility")]
     [SerializeField] private CanvasGroup canvasGroup;
@@ -28,7 +28,7 @@ public class TalentWindowUI : MonoBehaviour
 
     void BuildUI()
     {
-        Debug.Log($"All talents count: {allTalents.Count}");
+        //Debug.Log($"All talents count: {allTalents.Count}");
 
         foreach (Transform child in tierContainer)
         {
@@ -38,9 +38,9 @@ public class TalentWindowUI : MonoBehaviour
         Dictionary<int, List<TalentData>> tierMap =
             new Dictionary<int, List<TalentData>>();
 
-        foreach (var talent in allTalents)
+        foreach (var talent in TalentManager.Instance.AllTalents)
         {
-            Debug.Log($"Talent found: {talent.name}");
+            //Debug.Log($"Talent found: {talent.name}");
 
             if (!tierMap.ContainsKey(talent.tier))
             {

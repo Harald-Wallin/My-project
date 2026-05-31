@@ -7,13 +7,15 @@ public class TalentManager : MonoBehaviour
 
     public int availablePoints = 0;
     [SerializeField] private List<TalentData> allTalents;
+    [SerializeField] private List<int> tierRequirements;
+
+    public IReadOnlyList<TalentData> AllTalents => allTalents;
 
     public List<TalentRuntime> talents = new List<TalentRuntime>();
 
     private PlayerStats player;
 
-    PlayerStats Player =>
-        PlayerReference.Player;
+    PlayerStats Player => PlayerReference.Player;
 
     void Awake()
     {
@@ -31,6 +33,19 @@ public class TalentManager : MonoBehaviour
         {
             talents.Add(new TalentRuntime(t));
         }
+    }
+
+    public int GetTierRequirement(int tier)
+    {
+        if (tier <= 1)
+            return 0;
+
+        int index = tier - 1;
+
+        if (index >= tierRequirements.Count)
+            return int.MaxValue;
+
+        return tierRequirements[index];
     }
 
     public bool TrySpendPoint(TalentRuntime talent)
@@ -136,8 +151,7 @@ public class TalentManager : MonoBehaviour
         if (talentTier <= 1)
             return true;
 
-        int requiredPoints =
-            (talentTier - 1) * 3;
+        int requiredPoints = GetTierRequirement(talentTier);
 
         int spentPointsInPreviousTiers = 0;
 

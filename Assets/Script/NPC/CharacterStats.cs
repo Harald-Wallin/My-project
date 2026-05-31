@@ -66,6 +66,7 @@ public class CharacterStats : MonoBehaviour
 
     public int TakeDamage(DamageResult result, CharacterStats attacker)
     {
+
         if (result.isMiss)
         {
             FloatingTextSpawner.Instance?.SpawnCustomText(transform.position, "Miss", false);
@@ -89,15 +90,25 @@ public class CharacterStats : MonoBehaviour
 
         OnDamagedBy?.Invoke(attacker);
 
+        DamageReaction reaction =
+    GetComponentInChildren<DamageReaction>();
+
+        if (reaction != null && attacker != null)
+        {
+            reaction.PlayReaction(
+                attacker.transform.position
+            );
+        }
+
         // Crime BEFORE death
         CrimeManager.HandleAttackCrime(attacker, this);
 
         // NPC reaction BEFORE death
         OnDamaged(attacker);
 
-        bool isPlayer = this is PlayerStats;
+        bool attackerIsPlayer = attacker is PlayerStats;
 
-        if (isPlayer)
+        if (attackerIsPlayer)
         {
             FloatingTextSpawner.Instance?.SpawnPlayerDamage(
                 transform.position,

@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23c2b3da50adf324b96011f0dd97811f, type: 3}
+  m_Name: UnlockSkullBashTalent
+  m_EditorClassIdentifier: Assembly-CSharp::TalentData
+  talentName: Skull Bash
+  description: Unlocks the Skull Bash ability
+  icon: {fileID: 21300000, guid: f1bc065709a614d41b8f49b92578973f, type: 3}
+  maxPoints: 1
+  effects: []
+  unlockedAbility: {fileID: 11400000, guid: f5968349c0446ed41aed94abca0babff, type: 2}
+  tier: 4
+  unlockedBaseAttack: {fileID: 0}

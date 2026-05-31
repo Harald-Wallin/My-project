@@ -7,17 +7,17 @@ public static class CombatTargeting
     CharacterStats target
 )
     {
-        Debug.Log($"CanAttack? {attacker.name} -> {target.name}");
+        //Debug.Log($"CanAttack? {attacker.name} -> {target.name}");
 
         if (attacker == null || target == null)
         {
-            Debug.Log("FAILED: null attacker or target");
+            //Debug.Log("FAILED: null attacker or target");
             return false;
         }
 
         if (attacker == target)
         {
-            Debug.Log("FAILED: attacker == target");
+            //Debug.Log("FAILED: attacker == target");
             return false;
         }
 

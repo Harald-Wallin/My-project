@@ -7,8 +7,7 @@ public class TalentTierHeader : MonoBehaviour
 
     public void Setup(int tier)
     {
-        int requiredPoints =
-            Mathf.Max(0, (tier - 1) * 3);
+        int requiredPoints = TalentManager.Instance.GetTierRequirement(tier);
 
         headerText.text = $"Tier {tier} - Unlock: {requiredPoints} points";
     }

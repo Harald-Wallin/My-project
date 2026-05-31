@@ -91,15 +91,15 @@ public class BaseAttackController : MonoBehaviour
 
     public bool TryAttackTarget(CharacterStats target)
     {
-        Debug.Log("ENTER TryAttackTarget");
+        //Debug.Log("ENTER TryAttackTarget");
 
-        Debug.Log($"Target: {target}");
-        Debug.Log($"Stats: {stats}");
+        //Debug.Log($"Target: {target}");
+        //Debug.Log($"Stats: {stats}");
 
         BaseAttackData attack =
             collection.GetEquippedAttack();
 
-        Debug.Log($"EquippedAttack: {attack}");
+        //Debug.Log($"EquippedAttack: {attack}");
 
         if (attack == null)
             return false;
@@ -116,7 +116,7 @@ public class BaseAttackController : MonoBehaviour
         if (!CombatTargeting.CanAttack(stats, target))
             return false;
 
-        Debug.Log("PASSED ATTACK VALIDATION");
+        //Debug.Log("PASSED ATTACK VALIDATION");
 
         float distance =
             Vector2.Distance(
@@ -124,18 +124,18 @@ public class BaseAttackController : MonoBehaviour
                 target.transform.position
             );
 
-        Debug.Log($"Distance: {distance}");
+        ////Debug.Log($"Distance: {distance}");
 
-        Debug.Log($"Attack range: {attack.range}");
+        //Debug.Log($"Attack range: {attack.range}");
 
         if (distance > attack.range)
             return false;
 
-        Debug.Log("CALLING ATTACK USE");
+        //Debug.Log("CALLING ATTACK USE");
 
         attack.Use(stats, target);
 
-        Debug.Log("ATTACK USE FINISHED");
+        //Debug.Log("ATTACK USE FINISHED");
 
         StartCooldown();
 

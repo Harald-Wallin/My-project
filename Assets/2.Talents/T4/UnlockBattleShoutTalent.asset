@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23c2b3da50adf324b96011f0dd97811f, type: 3}
+  m_Name: UnlockBattleShoutTalent
+  m_EditorClassIdentifier: Assembly-CSharp::TalentData
+  talentName: Battle Shout
+  description: Unlocks the Battle Shout ability
+  icon: {fileID: 21300000, guid: fee7eb2f5d1c7a64597bf638938274bd, type: 3}
+  maxPoints: 1
+  effects: []
+  unlockedAbility: {fileID: 11400000, guid: 715d7b5f3fab864498123fe650703a87, type: 2}
+  tier: 4
+  unlockedBaseAttack: {fileID: 0}

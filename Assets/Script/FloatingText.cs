@@ -14,11 +14,18 @@ public class FloatingText : MonoBehaviour
 
     private bool isCritText;
     private float critHoldTimer;
+    private Vector3 originalTextScale;
+
+    private float critPopTimer;
+    private const float critPopDuration = 0.15f;
 
     void Awake()
     {
         canvasGroup = GetComponentInParent<CanvasGroup>();
         timer = lifetime;
+
+        originalTextScale =
+            text.transform.localScale;
 
         moveDirection = new Vector3(
             Random.Range(-0.3f, 0.3f),
@@ -29,6 +36,7 @@ public class FloatingText : MonoBehaviour
 
     void Update()
     {
+        //Debug.Log($"Crit:{isCritText} Timer:{timer}");
         if (isCritText)
         {
             HandleCritAnimation();
@@ -62,7 +70,14 @@ public class FloatingText : MonoBehaviour
     string value,
     FloatingTextStyle style)
     {
-        text.text = value;
+        bool isCrit =
+        style == FloatingTextStyle.PlayerCrit ||
+        style == FloatingTextStyle.EnemyCrit;
+
+        text.text =
+            isCrit
+                ? $"<b>{value}</b>"
+                : value;
 
         switch (style)
         {
@@ -80,11 +95,7 @@ public class FloatingText : MonoBehaviour
 
             case FloatingTextStyle.PlayerCrit:
                 SetupCritStyle(
-                    new Color(
-                        1f,
-                        0.97f,
-                        0.82f
-                    )
+                    new Color(/*1f,0.97f,0.82f*/1f,1f ,1f)
                 );
                 break;
 
@@ -112,6 +123,7 @@ public class FloatingText : MonoBehaviour
 
     void SetupCritStyle(Color color)
     {
+
         isCritText = true;
 
         critHoldTimer = 0.25f;
@@ -121,26 +133,60 @@ public class FloatingText : MonoBehaviour
         text.fontSize *= 2f;
 
         lifetime += 0.4f;
+
+        critPopTimer = critPopDuration;
+
+        text.transform.localScale = originalTextScale * 0.5f;
+
+        //Debug.Log($"Lifetime: {lifetime}");
+        //Debug.Log($"Timer: {timer}");
     }
 
     void HandleCritAnimation()
     {
-        if (critHoldTimer > 0f)
+        // POP ANIMATION
+        if (critPopTimer > 0f)
         {
-            critHoldTimer -= Time.deltaTime;
+            critPopTimer -= Time.deltaTime;
 
-            float pulse =
-                1f +
-                Mathf.Sin(
-                    Time.time * 25f
-                ) * 0.08f;
+            float t =  1f - (critPopTimer / critPopDuration);
 
-            transform.localScale =
-                Vector3.one * pulse;
+            float scale;
+
+            if (t < 0.5f)
+            {
+                scale = Mathf.Lerp(
+                    0.5f,
+                    2.0f,
+                    t / 0.5f
+                );
+            }
+            else
+            {
+                scale = Mathf.Lerp(
+                    2.0f,
+                    1.2f,
+                    (t - 0.5f) / 0.5f
+                );
+            }
+
+            text.transform.localScale = originalTextScale * scale;
 
             return;
         }
 
+        // HOLD MOMENT
+        if (critHoldTimer > 0f)
+        {
+            critHoldTimer -= Time.deltaTime;
+
+            text.transform.localScale =
+                originalTextScale * 1.2f;
+
+            return;
+        }
+
+        // FLY AWAY
         transform.Translate(
             moveDirection *
             moveUpSpeed *

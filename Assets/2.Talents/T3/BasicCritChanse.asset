@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23c2b3da50adf324b96011f0dd97811f, type: 3}
+  m_Name: BasicCritChanse
+  m_EditorClassIdentifier: Assembly-CSharp::TalentData
+  talentName: Acuracy
+  description: +2% crit chanse.
+  icon: {fileID: 21300000, guid: cffdb42c9afed2f4aa15dc3dcf2f5c6f, type: 3}
+  maxPoints: 5
+  effects:
+  - {fileID: 11400000, guid: de4622a27bed11f4089f07e84b59a94f, type: 2}
+  unlockedAbility: {fileID: 0}
+  tier: 3
+  unlockedBaseAttack: {fileID: 0}

@@ -16,7 +16,7 @@ public class DraggableAbility : MonoBehaviour, IBeginDragHandler, IDragHandler, 
 
     void Awake()
     {
-        Debug.Log("DraggableAbility attached to: " + gameObject.name);
+        //Debug.Log("DraggableAbility attached to: " + gameObject.name);
         canvas = GetComponentInParent<Canvas>();
       
     }

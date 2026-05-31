@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23c2b3da50adf324b96011f0dd97811f, type: 3}
+  m_Name: BasicEndurance
+  m_EditorClassIdentifier: Assembly-CSharp::TalentData
+  talentName: Basic Endurance
+  description: +2% maxHP.
+  icon: {fileID: 21300000, guid: 91554cd66ae170f4cb243af780852488, type: 3}
+  maxPoints: 10
+  effects:
+  - {fileID: 11400000, guid: d931fe74f96e9f347ba11320aca3b068, type: 2}
+  unlockedAbility: {fileID: 0}
+  tier: 3
+  unlockedBaseAttack: {fileID: 0}

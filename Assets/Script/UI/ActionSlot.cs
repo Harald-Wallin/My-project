@@ -22,7 +22,7 @@ public class ActionSlot : MonoBehaviour, IDropHandler, IPointerEnterHandler, IPo
     public void Initialize(AbilityController controller, AbilityData ability, int index)
     {
 
-        Debug.Log("Slot init: " + ability?.abilityName);
+        //Debug.Log("Slot init: " + ability?.abilityName);
         collection = controller.GetComponent<PlayerAbilityCollection>();
 
         this.abilityController = controller;

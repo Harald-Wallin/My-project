@@ -94,7 +94,7 @@ public class PlayerAbilityCollection : MonoBehaviour
             }
         }
 
-        Debug.Log("Spellbook entries: " + result.Count);
+        //Debug.Log("Spellbook entries: " + result.Count);
         return result;
     }
 }
