@@ -75,7 +75,7 @@ public class EquipmentManager : MonoBehaviour
         // 🔁 OM SLOT HAR ITEM → SWAP
         if (existingItem != null)
         {
-            Debug.Log($"EquipmentManager.TryEquipItem: swapping '{existingItem?.itemName}' into inventory slot {fromSlotIndex} and equipping '{item?.itemName}'");
+            //Debug.Log($"EquipmentManager.TryEquipItem: swapping '{existingItem?.itemName}' into inventory slot {fromSlotIndex} and equipping '{item?.itemName}'");
 
             // Ta bort stats från gamla
             RemoveStats(existingItem);
@@ -86,7 +86,7 @@ public class EquipmentManager : MonoBehaviour
         }
         else
         {
-            Debug.Log($"EquipmentManager.TryEquipItem: equipping '{item?.itemName}' from inventory slot {fromSlotIndex} (empty target slot)");
+            //Debug.Log($"EquipmentManager.TryEquipItem: equipping '{item?.itemName}' from inventory slot {fromSlotIndex} (empty target slot)");
 
             // Om tom → ta bort från inventory
             inventory.RemoveItemAt(fromSlotIndex, 1);
@@ -108,7 +108,7 @@ public class EquipmentManager : MonoBehaviour
         {
             var slot = inventory.slots[fromSlotIndex];
             string name = slot.IsEmpty() ? "(empty)" : slot.item.itemName;
-            Debug.Log($"EquipmentManager.TryEquipItem: inventory slot {fromSlotIndex} now contains: {name} (amount {slot.amount})");
+            //Debug.Log($"EquipmentManager.TryEquipItem: inventory slot {fromSlotIndex} now contains: {name} (amount {slot.amount})");
         }
     }
 
@@ -127,6 +127,12 @@ public class EquipmentManager : MonoBehaviour
 
         if (item.damageBonus != 0)
             playerStats.AddModifier(new StatModifier(StatType.WeaponDamage, item.damageBonus, ModifierType.Flat, item, ModifierSourceType.Equipment));
+
+        if (item.blockChanceBonus != 0)
+            playerStats.AddModifier(new StatModifier(StatType.BlockChance,item.blockChanceBonus,ModifierType.Flat,item,ModifierSourceType.Equipment));
+
+        if (item.blockValueBonus != 0)
+            playerStats.AddModifier(new StatModifier(StatType.BlockValue,item.blockValueBonus,ModifierType.Flat,item,ModifierSourceType.Equipment));
     }
 
     public void RemoveStats(ItemData item)

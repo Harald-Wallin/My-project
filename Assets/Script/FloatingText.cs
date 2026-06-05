@@ -66,9 +66,7 @@ public class FloatingText : MonoBehaviour
         }
     }
 
-    public void Setup(
-    string value,
-    FloatingTextStyle style)
+    public void Setup( string value,FloatingTextStyle style)
     {
         bool isCrit =
         style == FloatingTextStyle.PlayerCrit ||
@@ -95,7 +93,7 @@ public class FloatingText : MonoBehaviour
 
             case FloatingTextStyle.PlayerCrit:
                 SetupCritStyle(
-                    new Color(/*1f,0.97f,0.82f*/1f,1f ,1f)
+                    new Color(1f,1f ,1f)
                 );
                 break;
 
@@ -117,6 +115,16 @@ public class FloatingText : MonoBehaviour
             case FloatingTextStyle.Evade:
                 text.color = Color.gray;
                 text.fontSize *= 0.7f;
+                break;
+
+            case FloatingTextStyle.Block:
+                text.color = new Color(
+                    0.5f,
+                    0.8f,
+                    1f
+                );
+
+                text.fontSize *= 0.9f;
                 break;
         }
     }

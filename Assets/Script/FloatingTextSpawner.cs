@@ -45,12 +45,11 @@ public class FloatingTextSpawner : MonoBehaviour
         string textValue,
         bool isCrit)
     {
-        FloatingTextStyle style =
-            textValue == "Miss"
-                ? FloatingTextStyle.Miss
-            : textValue == "Evade"
-                ? FloatingTextStyle.Evade
-            : FloatingTextStyle.PlayerDamage;
+        FloatingTextStyle style = textValue == "Miss" ? FloatingTextStyle.Miss
+        : textValue == "Evade" ? FloatingTextStyle.Evade
+        : textValue.StartsWith("Block") ? FloatingTextStyle.Block
+        : textValue == "Evade" ? FloatingTextStyle.Evade
+        : FloatingTextStyle.PlayerDamage;
 
         SpawnText(
             position,

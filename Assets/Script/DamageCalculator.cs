@@ -5,9 +5,13 @@ using static UnityEngine.GraphicsBuffer;
 public struct DamageResult
 {
     public int damage;
+
     public bool isCrit;
     public bool isMiss;
     public bool isEvaded;
+
+    public bool isBlocked;
+    public int blockedAmount;
 }
 
 public static class DamageCalculator
@@ -51,12 +55,33 @@ public static class DamageCalculator
         float armor = defender.GetStat(StatType.Armor);
         damage *= 100f / (100f + armor);
 
+        bool blocked = false;
+        int blockedAmount = 0;
 
+        float blockChance =
+            defender.GetStat(StatType.BlockChance);
+
+        if (Random.value < blockChance)
+        {
+            blocked = true;
+
+            blockedAmount =
+                Mathf.RoundToInt(
+                    defender.GetStat(StatType.BlockValue)
+                );
+
+            damage -= blockedAmount;
+
+            damage = Mathf.Max(1, damage);
+        }
 
         return new DamageResult
         {
             damage = Mathf.Max(1, Mathf.FloorToInt(damage)),
-            isCrit = isCrit
+            isCrit = isCrit,
+
+            isBlocked = blocked,
+            blockedAmount = blockedAmount
         };
     }
 

@@ -12,7 +12,10 @@ public enum StatType
     Evasion,
     Swiftness,
     MovementSpeed,
-    AttackSpeed
+    AttackSpeed,
+
+    BlockChance,
+    BlockValue,
 }
 
 public enum ModifierType

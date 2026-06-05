@@ -10,6 +10,7 @@ public class HumanoidEquipment : MonoBehaviour
     public ItemData legs;
     public ItemData feet;
     public ItemData weapon;
+    public ItemData offhand;
 
     [Header("Sprite Renderers")]
     public SpriteRenderer headRenderer;
@@ -19,6 +20,7 @@ public class HumanoidEquipment : MonoBehaviour
     public SpriteRenderer legsRenderer;
     public SpriteRenderer feetRenderer;
     public SpriteRenderer weaponRenderer;
+    public SpriteRenderer offhandRenderer;
 
     private CharacterStats stats;
 
@@ -46,6 +48,7 @@ public class HumanoidEquipment : MonoBehaviour
             case ItemType.Legs: legs = item; break;
             case ItemType.Feet: feet = item; break;
             case ItemType.Weapon: weapon = item; break;
+            case ItemType.Offhand: offhand = item; break;
             default: return;
         }
 
@@ -70,6 +73,7 @@ public class HumanoidEquipment : MonoBehaviour
             case ItemType.Legs: legs = null; break;
             case ItemType.Feet: feet = null; break;
             case ItemType.Weapon: weapon = null; break;
+            case ItemType.Offhand: offhand = null; break;
         }
 
         RestoreHiddenParts();
@@ -125,6 +129,7 @@ public class HumanoidEquipment : MonoBehaviour
         UpdateItemVisual(legs, legsRenderer, dir);
         UpdateItemVisual(feet, feetRenderer, dir);
         UpdateItemVisual(weapon, weaponRenderer, dir);
+        UpdateItemVisual(offhand, offhandRenderer, dir);
 
         UpdateSorting(dir);
     }

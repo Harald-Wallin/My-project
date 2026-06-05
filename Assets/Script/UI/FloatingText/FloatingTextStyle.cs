@@ -7,5 +7,7 @@ public enum FloatingTextStyle
     EnemyCrit,
 
     Miss,
-    Evade
+    Evade,
+
+    Block   
 }

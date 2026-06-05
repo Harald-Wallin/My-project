@@ -24,6 +24,8 @@ public enum ItemType
     Reagent,
     Reputation,
     Trash,
+    Offhand,
+    Shield
 
 }
 
@@ -65,6 +67,8 @@ public class ItemData : ScriptableObject, ITooltipProvider
     [Header("Stat Bonuses")]
     public int damageBonus;
     public int armorBonus;
+    public float blockChanceBonus;
+    public int blockValueBonus;
     public int strengthBonus;
     public int healthBonus;
 
@@ -114,6 +118,12 @@ public class ItemData : ScriptableObject, ITooltipProvider
 
         if (healthBonus > 0)
             data.stats.Add($"+{healthBonus} Health");
+
+        if (blockChanceBonus > 0)
+            data.stats.Add($"Block Chance: +{blockChanceBonus * 100f:0}%");
+
+        if (blockValueBonus > 0)
+            data.stats.Add($"Block Value: +{blockValueBonus}");
 
         data.footer = $"Sellprice: {SellPrice}";
         data.showFooter = true;

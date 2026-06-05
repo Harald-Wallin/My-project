@@ -9125,6 +9125,8 @@ MonoBehaviour:
   weaponDamage: 0
   hitChance: 0.84
   evasion: 0.02
+  blockChance: 0
+  blockValue: 0
   critChance: 0.03
   critMultiplier: 1.2
   effectPoint: {fileID: 641019748}
@@ -9294,6 +9296,7 @@ MonoBehaviour:
   legs: {fileID: 0}
   feet: {fileID: 0}
   weapon: {fileID: 0}
+  offhand: {fileID: 0}
   headRenderer: {fileID: 348673059}
   chestRenderer: {fileID: 1890991542}
   shouldersRenderer: {fileID: 1353608042}
@@ -9301,6 +9304,7 @@ MonoBehaviour:
   legsRenderer: {fileID: 591596693}
   feetRenderer: {fileID: 703551786}
   weaponRenderer: {fileID: 1214057647}
+  offhandRenderer: {fileID: 0}
 --- !u!114 &638953997
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18155,7 +18159,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1775957794}
   m_HandleRect: {fileID: 1775957793}
   m_Direction: 2
-  m_Value: 1
+  m_Value: 0
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -21761,7 +21765,7 @@ PrefabInstance:
     - target: {fileID: 4274743153658852587, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
       propertyPath: 'itemsForSale.Array.data[0]'
       value: 
-      objectReference: {fileID: 11400000, guid: bbea026ae2c12a4478dabcac1dea4a34, type: 2}
+      objectReference: {fileID: 11400000, guid: 1fc4f1deaf652e34bb3ac56201b7e69f, type: 2}
     - target: {fileID: 4274743153658852587, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
       propertyPath: 'itemsForSale.Array.data[1]'
       value: 
@@ -21781,7 +21785,7 @@ PrefabInstance:
     - target: {fileID: 4274743153658852587, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
       propertyPath: 'itemsForSale.Array.data[5]'
       value: 
-      objectReference: {fileID: 11400000, guid: 16fe620a971a7c842b4d11b413b6f76d, type: 2}
+      objectReference: {fileID: 11400000, guid: 1fc4f1deaf652e34bb3ac56201b7e69f, type: 2}
     - target: {fileID: 4274743153658852587, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
       propertyPath: 'itemsForSale.Array.data[6]'
       value: 

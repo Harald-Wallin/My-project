@@ -30,6 +30,8 @@ public class CharacterStats : MonoBehaviour
     public int weaponDamage;
     public float hitChance = 0.85f;
     public float evasion = 0.08f;
+    public float blockChance = 0f;
+    public int blockValue = 0;
 
     private List<StatModifier> modifiers = new List<StatModifier>();
 
@@ -84,6 +86,15 @@ public class CharacterStats : MonoBehaviour
         }
 
         int finalDamage = result.damage;
+
+        if (result.isBlocked)
+        {
+            FloatingTextSpawner.Instance?.SpawnCustomText(
+                transform.position,
+                $"(Block {result.blockedAmount})",
+                false
+            );
+        }
 
         currentHP -= finalDamage;
         RaiseHealthChanged();
@@ -188,6 +199,8 @@ public class CharacterStats : MonoBehaviour
             case StatType.Evasion: return evasion;
             case StatType.MovementSpeed: return movementSpeed;
             case StatType.AttackSpeed: return attackSpeed;
+            case StatType.BlockChance: return blockChance;
+            case StatType.BlockValue: return blockValue;
 
             default: return 0f;
         }
