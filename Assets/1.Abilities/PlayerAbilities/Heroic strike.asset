@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Heroic strike
   m_EditorClassIdentifier: Assembly-CSharp::AbilityData
   abilityName: Heroic strike
-  description: 
+  description: A determined strike that deals high damage upon your foe
   icon: {fileID: 21300000, guid: f4ce3af5ae408f94c9087617c874e8c0, type: 3}
   types: 0
   tags: 0100000018000000

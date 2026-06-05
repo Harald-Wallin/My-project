@@ -145,6 +145,23 @@ public class TalentManager : MonoBehaviour
         if (talent.currentPoints >= talent.data.maxPoints)
             return false;
 
+        foreach (var requirement in talent.data.requirements)
+        {
+            TalentRuntime runtime =
+                talents.Find(
+                    t => t.data == requirement.talent
+                );
+
+            if (runtime == null)
+                return false;
+
+            if (runtime.currentPoints <
+                requirement.requiredPoints)
+            {
+                return false;
+            }
+        }
+
         int talentTier = talent.data.tier;
 
         // Tier 1 always available
