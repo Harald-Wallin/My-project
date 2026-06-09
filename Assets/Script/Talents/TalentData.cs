@@ -16,6 +16,9 @@ public class TalentData : ScriptableObject
     [Header("Unlocks")]
     public AbilityData unlockedAbility;
 
+    [Header("Ward")]
+    public bool unlocksWardSystem;
+
     [Header("Tier")]
     public int tier = 1;
 

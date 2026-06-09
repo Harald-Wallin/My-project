@@ -18,9 +18,10 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: f1bc065709a614d41b8f49b92578973f, type: 3}
   types: 0
   tags: 0100000015000000
-  cooldown: 5
+  cooldown: 10
   globalCooldown: 0.8
   castTime: 0
+  wardCost: 2
   alwaysHits: 0
   canCrit: 1
   canMiss: 1

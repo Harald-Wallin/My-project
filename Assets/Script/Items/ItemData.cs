@@ -168,10 +168,7 @@ public class ItemData : ScriptableObject, ITooltipProvider
         return true;
     }
 
-    public void AddRequirementLines(
-    TooltipData data,
-    PlayerStats player
-)
+    public void AddRequirementLines(TooltipData data,PlayerStats player)
     {
         if (player == null)
             return;

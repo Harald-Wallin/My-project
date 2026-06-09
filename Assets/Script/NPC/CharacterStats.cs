@@ -89,11 +89,23 @@ public class CharacterStats : MonoBehaviour
 
         if (result.isBlocked)
         {
-            FloatingTextSpawner.Instance?.SpawnCustomText(
-                transform.position,
-                $"(Block {result.blockedAmount})",
-                false
-            );
+            Debug.Log("Attack blocked!");
+
+            PlayerStats player = GetComponent<PlayerStats>();
+
+            if (player != null)
+            {
+                Debug.Log("Blocked by player!");
+
+                WardSystem ward =
+                    GetComponent<WardSystem>();
+
+                if (ward != null)
+                {
+                    Debug.Log("WardSystem found, adding ward");
+                    ward.AddWard(1);
+                }
+            }
         }
 
         currentHP -= finalDamage;
@@ -117,24 +129,22 @@ public class CharacterStats : MonoBehaviour
         // NPC reaction BEFORE death
         OnDamaged(attacker);
 
+        string damageText = $"<color=#FF0000>-{finalDamage}</color>";
+
+        if (result.isBlocked)
+        {
+            damageText +=
+                $" <color=white>({result.blockedAmount} Block)</color>";
+        }
+
         bool attackerIsPlayer = attacker is PlayerStats;
 
-        if (attackerIsPlayer)
-        {
-            FloatingTextSpawner.Instance?.SpawnPlayerDamage(
-                transform.position,
-                finalDamage,
-                result.isCrit
-            );
-        }
-        else
-        {
-            FloatingTextSpawner.Instance?.SpawnEnemyDamage(
-                transform.position,
-                finalDamage,
-                result.isCrit
-            );
-        }
+        FloatingTextSpawner.Instance?.SpawnDamageText(
+            transform.position,
+            damageText,
+            result.isCrit,
+            !attackerIsPlayer
+        );
 
         if (currentHP <= 0)
         {

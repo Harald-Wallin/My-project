@@ -58,17 +58,17 @@ public static class DamageCalculator
         bool blocked = false;
         int blockedAmount = 0;
 
-        float blockChance =
-            defender.GetStat(StatType.BlockChance);
+        float blockChance = defender.GetStat(StatType.BlockChance);
+
+        Debug.Log( $"BlockChance: {blockChance} | BlockValue: {defender.GetStat(StatType.BlockValue)}");
 
         if (Random.value < blockChance)
         {
+            Debug.Log("BLOCK OCCURRED");
+
             blocked = true;
 
-            blockedAmount =
-                Mathf.RoundToInt(
-                    defender.GetStat(StatType.BlockValue)
-                );
+            blockedAmount = Mathf.RoundToInt(defender.GetStat(StatType.BlockValue));
 
             damage -= blockedAmount;
 

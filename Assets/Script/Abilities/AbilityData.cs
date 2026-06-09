@@ -27,6 +27,9 @@ public class AbilityData : ScriptableObject, ITooltipProvider
     public float globalCooldown = 0.8f;
     public float castTime = 0f;
 
+    [Header("Costs")]
+    public int wardCost = 0;
+
     [Header("Combat Rules")]
     public bool alwaysHits = false;
     public bool canCrit = true;
@@ -79,6 +82,12 @@ public class AbilityData : ScriptableObject, ITooltipProvider
 
         data.title = abilityName;
         data.subtitle = types.ToString();
+
+        if (wardCost > 0)
+        {
+            data.stats.Add($"<color=#7FD9FF>{wardCost} Wards</color>");
+        }
+
         data.description = description;
 
         foreach (var effect in effects)

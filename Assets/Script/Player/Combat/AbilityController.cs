@@ -78,6 +78,21 @@ public class AbilityController : MonoBehaviour
                 return false;
         }
 
+        if (ability.wardCost > 0)
+        {
+            WardSystem ward =
+                GetComponent<WardSystem>();
+
+            if (ward == null)
+                return false;
+
+            if (!ward.TrySpendWard(
+                ability.wardCost))
+            {
+                return false;
+            }
+        }
+
         ability.Use(stats, target);
 
         cooldownTimers[ability] = ability.cooldown;

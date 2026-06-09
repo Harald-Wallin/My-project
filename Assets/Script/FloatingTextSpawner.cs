@@ -58,16 +58,9 @@ public class FloatingTextSpawner : MonoBehaviour
         );
     }
 
-    void SpawnText(
-        Vector3 position,
-        string value,
-        FloatingTextStyle style)
+    void SpawnText(Vector3 position,string value,FloatingTextStyle style)
     {
-        GameObject obj = Instantiate(
-            playerDamagePrefab,
-            position + Vector3.up * 1.5f,
-            Quaternion.identity
-        );
+        GameObject obj = Instantiate(playerDamagePrefab,position + Vector3.up * 1.5f,Quaternion.identity);
 
         FloatingText text =
             obj.GetComponentInChildren<FloatingText>();
@@ -79,5 +72,19 @@ public class FloatingTextSpawner : MonoBehaviour
                 style
             );
         }
+    }
+
+    public void SpawnDamageText(Vector3 position,string text,bool isCrit,bool fromEnemy)
+    {
+        FloatingTextStyle style =
+            fromEnemy
+            ? (isCrit
+                ? FloatingTextStyle.EnemyCrit
+                : FloatingTextStyle.EnemyDamage)
+            : (isCrit
+                ? FloatingTextStyle.PlayerCrit
+                : FloatingTextStyle.PlayerDamage);
+
+        SpawnText(position, text, style);
     }
 }

@@ -10,14 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 23c2b3da50adf324b96011f0dd97811f, type: 3}
-  m_Name: UnlockSkullBashTalent
+  m_Name: AdvancedShieldTraining
   m_EditorClassIdentifier: Assembly-CSharp::TalentData
-  talentName: Skull Bash
-  description: 
-  icon: {fileID: 21300000, guid: f1bc065709a614d41b8f49b92578973f, type: 3}
-  maxPoints: 1
-  effects: []
-  unlockedAbility: {fileID: 11400000, guid: f5968349c0446ed41aed94abca0babff, type: 2}
+  talentName: Advanced Shield Training
+  description: +2 Ward capacity
+  icon: {fileID: 21300000, guid: 53c643d7ddc1cde4ca777092a9fd44b3, type: 3}
+  maxPoints: 2
+  effects:
+  - {fileID: 11400000, guid: 9e173a44b5b916940bd71f1884d71e51, type: 2}
+  unlockedAbility: {fileID: 0}
   unlocksWardSystem: 0
   tier: 4
   requirements:

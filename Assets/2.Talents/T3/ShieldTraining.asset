@@ -10,17 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 23c2b3da50adf324b96011f0dd97811f, type: 3}
-  m_Name: UnlockSkullBashTalent
+  m_Name: ShieldTraining
   m_EditorClassIdentifier: Assembly-CSharp::TalentData
-  talentName: Skull Bash
-  description: 
-  icon: {fileID: 21300000, guid: f1bc065709a614d41b8f49b92578973f, type: 3}
+  talentName: Shield Training
+  description: Blocking with a shield now generates a ward-point. Those can be spent
+    casting shield-related abilities.
+  icon: {fileID: 21300000, guid: 8a63631750534ef4cbebc43a962ed66d, type: 3}
   maxPoints: 1
   effects: []
-  unlockedAbility: {fileID: 11400000, guid: f5968349c0446ed41aed94abca0babff, type: 2}
-  unlocksWardSystem: 0
-  tier: 4
-  requirements:
-  - talent: {fileID: 11400000, guid: 426b81cb23a85ba47994c13adeec9c1a, type: 2}
-    requiredPoints: 1
+  unlockedAbility: {fileID: 0}
+  unlocksWardSystem: 1
+  tier: 3
+  requirements: []
   unlockedBaseAttack: {fileID: 0}

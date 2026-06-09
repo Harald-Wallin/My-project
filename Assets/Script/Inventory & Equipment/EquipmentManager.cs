@@ -101,7 +101,13 @@ public class EquipmentManager : MonoBehaviour
         // Sätt i equipment slot
         targetSlot.SetItem(item);
         humanoidEquipment.Equip(item);
-        //ApplyVisual(item);
+
+        WardSystem ward = playerStats.GetComponent<WardSystem>();
+
+        if (ward != null)
+        {
+            ward.RefreshShieldState();
+        }
 
         // Debug: dump inventory slot after operation
         if (fromSlotIndex >= 0 && fromSlotIndex < inventory.slots.Count)
@@ -150,11 +156,18 @@ public class EquipmentManager : MonoBehaviour
         RemoveStats(item);
         humanoidEquipment.Unequip(item);
 
+        //visualEquipment.Unequip(item);
+        slot.ClearSlot();
+
+        WardSystem ward = playerStats.GetComponent<WardSystem>();
+
+        if (ward != null)
+        {
+            ward.RefreshShieldState();
+        }
+
         // 📦 TILLBAKA TILL INVENTORY
         inventory.AddItem(item, 1);
-        //visualEquipment.Unequip(item);
-
-        slot.ClearSlot();
     }
 }
 

@@ -68,8 +68,39 @@ public class TalentManager : MonoBehaviour
     void ApplyTalent(TalentRuntime talent)
     {
         var player = Player;
+
         // 🔥 ta bort gamla modifiers från denna talent
         player.RemoveModifiersFromSource(talent);
+
+        WardSystem ward = player.GetComponent<WardSystem>();
+
+        if (ward != null &&
+            talent.data.unlocksWardSystem)
+        {
+            ward.SetWardGeneration(
+                talent.currentPoints > 0
+            );
+        }
+
+        if (ward != null)
+        {
+            int maxWard = 5;
+
+            foreach (var t in talents)
+            {
+                foreach (var effect in t.data.effects)
+                {
+                    if (effect is WardCapacityEffect wardEffect)
+                    {
+                        maxWard +=
+                            wardEffect.wardsPerPoint *
+                            t.currentPoints;
+                    }
+                }
+            }
+
+            ward.SetMaxWard(maxWard);
+        }
 
         foreach (var effect in talent.data.effects)
         {
@@ -182,4 +213,5 @@ public class TalentManager : MonoBehaviour
 
         return spentPointsInPreviousTiers >= requiredPoints;
     }
+
 }
