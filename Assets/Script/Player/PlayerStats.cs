@@ -76,10 +76,12 @@ public class PlayerStats : CharacterStats
             level++;
 
             ApplyLevelUpStats();
+            AnnouncementSpawner.Instance?.QueueAnnouncement(AnnouncementSpawner.Instance.Database.levelUp,$"Hail!\n You reached\nLevel {level}");
+            //AnnouncementManager.Instance?.Show("Hail!\n" + $"LEVEL {level}", Color.yellow, 120, 3f);
 
             expToNextLevel = Mathf.RoundToInt(expToNextLevel * 1.12f);
 
-            Debug.Log($"CONGRATULATIONS, you are now lvl {level}");
+            //Debug.Log($"CONGRATULATIONS, you are now lvl {level}");
             OnLevelChanged?.Invoke();
 
         }

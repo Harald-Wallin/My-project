@@ -106,6 +106,7 @@ GameObject:
   - component: {fileID: 5554398571828178578}
   - component: {fileID: 822371957010129274}
   - component: {fileID: 3706294627332642803}
+  - component: {fileID: 4287925351190680984}
   m_Layer: 8
   m_Name: Guard
   m_TagString: Enemy
@@ -294,6 +295,8 @@ MonoBehaviour:
   weaponDamage: 10
   hitChance: 0.85
   evasion: 0.08
+  blockChance: 0
+  blockValue: 0
   critChance: 0.2
   critMultiplier: 1.5
   effectPoint: {fileID: 1792558990087046968}
@@ -360,6 +363,7 @@ MonoBehaviour:
   legs: {fileID: 11400000, guid: 0f980e95741bee8439a72dd38c4abc85, type: 2}
   feet: {fileID: 11400000, guid: 4bc4ed1277fb109419b9a4b5aa50b400, type: 2}
   weapon: {fileID: 0}
+  offhand: {fileID: 0}
   headRenderer: {fileID: 0}
   chestRenderer: {fileID: 0}
   shouldersRenderer: {fileID: 0}
@@ -367,6 +371,7 @@ MonoBehaviour:
   legsRenderer: {fileID: 0}
   feetRenderer: {fileID: 0}
   weaponRenderer: {fileID: 0}
+  offhandRenderer: {fileID: 0}
 --- !u!114 &7329415641710369564
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -479,6 +484,19 @@ MonoBehaviour:
   attackIndicator: {fileID: 0}
   attackOrigin: {fileID: 0}
   indicatorDistance: 0.6
+--- !u!114 &4287925351190680984
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 58742b2e1e86c2943878f80cbabc2044, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FactionDiscoverySource
+  discoveryRadius: 5
 --- !u!1 &5967507019914542932
 GameObject:
   m_ObjectHideFlags: 0

@@ -19,7 +19,7 @@ public class ReputationWindowUI : MonoBehaviour
 
         if (reputationManager == null)
         {
-            Debug.LogError("No PlayerReputationManager found!");
+            //Debug.LogError("No PlayerReputationManager found!");
             return;
         }
 
@@ -37,17 +37,17 @@ public class ReputationWindowUI : MonoBehaviour
     {
         if (reputationManager == null)
         {
-            Debug.LogError("ReputationManager is NULL");
+            //Debug.LogError("ReputationManager is NULL");
             return;
         }
 
         if (reputationManager.reputations == null)
         {
-            Debug.LogError("Reputations list is NULL");
+            //Debug.LogError("Reputations list is NULL");
             return;
         }
 
-        Debug.Log("Reputation count: " + reputationManager.reputations.Count);
+        //Debug.Log("Reputation count: " + reputationManager.reputations.Count);
 
         if (detailsPanel != null)
             detailsPanel.gameObject.SetActive(false);
@@ -60,6 +60,9 @@ public class ReputationWindowUI : MonoBehaviour
         foreach (var rep in reputationManager.reputations)
         {
             if (!rep.discovered || rep.faction == null)
+                continue;
+
+            if (!rep.faction.showInReputationWindow)
                 continue;
 
             var entry = Instantiate(entryPrefab, contentParent);

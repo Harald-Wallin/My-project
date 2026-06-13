@@ -17,11 +17,29 @@ MonoBehaviour:
   maxLevel: 9
   tiers:
   - tierName: Hated
+    description: 
+    rankReachedSound: {fileID: 8300000, guid: 4009082db1c21fc4fb7a6fd6538ca0eb, type: 3}
   - tierName: Untrusted
+    description: 
+    rankReachedSound: {fileID: 8300000, guid: a77c23fe21d24eb4089bab9e874f1ea2, type: 3}
   - tierName: Indifferent
+    description: 
+    rankReachedSound: {fileID: 8300000, guid: ba0a885846de3a74aba173756a30bd18, type: 3}
   - tierName: Favoured
+    description: 
+    rankReachedSound: {fileID: 8300000, guid: cc62e9d7434b2ce4d80e5fac77dd9b89, type: 3}
   - tierName: Renowned
+    description: 
+    rankReachedSound: {fileID: 8300000, guid: 2907ea35b1e9969439d00280714e0637, type: 3}
   - tierName: Praised
+    description: 
+    rankReachedSound: {fileID: 8300000, guid: 9a0422a5c391fdd47bf8809fbda71c53, type: 3}
   - tierName: Oathling
+    description: 
+    rankReachedSound: {fileID: 8300000, guid: 0fd6690562424354e86d95abfa7139b6, type: 3}
   - tierName: Revered
+    description: 
+    rankReachedSound: {fileID: 8300000, guid: 92118c83d390a9d4f84ee3c0338c13e8, type: 3}
   - tierName: Paragon
+    description: 
+    rankReachedSound: {fileID: 8300000, guid: 7bb0d5264dc54564caf6ec3dd7586e8f, type: 3}

@@ -46,13 +46,21 @@ public class AbilityController : MonoBehaviour
         if (!stats.CanAct())
             return false;
 
-        // GCD
+        //GCD
         if (globalCooldownTimer > 0f)
+        {
+            NotificationSpawner.Instance?.Show(NotificationSpawner.Instance.Database.abilityOnCooldown);
+
             return false;
+        }
 
         // individual cooldown
         if (cooldownTimers.ContainsKey(ability))
+        {
+            NotificationSpawner.Instance?.Show(NotificationSpawner.Instance.Database.abilityOnCooldown);
+
             return false;
+        }
 
         CharacterStats target = null;
 
@@ -86,9 +94,10 @@ public class AbilityController : MonoBehaviour
             if (ward == null)
                 return false;
 
-            if (!ward.TrySpendWard(
-                ability.wardCost))
+            if (!ward.TrySpendWard(ability.wardCost))
             {
+                NotificationSpawner.Instance?.Show(NotificationSpawner.Instance.Database.notEnoughWard);
+
                 return false;
             }
         }

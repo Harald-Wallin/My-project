@@ -60,17 +60,17 @@ public class WardSystem : MonoBehaviour
 
     public void AddWard(int amount)
     {
-        Debug.Log("AddWard called");
+        //Debug.Log("AddWard called");
 
         if (!unlocked)
         {
-            Debug.Log("Ward generation locked");
+            //Debug.Log("Ward generation locked");
             return;
         }
 
         if (!hasShieldEquipped)
         {
-            Debug.Log("No shield equipped");
+            //Debug.Log("No shield equipped");
             return;
         }
 
@@ -81,7 +81,7 @@ public class WardSystem : MonoBehaviour
                 maxWard
             );
 
-        Debug.Log($"Ward added. Current wards: {currentWard}");
+        //Debug.Log($"Ward added. Current wards: {currentWard}");
 
         decayTimer = decayDelay;
 

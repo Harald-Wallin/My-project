@@ -90,6 +90,7 @@ public class Inventory : MonoBehaviour
         }
 
         // 3. Inventory fullt
+        NotificationManager.Instance?.Show(NotificationManager.Instance.Database.inventoryFull);
         return false;
     }
 
@@ -139,7 +140,7 @@ public class Inventory : MonoBehaviour
     {
         if (Input.GetKeyDown(debugAddItemKey))
         {
-            Debug.Log("Debug: Add item key pressed");
+            //Debug.Log("Debug: Add item key pressed");
             AddItem(debugTestItemOne, 1);
             AddItem(debugTestItemTwo, 1);
             AddItem(debugTestItemThree, 1);

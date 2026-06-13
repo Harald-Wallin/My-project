@@ -8,10 +8,17 @@ public class ReputationLevelDefinition : ScriptableObject
     public float scalingMultiplier = 1.5f;
     public int maxLevel = 9; // Vi kör 7 tiers
 
+
+
     [System.Serializable]
     public class ReputationTier
     {
         public string tierName;
+
+        [TextArea]
+        public string description;
+
+        public AudioClip rankReachedSound;
     }
 
     public List<ReputationTier> tiers = new List<ReputationTier>();
@@ -27,6 +34,18 @@ public class ReputationLevelDefinition : ScriptableObject
     {
         int index = Mathf.Clamp(level - 1, 0, tiers.Count - 1);
         return tiers[index].tierName;
+    }
+
+    public AudioClip GetTierSound(int level)
+    {
+        int index =
+            Mathf.Clamp(
+                level - 1,
+                0,
+                tiers.Count - 1
+            );
+
+        return tiers[index].rankReachedSound;
     }
 }
 

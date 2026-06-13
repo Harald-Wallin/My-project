@@ -21,6 +21,7 @@ GameObject:
   - component: {fileID: 8162541288008946361}
   - component: {fileID: 4540798747271290074}
   - component: {fileID: -4958515426738343093}
+  - component: {fileID: -6819717050189144111}
   m_Layer: 8
   m_Name: DonationNPC
   m_TagString: Enemy
@@ -239,6 +240,7 @@ MonoBehaviour:
   legs: {fileID: 0}
   feet: {fileID: 0}
   weapon: {fileID: 0}
+  offhand: {fileID: 0}
   headRenderer: {fileID: 6021358011516568554}
   chestRenderer: {fileID: 4695365628435978422}
   shouldersRenderer: {fileID: 8534746610390435897}
@@ -246,6 +248,7 @@ MonoBehaviour:
   legsRenderer: {fileID: 2044190419562523195}
   feetRenderer: {fileID: 5201811706297674684}
   weaponRenderer: {fileID: 2587689440492199512}
+  offhandRenderer: {fileID: 0}
 --- !u!114 &9117300791837185345
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -272,6 +275,8 @@ MonoBehaviour:
   weaponDamage: 0
   hitChance: 0.85
   evasion: 0.08
+  blockChance: 0
+  blockValue: 0
   critChance: 0.3
   critMultiplier: 2
   effectPoint: {fileID: 0}
@@ -332,9 +337,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15bb8c41f5d53b54ebd9ccc6dd0d936e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCReactionController
+  awarenessRadius: 5
+  alertedRadiusMultiplier: 3
+  drawGizmos: 1
   reactionType: 1
-  witnessRadius: 8
   hostilityDuration: 300
+  alertDuration: 10
+--- !u!114 &-6819717050189144111
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1333578090657008725}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 58742b2e1e86c2943878f80cbabc2044, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FactionDiscoverySource
+  discoveryRadius: 5
 --- !u!1 &7643863556062489227
 GameObject:
   m_ObjectHideFlags: 0

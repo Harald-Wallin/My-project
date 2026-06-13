@@ -21,6 +21,7 @@ GameObject:
   - component: {fileID: -6276876268285353313}
   - component: {fileID: 5122081960522985903}
   - component: {fileID: 6658034871447627093}
+  - component: {fileID: -2890300438920332383}
   m_Layer: 8
   m_Name: HostileHumanoid
   m_TagString: Enemy
@@ -209,6 +210,8 @@ MonoBehaviour:
   weaponDamage: 0
   hitChance: 0.85
   evasion: 0.08
+  blockChance: 0
+  blockValue: 0
   critChance: 0
   critMultiplier: 0
   effectPoint: {fileID: 5155013851662899411}
@@ -308,6 +311,7 @@ MonoBehaviour:
   legs: {fileID: 0}
   feet: {fileID: 0}
   weapon: {fileID: 0}
+  offhand: {fileID: 0}
   headRenderer: {fileID: 4739323685036978044}
   chestRenderer: {fileID: 6015708302491382816}
   shouldersRenderer: {fileID: 7216136800016147631}
@@ -315,6 +319,7 @@ MonoBehaviour:
   legsRenderer: {fileID: 1011956032082757293}
   feetRenderer: {fileID: 6513842039938598698}
   weaponRenderer: {fileID: 3583753883665412814}
+  offhandRenderer: {fileID: 0}
 --- !u!114 &-6276876268285353313
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -359,6 +364,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DamageReaction
   pushDistance: 0.08
   pushDuration: 0.05
+--- !u!114 &-2890300438920332383
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 58742b2e1e86c2943878f80cbabc2044, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FactionDiscoverySource
+  discoveryRadius: 5
 --- !u!1 &3778626201625969471
 GameObject:
   m_ObjectHideFlags: 0

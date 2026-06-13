@@ -4,6 +4,10 @@ using System.Collections.Generic;
 [CreateAssetMenu(menuName = "RPG/Faction")]
 public class Faction : ScriptableObject
 {
+
+    [Header("Can be discovered")]
+    public bool showInReputationWindow = true;
+
     public string factionName;
     [TextArea(3, 6)]
     public string loreDescription;

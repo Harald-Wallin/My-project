@@ -8,15 +8,13 @@ public class PlayerReputationManager : MonoBehaviour
     //public event Action<FactionReputationData> OnReputationChanged;
     public event System.Action<FactionReputationData> OnReputationChanged;
 
-
     public List<FactionReputationData> reputations = new List<FactionReputationData>();
 
     //DEBUG FACTION
     public Faction debugFaction;
 
     //Temporär hostility
-    private Dictionary<Faction, float> temporaryHostilityTimers =
-    new Dictionary<Faction, float>();
+    private Dictionary<Faction, float> temporaryHostilityTimers = new Dictionary<Faction, float>();
 
     [SerializeField]
     private float defaultCrimeHostilityDuration = 300f;
@@ -32,24 +30,47 @@ public class PlayerReputationManager : MonoBehaviour
         return null;
     }
 
+
     public void DiscoverFaction(Faction faction)
     {
-        var existing = GetReputation(faction);
-
-        if (existing != null)
-        {
-            existing.discovered = true;
+        if (faction == null)
             return;
+
+        var rep = GetReputation(faction);
+        //int oldLevel = rep != null ? rep.level : 1;
+
+        if (rep == null)
+        {
+            rep = new FactionReputationData
+            {
+                faction = faction,
+                discovered = true,
+                level = 1,
+                currentXP = 0
+            };
+
+            reputations.Add(rep);
+        }
+        else
+        {
+            if (rep.discovered)
+                return;
+
+            rep.discovered = true;
         }
 
-        reputations.Add(new FactionReputationData
+        if (faction.showInReputationWindow)
         {
-            faction = faction,
-            discovered = true,
-            level = 1,
-            currentXP = 0
-        });
+            AnnouncementSpawner.Instance?.QueueAnnouncement(
+                AnnouncementSpawner.Instance.Database.factionDiscovered,
+                $"Faction discovered:\n{faction.factionName}"
+            );
+        }
+
+        OnReputationChanged?.Invoke(rep);
     }
+
+
 
     public void AddReputation(Faction faction, int amount)
     {
@@ -58,10 +79,19 @@ public class PlayerReputationManager : MonoBehaviour
 
         var rep = GetReputation(faction);
 
+        int oldLevel = rep != null ? rep.level : 1;
+
         if (rep == null)
         {
-            DiscoverFaction(faction);
-            rep = GetReputation(faction);
+            rep = new FactionReputationData
+            {
+                faction = faction,
+                discovered = false,
+                level = 1,
+                currentXP = 0
+            };
+
+            reputations.Add(rep);
         }
 
         rep.currentXP += amount;
@@ -70,17 +100,52 @@ public class PlayerReputationManager : MonoBehaviour
                levelDefinition.GetXPRequired(rep.level)
                && rep.level < levelDefinition.maxLevel)
         {
-            rep.currentXP -=
-                levelDefinition.GetXPRequired(rep.level);
+            rep.currentXP -= levelDefinition.GetXPRequired(rep.level);
+
 
             rep.level++;
         }
 
         while (rep.currentXP < 0 && rep.level > 1)
         {
+
             rep.level--;
-            rep.currentXP +=
-                levelDefinition.GetXPRequired(rep.level);
+            rep.currentXP += levelDefinition.GetXPRequired(rep.level);
+        }
+
+        if (rep.level != oldLevel)
+        {
+            string tierName =
+                levelDefinition.GetTierName(
+                    rep.level
+                );
+
+            Color tierColor =
+                ReputationColorUtility.GetColor(
+                    rep.level
+                );
+
+            AudioClip rankSound =
+                levelDefinition.GetTierSound(
+                    rep.level
+                );
+
+            string message =
+                AnnouncementFormatter
+                .BuildReputationAnnouncement(
+                    tierName,
+                    tierColor,
+                    faction.factionName
+                );
+
+            AnnouncementSpawner.Instance
+                ?.QueueAnnouncement(
+                    AnnouncementSpawner.Instance
+                        .Database
+                        .reputationRankChanged,
+                    message,
+                    rankSound
+                );
         }
 
         OnReputationChanged?.Invoke(rep);

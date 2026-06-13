@@ -89,6 +89,7 @@ GameObject:
   - component: {fileID: 3185909709834997832}
   - component: {fileID: 624745517931037195}
   - component: {fileID: 690243871359771641}
+  - component: {fileID: -3748099821319228853}
   m_Layer: 8
   m_Name: Vendor
   m_TagString: Enemy
@@ -266,6 +267,7 @@ MonoBehaviour:
   legs: {fileID: 0}
   feet: {fileID: 0}
   weapon: {fileID: 0}
+  offhand: {fileID: 0}
   headRenderer: {fileID: 2141475682335970769}
   chestRenderer: {fileID: 1081268348121075341}
   shouldersRenderer: {fileID: 4060460358172319234}
@@ -273,6 +275,7 @@ MonoBehaviour:
   legsRenderer: {fileID: 5942017740547554304}
   feetRenderer: {fileID: 439287690584096135}
   weaponRenderer: {fileID: 7908730144388352099}
+  offhandRenderer: {fileID: 0}
 --- !u!114 &550738966795680451
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -313,6 +316,8 @@ MonoBehaviour:
   weaponDamage: 0
   hitChance: 0.85
   evasion: 0.08
+  blockChance: 0
+  blockValue: 0
   critChance: 0.3
   critMultiplier: 2
   effectPoint: {fileID: 7201537362075449188}
@@ -387,9 +392,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15bb8c41f5d53b54ebd9ccc6dd0d936e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCReactionController
+  awarenessRadius: 5
+  alertedRadiusMultiplier: 3
+  drawGizmos: 1
   reactionType: 1
-  witnessRadius: 8
   hostilityDuration: 300
+  alertDuration: 10
+--- !u!114 &-3748099821319228853
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 58742b2e1e86c2943878f80cbabc2044, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FactionDiscoverySource
+  discoveryRadius: 5
 --- !u!1 &6174543494682163032
 GameObject:
   m_ObjectHideFlags: 0
