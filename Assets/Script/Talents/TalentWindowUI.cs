@@ -97,6 +97,13 @@ public class TalentWindowUI : MonoBehaviour
         if (canvasGroup != null)
         {
             bool isOpen = canvasGroup.alpha > 0f;
+
+            if (!isOpen)
+            {
+                TalentNotificationManager.Instance
+                    ?.MarkAsViewed();
+            }
+
             canvasGroup.alpha = isOpen ? 0f : 1f;
             canvasGroup.interactable = !isOpen;
             canvasGroup.blocksRaycasts = !isOpen;
@@ -109,6 +116,8 @@ public class TalentWindowUI : MonoBehaviour
 
     public void Open()
     {
+        TalentNotificationManager.Instance ?.MarkAsViewed();
+
         if (canvasGroup != null)
         {
             canvasGroup.alpha = 1f;

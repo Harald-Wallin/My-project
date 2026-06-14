@@ -15,3 +15,4 @@ MonoBehaviour:
   levelUp: {fileID: 11400000, guid: 10840169cb655a041bf38476411fc3e5, type: 2}
   factionDiscovered: {fileID: 11400000, guid: fa1c0a13251679e47b964ba96c5940e2, type: 2}
   reputationRankChanged: {fileID: 11400000, guid: 8387e6f716abd144e8a4d28055750047, type: 2}
+  abilityLearned: {fileID: 11400000, guid: b8bdceff719fcf047ab087cdfe53c132, type: 2}

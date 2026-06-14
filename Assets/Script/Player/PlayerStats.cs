@@ -50,8 +50,11 @@ public class PlayerStats : CharacterStats
 
         TalentManager.Instance.availablePoints++;
 
+        TalentNotificationManager.Instance
+            ?.NotifyNewTalentPoints();
+
         RaiseHealthChanged();
-        Debug.Log($"Level up bonuses → STR: {strength}, HP: {currentHP}/{maxHP}");
+        //Debug.Log($"Level up bonuses → STR: {strength}, HP: {currentHP}/{maxHP}");
 
         if (confettiPrefab != null)
         {

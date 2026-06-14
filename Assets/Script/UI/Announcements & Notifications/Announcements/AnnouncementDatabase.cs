@@ -10,4 +10,6 @@ public class AnnouncementDatabase : ScriptableObject
     public AnnouncementData factionDiscovered;
 
     public AnnouncementData reputationRankChanged;
+
+    public AnnouncementData abilityLearned;
 }

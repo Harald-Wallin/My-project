@@ -44,4 +44,13 @@ public static class AnnouncementFormatter
             $"<size=55>Entered Zone</size>\n" +
             $"<size=110>{zoneName}</size>";
     }
+
+    public static string BuildAbilityLearnedAnnouncement(
+    string abilityName
+)
+    {
+        return
+            $"<size=24>Learned:</size>\n" +
+            $"<size=48>{abilityName}</size>";
+    }
 }

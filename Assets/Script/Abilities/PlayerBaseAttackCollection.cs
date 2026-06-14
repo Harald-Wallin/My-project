@@ -34,6 +34,16 @@ public class PlayerBaseAttackCollection : MonoBehaviour
             return;
 
         learnedAttacks.Add(attack);
+
+        AnnouncementSpawner.Instance?.QueueAnnouncement(
+            AnnouncementSpawner.Instance.Database.abilityLearned,
+            AnnouncementFormatter.BuildAbilityLearnedAnnouncement(
+                attack.abilityName
+            )
+        );
+
+        SpellbookNotificationManager.Instance
+            ?.NotifyNewEntry();
     }
 
 

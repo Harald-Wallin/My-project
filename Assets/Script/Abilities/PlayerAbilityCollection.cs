@@ -40,6 +40,16 @@ public class PlayerAbilityCollection : MonoBehaviour
             return;
 
         learnedAbilities.Add(ability);
+
+        AnnouncementSpawner.Instance?.QueueAnnouncement(
+            AnnouncementSpawner.Instance.Database.abilityLearned,
+            AnnouncementFormatter.BuildAbilityLearnedAnnouncement(
+                ability.abilityName
+            )
+        );
+
+        SpellbookNotificationManager.Instance
+            ?.NotifyNewEntry();
     }
 
     // =========================

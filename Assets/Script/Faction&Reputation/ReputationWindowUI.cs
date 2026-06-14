@@ -19,13 +19,16 @@ public class ReputationWindowUI : MonoBehaviour
 
         if (reputationManager == null)
         {
-            //Debug.LogError("No PlayerReputationManager found!");
+            Debug.LogError("No PlayerReputationManager found!");
             return;
         }
 
         reputationManager.OnReputationChanged += RefreshEntry;
 
         BuildWindow();
+
+        FactionNotificationManager.Instance
+            ?.ClearUnread();
     }
 
     void OnDisable()

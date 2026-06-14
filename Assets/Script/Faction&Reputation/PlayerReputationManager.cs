@@ -63,8 +63,13 @@ public class PlayerReputationManager : MonoBehaviour
         {
             AnnouncementSpawner.Instance?.QueueAnnouncement(
                 AnnouncementSpawner.Instance.Database.factionDiscovered,
-                $"Faction discovered:\n{faction.factionName}"
+                AnnouncementFormatter.BuildFactionDiscoveryAnnouncement(
+                    faction.factionName
+                )
             );
+
+            FactionNotificationManager.Instance
+                ?.RegisterNewFaction();
         }
 
         OnReputationChanged?.Invoke(rep);

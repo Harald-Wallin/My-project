@@ -3,7 +3,7 @@ using UnityEngine;
 public class FactionDiscoverySource : MonoBehaviour
 {
     [SerializeField]
-    private float discoveryRadius = 5f;
+    private float discoveryRadius = 8f;
 
     private CharacterStats stats;
 

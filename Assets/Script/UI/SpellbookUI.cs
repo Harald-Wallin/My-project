@@ -196,6 +196,9 @@ public class SpellbookUI : MonoBehaviour
 
         if (isOpen)
         {
+            SpellbookNotificationManager.Instance
+                ?.ClearUnread();
+
             Refresh();
         }
     }
