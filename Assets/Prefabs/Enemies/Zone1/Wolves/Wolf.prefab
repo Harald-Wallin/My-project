@@ -241,10 +241,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c01ceffb458c3d047acfeeac3ef4ded7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
-  faction: {fileID: 11400000, guid: 371ddee64cfc1974b858754e071b1b96, type: 2}
+  faction: {fileID: 11400000, guid: e13fb5b85ff5bf2418495430d513911d, type: 2}
   reputationLossOnHit: 0
   reputationLossOnDeath: 0
-  displayName: Mangy Wolf
+  displayName: Starved Wolf
   maxHP: 21
   currentHP: 0
   strength: 1
@@ -254,7 +254,9 @@ MonoBehaviour:
   attackSpeed: 0.5
   weaponDamage: 0
   hitChance: 0.85
-  evasion: 0.08
+  evasion: 0.03
+  blockChance: 0
+  blockValue: 0
   critChance: 0.02
   critMultiplier: 1.5
   effectPoint: {fileID: 1917358144810171706}

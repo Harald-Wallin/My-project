@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b1ec106e887d2147b7bae70592e78b8, type: 3}
   m_Name: WorldEnemy
   m_EditorClassIdentifier: Assembly-CSharp::Faction
+  showInReputationWindow: 1
   factionName: WorldEnemy
   loreDescription: The general hostile and dangerous creatures of the world.
   factionCategory: Hostile
