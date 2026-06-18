@@ -89,20 +89,20 @@ public class CharacterStats : MonoBehaviour
 
         if (result.isBlocked)
         {
-            Debug.Log("Attack blocked!");
+            //Debug.Log("Attack blocked!");
 
             PlayerStats player = GetComponent<PlayerStats>();
 
             if (player != null)
             {
-                Debug.Log("Blocked by player!");
+                //Debug.Log("Blocked by player!");
 
                 WardSystem ward =
                     GetComponent<WardSystem>();
 
                 if (ward != null)
                 {
-                    Debug.Log("WardSystem found, adding ward");
+                    //Debug.Log("WardSystem found, adding ward");
                     ward.AddWard(1);
                 }
             }
@@ -391,9 +391,9 @@ public class CharacterStats : MonoBehaviour
         if (faction == null || other.faction == null)
             return false;
 
-        int relation = faction.GetRelation(other.faction);
+        ReputationState standing = faction.GetStanding(other.faction);
 
-        if (relation < 0)
+        if (standing == ReputationState.Hated)
             return true;
 
         PlayerStats player =
@@ -425,9 +425,10 @@ public class CharacterStats : MonoBehaviour
         if (faction == null || other.faction == null)
             return false;
 
-        int relation = faction.GetRelation(other.faction);
+        ReputationState standing = faction.GetStanding(other.faction);
 
-        return relation > 0;
+        return standing != ReputationState.Hated &&
+               standing != ReputationState.Indifferent;
     }
 
     public bool IsHostileToPlayer(PlayerStats player)

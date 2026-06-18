@@ -18580,11 +18580,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9158285331223175390, guid: e3fc7c2058c18a642ad734a095353f8e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -7
+      value: -2.627397
       objectReference: {fileID: 0}
     - target: {fileID: 9158285331223175390, guid: e3fc7c2058c18a642ad734a095353f8e, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 10
+      value: -1.8164936
       objectReference: {fileID: 0}
     - target: {fileID: 9158285331223175390, guid: e3fc7c2058c18a642ad734a095353f8e, type: 3}
       propertyPath: m_LocalPosition.z
@@ -19881,7 +19881,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1775957794}
   m_HandleRect: {fileID: 1775957793}
   m_Direction: 2
-  m_Value: 0
+  m_Value: 1
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -20871,6 +20871,37 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
+--- !u!1 &1236730443
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1236730444}
+  m_Layer: 0
+  m_Name: Roof
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1236730444
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1236730443}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1654609725}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1237671701
 GameObject:
   m_ObjectHideFlags: 0
@@ -28435,6 +28466,7 @@ Transform:
   - {fileID: 1967421620}
   - {fileID: 453749336}
   - {fileID: 901954958}
+  - {fileID: 1236730444}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!68 &1654609726

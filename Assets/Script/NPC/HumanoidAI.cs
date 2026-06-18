@@ -17,13 +17,32 @@ public class HumanoidAI : AgressiveMobAI
             maxDistanceFromSpawn = customLeashDistance;
     }
 
-    protected override bool ShouldAggro(CharacterStats potentialTarget)
+    protected override bool ShouldAggro(
+    CharacterStats potentialTarget)
     {
+        if (potentialTarget == null)
+            return false;
+
+        if (potentialTarget == selfStats)
+            return false;
+
+        //
+        // NPC vs NPC
+        //
+
+        if (!(potentialTarget is PlayerStats))
+        {
+            return selfStats.IsHostileTo(
+                potentialTarget
+            );
+        }
+
+        //
+        // Player
+        //
+
         PlayerStats playerStats =
             potentialTarget as PlayerStats;
-
-        if (playerStats == null)
-            return false;
 
         NPCReactionController reaction =
             GetComponent<NPCReactionController>();
@@ -44,30 +63,12 @@ public class HumanoidAI : AgressiveMobAI
             return false;
 
         ReputationState state =
-            repManager.GetReputationState(selfStats.faction);
+            repManager.GetReputationState(
+                selfStats.faction
+            );
 
         return state == ReputationState.Hated;
     }
-    /*protected override bool ShouldAggro(CharacterStats potentialTarget)
-    {
-        if (!useReputationAggro)
-            return true;
-
-        PlayerStats playerStats = potentialTarget as PlayerStats;
-        if (playerStats == null)
-            return false;
-
-        PlayerReputationManager repManager =
-            playerStats.GetComponent<PlayerReputationManager>();
-
-        if (repManager == null)
-            return false;
-
-        ReputationState state =
-            repManager.GetReputationState(selfStats.faction);
-
-        return state == ReputationState.Hated;
-    }*/
 
     protected override void HandleDamaged(CharacterStats attacker)
     {

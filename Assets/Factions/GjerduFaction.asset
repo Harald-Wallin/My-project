@@ -18,8 +18,8 @@ MonoBehaviour:
   factionCategory: Civilization
   relations:
   - otherFaction: {fileID: 11400000, guid: 371ddee64cfc1974b858754e071b1b96, type: 2}
-    relation: -100
+    standing: 0
   - otherFaction: {fileID: 11400000, guid: edfc595230a10d646ab59d742e1ca931, type: 2}
-    relation: 0
+    standing: 2
   - otherFaction: {fileID: 11400000, guid: e13fb5b85ff5bf2418495430d513911d, type: 2}
-    relation: -100
+    standing: 0

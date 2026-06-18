@@ -306,13 +306,17 @@ public class AgressiveMobAI : MonoBehaviour
 
         foreach (var hit in hits)
         {
-            PlayerStats playerStats =
-                hit.GetComponentInParent<PlayerStats>();
+            CharacterStats target =hit.GetComponentInParent<CharacterStats>();
 
-            if (playerStats != null &&
-                ShouldAggro(playerStats))
+            if (target == null)
+                continue;
+
+            if (target == selfStats)
+                continue;
+
+            if (ShouldAggro(target))
             {
-                EnterAggroState(playerStats);
+                EnterAggroState(target);
                 break;
             }
         }

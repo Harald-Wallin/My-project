@@ -18,6 +18,6 @@ MonoBehaviour:
   factionCategory: Hostile
   relations:
   - otherFaction: {fileID: 11400000, guid: edfc595230a10d646ab59d742e1ca931, type: 2}
-    relation: -100
+    standing: 0
   - otherFaction: {fileID: 11400000, guid: c5488bdfa9793df41979c93540acac0b, type: 2}
-    relation: -100
+    standing: 0
