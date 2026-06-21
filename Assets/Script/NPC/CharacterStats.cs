@@ -129,7 +129,7 @@ public class CharacterStats : MonoBehaviour
         // NPC reaction BEFORE death
         OnDamaged(attacker);
 
-        string damageText = $"<color=#FF0000>-{finalDamage}</color>";
+        string damageText = $"-{finalDamage}";
 
         if (result.isBlocked)
         {
@@ -385,6 +385,15 @@ public class CharacterStats : MonoBehaviour
     //---------------REPUTATION-----------------
     public bool IsHostileTo(CharacterStats other)
     {
+        //NPC kan inte hata sig själv <3
+        if (other == this)
+            return false;
+
+        //NPC hatar aldrig sina egna faction-fränder
+        if (faction == other.faction)
+            return false;
+
+        //NPC kan inte hata någon/något som inte finns
         if (other == null)
             return false;
 

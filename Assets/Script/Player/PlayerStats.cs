@@ -104,13 +104,13 @@ public class PlayerStats : CharacterStats
         if (Input.GetKeyDown(KeyCode.H))
         {
             TakeDamage(new DamageResult { damage = 5 }, this);
-            Debug.Log("Player took damage");
+            //Debug.Log("Player took damage");
         }
 
         if (Input.GetKeyDown(KeyCode.J))
         {
             Heal(5);
-            Debug.Log("Player healed");
+            //Debug.Log("Player healed");
         }
 
         // Passive regeneration: restore approx regenPercentPerTick of max HP every regenInterval seconds

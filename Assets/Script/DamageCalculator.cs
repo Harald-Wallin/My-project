@@ -60,11 +60,11 @@ public static class DamageCalculator
 
         float blockChance = defender.GetStat(StatType.BlockChance);
 
-        Debug.Log( $"BlockChance: {blockChance} | BlockValue: {defender.GetStat(StatType.BlockValue)}");
+        //Debug.Log( $"BlockChance: {blockChance} | BlockValue: {defender.GetStat(StatType.BlockValue)}");
 
         if (Random.value < blockChance)
         {
-            Debug.Log("BLOCK OCCURRED");
+            //Debug.Log("BLOCK OCCURRED");
 
             blocked = true;
 

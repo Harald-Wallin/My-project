@@ -91,6 +91,9 @@ public class BaseAttackController : MonoBehaviour
 
     public bool TryAttackTarget(CharacterStats target)
     {
+        Debug.Log(
+    $"{name} attacking {target.name} | CanAttack = {CombatTargeting.CanAttack(stats, target)}"
+);
         //Debug.Log("ENTER TryAttackTarget");
 
         //Debug.Log($"Target: {target}");

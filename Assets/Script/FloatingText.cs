@@ -80,9 +80,15 @@ public class FloatingText : MonoBehaviour
         switch (style)
         {
             case FloatingTextStyle.PlayerDamage:
+                text.color = Color.white;
                 break;
 
             case FloatingTextStyle.EnemyDamage:
+                text.color = new Color(
+                    1f,
+                    0.35f,
+                    0.35f
+                );
                 break;
 
             case FloatingTextStyle.PlayerCrit:

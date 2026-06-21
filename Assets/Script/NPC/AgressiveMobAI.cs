@@ -42,13 +42,21 @@ public class AgressiveMobAI : MonoBehaviour
     public CharacterStats CurrentTarget => currentTargetStats;
 
     [Header("Wander")]
+    [SerializeField] protected bool canWander = true;
     [SerializeField] float wanderRadius = 3f;
     [SerializeField] float wanderMoveTime = 2f;
     [SerializeField] float wanderPauseTime = 2f;
     [SerializeField] float wanderSpeedMultiplier = 0.5f;
 
-    [Header("Behaviour")]
-    [SerializeField] protected bool canWander = true;
+    [Header("Patrol")]
+    [SerializeField]
+    protected bool canPatrol = false;
+
+    [SerializeField]
+    protected PatrolPath patrolPath;
+
+    [SerializeField]
+    protected float patrolSpeedMultiplier = 0.75f;
     private BaseAttackController baseAttackController;
 
     [Header("Flee")]
@@ -72,6 +80,15 @@ public class AgressiveMobAI : MonoBehaviour
     private bool isWandering;
     private bool isPausing;
     private float aggroDisableTimer;
+    private bool wasMovingLastFrame;
+
+    //patrol
+    private int patrolIndex = 0;
+    private bool patrolForward = true;
+    private float patrolWaitTimer = 0f;
+    private bool waitingAtPatrolNode = false;
+    private Vector3 interruptedPatrolPosition;
+    private bool returnToPatrolAfterCombat;
 
     public bool IsInCombat => currentState == AIState.Aggro;
     protected AIState currentState = AIState.Idle;
@@ -86,6 +103,7 @@ public class AgressiveMobAI : MonoBehaviour
 
     void Awake()
     {
+        visualController = GetComponentInChildren<HumanoidVisualController>();
         sr = GetComponentInChildren<SpriteRenderer>();
         rb = GetComponent<Rigidbody2D>();
         baseAttackController = GetComponent<BaseAttackController>();
@@ -122,7 +140,18 @@ public class AgressiveMobAI : MonoBehaviour
         if (visual != null)
             visual.UpdateSkinDirection(initialDir);
 
-        currentState = canWander ? AIState.Wandering : AIState.Idle;
+        if (canPatrol && patrolPath != null && patrolPath.points.Count > 0)
+        {
+            currentState = AIState.Patrolling;
+        }
+        else if (canWander)
+        {
+            currentState = AIState.Wandering;
+        }
+        else
+        {
+            currentState = AIState.Idle;
+        }
     }
 
     void FixedUpdate()
@@ -151,6 +180,8 @@ public class AgressiveMobAI : MonoBehaviour
             if (isReturning)
             {
                 HandleMovement();
+                HandleIdleAnimation();
+                HandlePatrolReturn();
             }
 
             return;
@@ -161,6 +192,7 @@ public class AgressiveMobAI : MonoBehaviour
         HandleLeash(distanceFromSpawn);
         HandleAggroDetection();
         HandleMovement();
+        HandleIdleAnimation();
         HandleFleeState();
         HandleHoldingState();
         HandleAttack();
@@ -188,8 +220,19 @@ public class AgressiveMobAI : MonoBehaviour
 
     protected virtual void EnterAggroState(CharacterStats target)
     {
+        //Debug.Log($"{name} ENTER AGGRO -> {target.name}");
+
         if (target == null)
             return;
+
+        //Sparar eventuell patrullstatus
+        if (currentState == AIState.Patrolling)
+        {
+            interruptedPatrolPosition =
+                transform.position;
+
+            returnToPatrolAfterCombat = true;
+        }
 
         currentTargetStats = target;
         player = target.transform;
@@ -298,11 +341,14 @@ public class AgressiveMobAI : MonoBehaviour
         if (isReturning)
             return;
 
-        Collider2D[] hits =
-            Physics2D.OverlapCircleAll(
-                transform.position,
-                currentAggroRange
-            );
+        Collider2D[] hits = Physics2D.OverlapCircleAll(
+        transform.position,
+        currentAggroRange,
+        LayerMask.GetMask(
+            "Player",
+            "NPC",
+            "HostileMob"
+        ));
 
         foreach (var hit in hits)
         {
@@ -313,6 +359,17 @@ public class AgressiveMobAI : MonoBehaviour
 
             if (target == selfStats)
                 continue;
+
+            //if (target.faction == selfStats.faction)
+            //   continue;
+            if (target == selfStats)
+                continue;
+
+            if (!ShouldAggro(target))
+                continue;
+
+            // Debug.Log($"{name} sees {target.name} | same faction = {selfStats.faction == target.faction}");
+            // Debug.Log($"{name} ShouldAggro({target.name}) = {ShouldAggro(target)}");
 
             if (ShouldAggro(target))
             {
@@ -335,6 +392,33 @@ public class AgressiveMobAI : MonoBehaviour
         else if (currentState == AIState.Wandering)
         {
             WanderLogic();
+        }
+        else if (currentState == AIState.Patrolling)
+        {
+            PatrolLogic();
+        }
+        else if (currentState == AIState.PatrolReturning)
+        {
+            MoveTowards(interruptedPatrolPosition);
+        }
+    }
+
+    void HandlePatrolReturn()
+    {
+        if (currentState != AIState.PatrolReturning)
+            return;
+
+        float distance =
+            Vector2.Distance(
+                transform.position,
+                interruptedPatrolPosition
+            );
+
+        if (distance <= stopDistance)
+        {
+            returnToPatrolAfterCombat = false;
+
+            currentState = AIState.Patrolling;
         }
     }
 
@@ -500,7 +584,13 @@ public class AgressiveMobAI : MonoBehaviour
 
     protected virtual bool ShouldAggro(CharacterStats potentialTarget)
     {
-        return true;
+        if (potentialTarget == null)
+            return false;
+
+        return CombatTargeting.CanAttack(
+            selfStats,
+            potentialTarget
+        );
     }
 
     void MoveTowards(Vector3 target, float speedMultiplier = 1f)
@@ -546,15 +636,30 @@ public class AgressiveMobAI : MonoBehaviour
         if (npcEquipment != null)
             npcEquipment.UpdateVisualDirection(direction);
 
-        HumanoidVisualController visual =
-        GetComponentInChildren<HumanoidVisualController>();
-
-        if (visual != null)
+        if (visualController != null)
         {
-            visual.UpdateSkinDirection(direction);
+            visualController.UpdateSkinDirection(direction);
         }
 
         CurrentFacingDirection = direction;
+        UpdateVisualAnimation(true);
+        wasMovingLastFrame = true;
+    }
+
+    void HandleIdleAnimation()
+    {
+        bool shouldBeMoving =
+            currentState == AIState.Aggro ||
+            currentState == AIState.Returning ||
+            currentState == AIState.Patrolling ||
+            currentState == AIState.PatrolReturning ||
+            isWandering;
+
+        if (!shouldBeMoving && wasMovingLastFrame)
+        {
+            UpdateVisualAnimation(false);
+            wasMovingLastFrame = false;
+        }
     }
 
     void WanderLogic()
@@ -602,6 +707,9 @@ public class AgressiveMobAI : MonoBehaviour
 
     public void ForceAggro(CharacterStats target)
     {
+
+        //Debug.Log($"{name} FORCE AGGRO -> {target.name}");
+
         if (target == null)
             return;
 
@@ -641,6 +749,14 @@ public class AgressiveMobAI : MonoBehaviour
     {
         fleeSource = null;
 
+        if (returnToPatrolAfterCombat)
+        {
+            currentState =
+                AIState.PatrolReturning;
+
+            return;
+        }
+
         EnterReturnState();
     }
 
@@ -679,5 +795,109 @@ public class AgressiveMobAI : MonoBehaviour
         aggroDisableTimer = 2f;
 
         ReturnToSpawn();
+    }
+
+    void PatrolLogic()
+    {
+        if (patrolPath == null)
+            return;
+
+        if (patrolPath.points.Count == 0)
+            return;
+
+        PatrolPoint point = patrolPath.points[patrolIndex];
+
+        if (point == null)
+            return;
+
+        if (waitingAtPatrolNode)
+        {
+            patrolWaitTimer -= Time.fixedDeltaTime;
+
+            if (patrolWaitTimer <= 0f)
+            {
+                waitingAtPatrolNode = false;
+                AdvancePatrolPoint();
+            }
+
+            return;
+        }
+
+        MoveTowards(
+            point.transform.position,
+            patrolSpeedMultiplier
+        );
+
+        float distance =
+            Vector2.Distance(
+                transform.position,
+                point.transform.position
+            );
+
+        if (distance <= stopDistance)
+        {
+            waitingAtPatrolNode = true;
+            patrolWaitTimer = point.waitTime;
+        }
+    }
+
+    void AdvancePatrolPoint()
+    {
+        if (patrolPath.patrolMode ==
+            PatrolPath.PatrolMode.Loop)
+        {
+            patrolIndex++;
+
+            if (patrolIndex >= patrolPath.points.Count)
+                patrolIndex = 0;
+
+            return;
+        }
+
+        if (patrolForward)
+        {
+            patrolIndex++;
+
+            if (patrolIndex >= patrolPath.points.Count)
+            {
+                patrolIndex =
+                    patrolPath.points.Count - 2;
+
+                patrolForward = false;
+            }
+        }
+        else
+        {
+            patrolIndex--;
+
+            if (patrolIndex < 0)
+            {
+                patrolIndex = 1;
+                patrolForward = true;
+            }
+        }
+    }
+
+    void UpdateVisualAnimation(bool moving)
+    {
+        if (visualController == null)
+            return;
+
+        if (moving)
+        {
+            visualController.SetAnimationState(
+                HumanoidAnimationState.Walk
+            );
+        }
+        else
+        {
+            visualController.SetAnimationState(
+                HumanoidAnimationState.Idle
+            );
+        }
+
+        visualController.UpdateSkinDirection(
+            CurrentFacingDirection
+        );
     }
 }

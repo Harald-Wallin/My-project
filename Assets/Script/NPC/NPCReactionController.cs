@@ -242,6 +242,7 @@ public class NPCReactionController : MonoBehaviour
 
     void OnDamaged(CharacterStats attacker)
     {
+        //Debug.Log($"{name} damaged by {attacker.name} | Hostile? {selfStats.IsHostileTo(attacker)}");
 
         if (selfStats.currentHP <= 0)
         {
@@ -253,11 +254,51 @@ public class NPCReactionController : MonoBehaviour
         if (attacker == null)
             return;
 
+        //if (!selfStats.IsHostileTo(attacker))
+        //{
+        //    return;
+        //}
+
+        //NY METOD
+        bool shouldReact = false;
+
+        if (selfStats.IsHostileTo(attacker))
+        {
+            shouldReact = true;
+        }
+
+        PlayerStats playerAttacker =
+            attacker as PlayerStats;
+
+        if (playerAttacker != null)
+        {
+            PlayerReputationManager rep =
+                playerAttacker.GetComponent<PlayerReputationManager>();
+
+            if (rep != null &&
+                selfStats.faction != null &&
+                rep.IsMurderEnabled(selfStats.faction))
+            {
+                shouldReact = true;
+            }
+        }
+
+        if (!shouldReact)
+        {
+            return;
+        }
+        //TILL HIT
+
         lastThreatSource = attacker;
 
-        BecomeTemporarilyHostile();
-        RefreshAlert();
-        //PropagateAwareness(attacker);
+        //UTKOMMENDERAD FÖR NY METOD
+        //PlayerStats playerAttacker = attacker as PlayerStats;
+
+        if (playerAttacker != null)
+        {
+            BecomeTemporarilyHostile();
+            RefreshAlert();
+        }
 
         switch (reactionType)
         {
@@ -291,7 +332,7 @@ public class NPCReactionController : MonoBehaviour
 
     void BecomeTemporarilyHostile()
     {
-        Debug.Log($"{name} became temporarily hostile.");
+        //Debug.Log($"{name} became temporarily hostile.");
 
         hostilityTimer = hostilityDuration;
 
@@ -434,14 +475,17 @@ public class NPCReactionController : MonoBehaviour
 
         bool wasAlreadyAlerted = IsAlerted;
 
-        BecomeTemporarilyHostile();
-        RefreshAlert();
+        if (attacker is PlayerStats)
+        {
+            BecomeTemporarilyHostile();
+            RefreshAlert();
+        }
 
         lastThreatSource = attacker;
 
         if (!wasAlreadyAlerted)
         {
-            Debug.Log($"{name} was alerted by {attacker.name}");
+            //Debug.Log($"{name} was alerted by {attacker.name}");
 
             //PropagateAwareness(attacker);
         }

@@ -177,7 +177,7 @@ public class Enemy : CharacterStats
         }
         else
         {
-            Debug.Log("LootContainer hittad på corpse.");
+            //Debug.Log("LootContainer hittad på corpse.");
         }
 
         if (loot != null && lootTables != null)

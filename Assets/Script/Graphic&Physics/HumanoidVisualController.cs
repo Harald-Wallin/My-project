@@ -60,6 +60,8 @@ public class HumanoidVisualController : MonoBehaviour
         if (dir == Vector2.zero)
             dir = Vector2.down;
 
+        currentDirection = dir;
+
         DirectionalSpriteSet headSet = GetSet(headAnimations);
         DirectionalSpriteSet torsoSet = GetSet(torsoAnimations);
         DirectionalSpriteSet armsSet = GetSet(armsAnimations);
