@@ -17,7 +17,7 @@ MonoBehaviour:
   loreDescription: A good People
   factionCategory: Civilization
   relations:
-  - otherFaction: {fileID: 11400000, guid: 371ddee64cfc1974b858754e071b1b96, type: 2}
+  - otherFaction: {fileID: 11400000, guid: 1b1cbe8a792f25e46a9f10dc7db7a8f4, type: 2}
     standing: 0
   - otherFaction: {fileID: 11400000, guid: edfc595230a10d646ab59d742e1ca931, type: 2}
     standing: 2

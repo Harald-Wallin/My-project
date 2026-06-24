@@ -56,9 +56,6 @@ public class LootableCorpse : MonoBehaviour
 
     void UpdateShimmer()
     {
-        Debug.Log(
-    $"{name} loot count: {loot.items.Count}"
-);
         bool hasLoot =
             loot != null &&
             loot.items != null &&

@@ -23,6 +23,14 @@ public class BuffSystem : MonoBehaviour
     {
         for (int i = activeBuffs.Count - 1; i >= 0; i--)
         {
+
+            if (i >= activeBuffs.Count)
+            {
+                Debug.LogError("Buff list changed during update!");
+                continue;
+            }
+
+
             activeBuffs[i].Update(Time.deltaTime, stats);
 
             if (activeBuffs[i].IsFinished)

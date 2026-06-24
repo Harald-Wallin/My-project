@@ -10,16 +10,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4b1ec106e887d2147b7bae70592e78b8, type: 3}
-  m_Name: PlayerFaction
+  m_Name: StartZoneBanditFaction
   m_EditorClassIdentifier: Assembly-CSharp::Faction
   showInReputationWindow: 1
-  factionName: Player
-  loreDescription: 
-  factionCategory: 
+  factionName: The Bandits
+  loreDescription: A band of real jerks, trying to provoke the honest folk of the
+    lands to move, and leave the territory to bandit operations
+  factionCategory: Bandits
   relations:
   - otherFaction: {fileID: 11400000, guid: c5488bdfa9793df41979c93540acac0b, type: 2}
-    standing: 2
-  - otherFaction: {fileID: 11400000, guid: 1b1cbe8a792f25e46a9f10dc7db7a8f4, type: 2}
+    standing: 0
+  - otherFaction: {fileID: 11400000, guid: edfc595230a10d646ab59d742e1ca931, type: 2}
     standing: 0
   - otherFaction: {fileID: 11400000, guid: e13fb5b85ff5bf2418495430d513911d, type: 2}
     standing: 0

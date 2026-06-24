@@ -107,8 +107,6 @@ public class PlayerDeathManager : MonoBehaviour
     void MakeDebuffsPermanent()
     {
         permanentStateReached = true;
-
-        //Debug.Log("Death debuffs became permanent!");
     }
 
     // =========================================================

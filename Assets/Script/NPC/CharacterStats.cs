@@ -97,8 +97,7 @@ public class CharacterStats : MonoBehaviour
             {
                 //Debug.Log("Blocked by player!");
 
-                WardSystem ward =
-                    GetComponent<WardSystem>();
+                WardSystem ward = GetComponent<WardSystem>();
 
                 if (ward != null)
                 {
@@ -113,8 +112,7 @@ public class CharacterStats : MonoBehaviour
 
         OnDamagedBy?.Invoke(attacker);
 
-        DamageReaction reaction =
-    GetComponentInChildren<DamageReaction>();
+        DamageReaction reaction = GetComponentInChildren<DamageReaction>();
 
         if (reaction != null && attacker != null)
         {
@@ -352,7 +350,7 @@ public class CharacterStats : MonoBehaviour
         string killerName =
             killer != null ? killer.name : "Unknown";
 
-        Debug.Log($"{name} died. Killer: {killerName}");
+        //Debug.Log($"{name} died. Killer: {killerName}");
 
         HandleDeathCleanup();
 

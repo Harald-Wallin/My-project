@@ -175,10 +175,6 @@ public class Enemy : CharacterStats
         {
             Debug.LogError("Corpse saknar LootContainer!");
         }
-        else
-        {
-            //Debug.Log("LootContainer hittad på corpse.");
-        }
 
         if (loot != null && lootTables != null)
         {

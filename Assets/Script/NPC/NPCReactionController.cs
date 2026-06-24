@@ -37,13 +37,9 @@ public class NPCReactionController : MonoBehaviour
     public bool IsHostile =>
     IsReputationHostile() || IsTemporarilyHostile;
 
-    public bool IsTemporarilyHostile =>
-        hostilityTimer > 0f;
-
     //public bool IsAlerted =>
     //    IsHostile;
 
-    private float hostilityTimer;
     private AgressiveMobAI ai;
 
     private CharacterStats selfStats;
@@ -93,7 +89,6 @@ public class NPCReactionController : MonoBehaviour
     void Update()
     {
         UpdatePlayerDetection();
-        HandleHostilityTimer();
         HandlePassiveHostility();
         HandleAlertTimer();
         HandleAwarenessPropagation();
@@ -109,8 +104,7 @@ public class NPCReactionController : MonoBehaviour
         if (player == null)
             return;
 
-        float radius =
-            GetCurrentAwarenessRadius();
+        float radius = GetCurrentAwarenessRadius();
 
         float distance =
             Vector2.Distance(
@@ -124,31 +118,13 @@ public class NPCReactionController : MonoBehaviour
 
     float GetCurrentAwarenessRadius()
     {
-        if (IsHostile)
+        if (IsAlerted)
         {
             return awarenessRadius *
                    alertedRadiusMultiplier;
         }
 
         return awarenessRadius;
-    }
-
-    void HandleHostilityTimer()
-    {
-        if (!IsTemporarilyHostile)
-            return;
-
-        hostilityTimer -= Time.deltaTime;
-
-        if (hostilityTimer > 0f)
-            return;
-
-        hostilityTimer = 0f;
-
-        if (ai != null)
-        {
-            ai.ReturnToSpawn();
-        }
     }
     public void ClearAwarenessMemory()
     {
@@ -254,12 +230,6 @@ public class NPCReactionController : MonoBehaviour
         if (attacker == null)
             return;
 
-        //if (!selfStats.IsHostileTo(attacker))
-        //{
-        //    return;
-        //}
-
-        //NY METOD
         bool shouldReact = false;
 
         if (selfStats.IsHostileTo(attacker))
@@ -267,13 +237,11 @@ public class NPCReactionController : MonoBehaviour
             shouldReact = true;
         }
 
-        PlayerStats playerAttacker =
-            attacker as PlayerStats;
+        PlayerStats playerAttacker = attacker as PlayerStats;
 
         if (playerAttacker != null)
         {
-            PlayerReputationManager rep =
-                playerAttacker.GetComponent<PlayerReputationManager>();
+            PlayerReputationManager rep = playerAttacker.GetComponent<PlayerReputationManager>();
 
             if (rep != null &&
                 selfStats.faction != null &&
@@ -287,37 +255,31 @@ public class NPCReactionController : MonoBehaviour
         {
             return;
         }
-        //TILL HIT
 
         lastThreatSource = attacker;
 
-        //UTKOMMENDERAD FÖR NY METOD
-        //PlayerStats playerAttacker = attacker as PlayerStats;
+        RefreshAlert();
 
         if (playerAttacker != null)
         {
-            BecomeTemporarilyHostile();
-            RefreshAlert();
+            BecomeTemporarilyHostile(playerAttacker);
         }
 
         switch (reactionType)
         {
             case NPCReactionType.Flee:
 
-                //Debug.Log($"{name} starts fleeing!");
+                //Debug.Log($"{name} ENTERING FLEE");
 
                 if (ai != null)
                 {
                     ai.StartFleeing(attacker);
                 }
-
-                /*SpreadPanic(attacker);*/
-
                 break;
 
             case NPCReactionType.Aggro:
 
-                //Debug.Log($"{name} becomes aggressive!");
+                //Debug.Log($"{name} ENTERING AGGRO");
 
                 if (ai != null)
                 {
@@ -330,16 +292,37 @@ public class NPCReactionController : MonoBehaviour
         }
     }
 
-    void BecomeTemporarilyHostile()
+    void BecomeTemporarilyHostile(
+    PlayerStats player
+    )
     {
-        //Debug.Log($"{name} became temporarily hostile.");
+        if (player == null)
+            return;
 
-        hostilityTimer = hostilityDuration;
+        FactionHostilitySystem.Instance
+            ?.AddHostility(
+                Faction,
+                player,
+                hostilityDuration
+            );
+    }
 
-        if (FactionAwarenessSystem.Instance != null)
+    public bool IsTemporarilyHostile
+    {
+        get
         {
-            FactionAwarenessSystem.Instance
-                .RegisterAlertedNPC(this);
+            PlayerStats player =
+                PlayerReference.Player;
+
+            if (player == null)
+                return false;
+
+            return FactionHostilitySystem.Instance != null &&
+                   FactionHostilitySystem.Instance
+                   .IsHostileToPlayer(
+                        Faction,
+                        player
+                   );
         }
     }
 
@@ -360,7 +343,7 @@ public class NPCReactionController : MonoBehaviour
         if (attacker == null)
             return;
 
-        BecomeTemporarilyHostile();
+        BecomeTemporarilyHostile((PlayerStats)attacker);
         RefreshAlert();
 
         lastThreatSource = attacker;
@@ -442,10 +425,6 @@ public class NPCReactionController : MonoBehaviour
         if (IsReacting)
             return;
 
-        //Debug.Log($"{name} detected hated player passively.");
-
-        //EnterAlertedState(player);
-
         switch (reactionType)
         {
             case NPCReactionType.Flee:
@@ -475,10 +454,15 @@ public class NPCReactionController : MonoBehaviour
 
         bool wasAlreadyAlerted = IsAlerted;
 
-        if (attacker is PlayerStats)
-        {
-            BecomeTemporarilyHostile();
+        //if (attacker is PlayerStats)
+        //{
+        //    BecomeTemporarilyHostile((PlayerStats)attacker);
             RefreshAlert();
+        //}
+
+        if (attacker is PlayerStats player)
+        {
+            BecomeTemporarilyHostile(player);
         }
 
         lastThreatSource = attacker;

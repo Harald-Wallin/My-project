@@ -9,6 +9,10 @@ public class MobSpawner : MonoBehaviour
     [Header("Level")]
     [SerializeField] int mobLevel = 1;
 
+    [Header("Patrol")]
+    [SerializeField]
+    private PatrolPath patrolPath;
+
 
     GameObject currentMob;
 
@@ -31,6 +35,13 @@ public class MobSpawner : MonoBehaviour
         {
             enemy.spawner = this;
             enemy.SetLevel(mobLevel);
+        }
+
+        AgressiveMobAI ai = currentMob.GetComponent<AgressiveMobAI>();
+
+        if (ai != null && patrolPath != null)
+        {
+            ai.SetPatrolPath(patrolPath);
         }
     }
 

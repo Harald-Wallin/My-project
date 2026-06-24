@@ -17,7 +17,7 @@ public class AgressiveMobAI : MonoBehaviour
 
     [Header("Attack")]
     private AbilityController abilityController;
-    [SerializeField] float attackRange = 0.9f;
+    [SerializeField] float attackRange = 1f;
 
     [Header("Ability Delay")]
     [SerializeField] private float abilityDelayAfterAggro = 3f;
@@ -28,6 +28,34 @@ public class AgressiveMobAI : MonoBehaviour
     public float moveSpeed = 2.5f;
     private SpriteRenderer sr;
     private Rigidbody2D rb;
+
+    [Header("Obstacle Avoidance")]
+    [SerializeField] private float avoidanceProbeDistance = 1.2f;
+    [SerializeField] private float avoidanceAngle = 35f;
+    [SerializeField] private float avoidanceMemoryDuration = 1.5f;
+
+    [Header("Obstacle Recovery")]
+    [SerializeField] private float stuckCheckTime = 0.5f;
+    [SerializeField] private float stuckMovementThreshold = 0.1f;
+    [SerializeField] private float avoidanceTargetDistance = 2f;
+
+    [Header("Steering")]
+    [SerializeField] private float targetWeight = 1.0f;
+    [SerializeField] private float obstacleWeight = 2.0f;
+    [SerializeField] private float separationWeight = 1.2f;
+    [SerializeField] private float separationRadius = 1.2f;
+
+    [Header("Obstacle Memory")]
+    [SerializeField] private float obstacleMemoryDuration = 2f;
+    private Vector2 rememberedAvoidanceDirection;
+    private float obstacleMemoryTimer;
+    private bool hasObstacleMemory;
+
+    private float stuckTimer;
+    private Vector2 lastStuckPosition;
+
+    private bool hasTemporaryAvoidanceTarget;
+    private Vector3 temporaryAvoidanceTarget;
 
     [Header("Aggro")]
     [SerializeField]
@@ -87,8 +115,10 @@ public class AgressiveMobAI : MonoBehaviour
     private bool patrolForward = true;
     private float patrolWaitTimer = 0f;
     private bool waitingAtPatrolNode = false;
-    private Vector3 interruptedPatrolPosition;
-    private bool returnToPatrolAfterCombat;
+    private bool wasPatrollingBeforeCombat;
+
+    //Avoidance
+    private float avoidanceMemoryTimer;
 
     public bool IsInCombat => currentState == AIState.Aggro;
     protected AIState currentState = AIState.Idle;
@@ -132,6 +162,7 @@ public class AgressiveMobAI : MonoBehaviour
 
         Vector2 initialDir = Vector2.down;
         CurrentFacingDirection = initialDir;
+        lastStuckPosition = rb.position;
 
         npcEquipment?.UpdateVisualDirection(initialDir);
 
@@ -154,11 +185,38 @@ public class AgressiveMobAI : MonoBehaviour
         }
     }
 
+    public void SetPatrolPath(PatrolPath path)
+    {
+        patrolPath = path;
+
+        if (canPatrol &&
+            patrolPath != null &&
+            patrolPath.points.Count > 0)
+        {
+            currentState = AIState.Patrolling;
+        }
+    }
+
     void FixedUpdate()
     {
+        //TESTBLOCK 
+        if (currentState == AIState.Aggro &&
+            currentTargetStats == null)
+        {
+
+            ReturnToSpawn();
+            return;
+        }
+
         if (aggroDisableTimer > 0f)
         {
             aggroDisableTimer -= Time.fixedDeltaTime;
+        }
+
+        //TESTBLOCK
+        if (currentTargetStats == null && currentState == AIState.Aggro)
+        {
+            ReturnToSpawn();
         }
 
         if (
@@ -167,6 +225,7 @@ public class AgressiveMobAI : MonoBehaviour
             !isReturning
             )
         {
+            currentTargetStats = null;
             ReturnToSpawn();
         }
 
@@ -177,17 +236,15 @@ public class AgressiveMobAI : MonoBehaviour
 
         if (player == null)
         {
-            if (isReturning)
-            {
-                HandleMovement();
-                HandleIdleAnimation();
-                HandlePatrolReturn();
-            }
-
-            return;
+            player = PlayerReference.Player?.transform;
         }
 
-        float distanceFromSpawn = Vector2.Distance(rb.position, spawnPosition);
+        float distanceFromSpawn = Vector2.Distance(rb.position,spawnPosition);
+
+        if (avoidanceMemoryTimer > 0f)
+        {
+            avoidanceMemoryTimer -= Time.fixedDeltaTime;
+        }
 
         HandleLeash(distanceFromSpawn);
         HandleAggroDetection();
@@ -220,19 +277,18 @@ public class AgressiveMobAI : MonoBehaviour
 
     protected virtual void EnterAggroState(CharacterStats target)
     {
-        //Debug.Log($"{name} ENTER AGGRO -> {target.name}");
 
         if (target == null)
             return;
 
-        //Sparar eventuell patrullstatus
-        if (currentState == AIState.Patrolling)
+        if (currentState == AIState.Aggro)
         {
-            interruptedPatrolPosition =
-                transform.position;
-
-            returnToPatrolAfterCombat = true;
+            currentTargetStats = target;
+            return;
         }
+
+        //Sparar eventuell patrullstatus
+        wasPatrollingBeforeCombat = currentState == AIState.Patrolling;
 
         currentTargetStats = target;
         player = target.transform;
@@ -299,6 +355,9 @@ public class AgressiveMobAI : MonoBehaviour
 
     void HandleLeash(float distanceFromSpawn)
     {
+        if (canPatrol)
+            return;
+
         if (currentState == AIState.Fleeing)
             return;
 
@@ -331,8 +390,7 @@ public class AgressiveMobAI : MonoBehaviour
         if (isAggro)
             return;
 
-        NPCReactionController reaction =
-            GetComponent<NPCReactionController>();
+        NPCReactionController reaction = GetComponent<NPCReactionController>();
 
         bool isTemporaryHostile =
             reaction != null &&
@@ -360,16 +418,11 @@ public class AgressiveMobAI : MonoBehaviour
             if (target == selfStats)
                 continue;
 
-            //if (target.faction == selfStats.faction)
-            //   continue;
             if (target == selfStats)
                 continue;
 
             if (!ShouldAggro(target))
                 continue;
-
-            // Debug.Log($"{name} sees {target.name} | same faction = {selfStats.faction == target.faction}");
-            // Debug.Log($"{name} ShouldAggro({target.name}) = {ShouldAggro(target)}");
 
             if (ShouldAggro(target))
             {
@@ -387,7 +440,7 @@ public class AgressiveMobAI : MonoBehaviour
         }
         else if (currentState == AIState.Aggro && currentTargetStats != null)
         {
-            MoveTowards(currentTargetStats.transform.position);
+            MoveTowards(currentTargetStats.transform.position,1f,attackRange * 0.9f);
         }
         else if (currentState == AIState.Wandering)
         {
@@ -396,29 +449,6 @@ public class AgressiveMobAI : MonoBehaviour
         else if (currentState == AIState.Patrolling)
         {
             PatrolLogic();
-        }
-        else if (currentState == AIState.PatrolReturning)
-        {
-            MoveTowards(interruptedPatrolPosition);
-        }
-    }
-
-    void HandlePatrolReturn()
-    {
-        if (currentState != AIState.PatrolReturning)
-            return;
-
-        float distance =
-            Vector2.Distance(
-                transform.position,
-                interruptedPatrolPosition
-            );
-
-        if (distance <= stopDistance)
-        {
-            returnToPatrolAfterCombat = false;
-
-            currentState = AIState.Patrolling;
         }
     }
 
@@ -577,24 +607,54 @@ public class AgressiveMobAI : MonoBehaviour
 
     protected virtual void HandleDamaged(CharacterStats attacker)
     {
-        //Debug.Log($"{name} AgressiveMobAI.HandleDamaged triggered.");
-
         // NPCReactionController styr reaktionen istället
     }
 
-    protected virtual bool ShouldAggro(CharacterStats potentialTarget)
+    protected virtual bool ShouldAggro(
+    CharacterStats potentialTarget)
     {
         if (potentialTarget == null)
             return false;
 
-        return CombatTargeting.CanAttack(
+        if (!CombatTargeting.CanAttack(
             selfStats,
-            potentialTarget
-        );
+            potentialTarget))
+        {
+            return false;
+        }
+
+        bool hasLoS =
+            LineOfSightUtility.HasLineOfSight(
+                transform.position,
+                potentialTarget.transform.position
+            );
+
+        if (!hasLoS)
+            return false;
+
+        return true;
     }
 
-    void MoveTowards(Vector3 target, float speedMultiplier = 1f)
+    void MoveTowards(Vector3 target, float speedMultiplier = 1f, float customStopDistance = -1f)
     {
+        float stopDist = customStopDistance > 0f ? customStopDistance : stopDistance;
+
+        if (hasTemporaryAvoidanceTarget)
+        {
+            target = temporaryAvoidanceTarget;
+
+            float avoidanceDistance =
+                Vector2.Distance(
+                    rb.position,
+                    temporaryAvoidanceTarget
+                );
+
+            if (avoidanceDistance <= stopDistance)
+            {
+                hasTemporaryAvoidanceTarget = false;
+            }
+        }
+
         if (selfStats.IsStunned)
             return;
 
@@ -606,17 +666,32 @@ public class AgressiveMobAI : MonoBehaviour
         Vector2 toTarget = (Vector2)target - rb.position;
         float distance = toTarget.magnitude;
 
-        if (distance <= stopDistance)
+        if (distance <= stopDist)
             return;
 
-        Vector2 direction = toTarget.normalized;
+        Vector2 direction;
+
+        if (currentState == AIState.Aggro)
+        {
+            direction = toTarget.normalized;
+        }
+        else
+        {
+            direction = GetSteeringDirection(toTarget.normalized );
+        }
 
         Vector2 desiredMove =
         direction * moveSpeed * speedMultiplier * moveSpeedStat * Time.fixedDeltaTime;
 
         ContactFilter2D filter = new ContactFilter2D();
         filter.useLayerMask = true;
-        filter.layerMask = LayerMask.GetMask("Blocked", "Enemy", "Player");
+        filter.layerMask = LayerMask.GetMask(
+        "World",
+        "NPC",
+        "HostileMob",
+        "Player"
+        );
+
         filter.useTriggers = false;
 
         RaycastHit2D[] hits = new RaycastHit2D[1];
@@ -630,7 +705,29 @@ public class AgressiveMobAI : MonoBehaviour
 
         if (hitCount == 0)
         {
+            hasObstacleMemory = false;
             rb.MovePosition(rb.position + desiredMove);
+        }
+        else
+        {
+            Vector2 hitNormal = hits[0].normal;
+
+            float dot =
+                Vector2.Dot(
+                    desiredMove,
+                    hitNormal
+                );
+
+            Vector2 slideMove =
+                desiredMove -
+                hitNormal * dot;
+
+            if (slideMove.sqrMagnitude > 0.0001f)
+            {
+                rb.MovePosition(
+                    rb.position + slideMove
+                );
+            }
         }
 
         if (npcEquipment != null)
@@ -641,6 +738,7 @@ public class AgressiveMobAI : MonoBehaviour
             visualController.UpdateSkinDirection(direction);
         }
 
+        CheckIfStuck(target);
         CurrentFacingDirection = direction;
         UpdateVisualAnimation(true);
         wasMovingLastFrame = true;
@@ -652,7 +750,6 @@ public class AgressiveMobAI : MonoBehaviour
             currentState == AIState.Aggro ||
             currentState == AIState.Returning ||
             currentState == AIState.Patrolling ||
-            currentState == AIState.PatrolReturning ||
             isWandering;
 
         if (!shouldBeMoving && wasMovingLastFrame)
@@ -707,9 +804,6 @@ public class AgressiveMobAI : MonoBehaviour
 
     public void ForceAggro(CharacterStats target)
     {
-
-        //Debug.Log($"{name} FORCE AGGRO -> {target.name}");
-
         if (target == null)
             return;
 
@@ -749,10 +843,15 @@ public class AgressiveMobAI : MonoBehaviour
     {
         fleeSource = null;
 
-        if (returnToPatrolAfterCombat)
+        if (wasPatrollingBeforeCombat)
         {
-            currentState =
-                AIState.PatrolReturning;
+            currentTargetStats = null;
+            isAggro = false;
+            isReturning = false;
+
+            currentState = AIState.Patrolling;
+
+            wasPatrollingBeforeCombat = false;
 
             return;
         }
@@ -899,5 +998,286 @@ public class AgressiveMobAI : MonoBehaviour
         visualController.UpdateSkinDirection(
             CurrentFacingDirection
         );
+    }
+
+    Vector2 GetAvoidanceDirection(Vector2 desiredDirection)
+    {
+        if (avoidanceMemoryTimer > 0f)
+        {
+            return rememberedAvoidanceDirection;
+        }
+
+        ContactFilter2D filter = new ContactFilter2D();
+
+        filter.useLayerMask = true;
+
+        filter.layerMask =
+            LayerMask.GetMask(
+                "World",
+                "NPC",
+                "Player"
+            );
+
+        filter.useTriggers = false;
+
+        RaycastHit2D[] hits = new RaycastHit2D[1];
+
+        int forwardHit =
+            rb.Cast(
+                desiredDirection,
+                filter,
+                hits,
+                avoidanceProbeDistance
+            );
+
+        if (forwardHit == 0)
+        {
+            return desiredDirection;
+        }
+
+        Vector2 leftDirection =
+            Quaternion.Euler(
+                0,
+                0,
+                avoidanceAngle
+            ) * desiredDirection;
+
+        int leftHit =
+            rb.Cast(
+                leftDirection,
+                filter,
+                hits,
+                avoidanceProbeDistance
+            );
+
+        if (leftHit == 0)
+        {
+            rememberedAvoidanceDirection = leftDirection.normalized;
+            avoidanceMemoryTimer = avoidanceMemoryDuration;
+            return rememberedAvoidanceDirection;
+        }
+
+        Vector2 rightDirection = Quaternion.Euler(0,0, -avoidanceAngle) * desiredDirection;
+
+        int rightHit =
+            rb.Cast(
+                rightDirection,
+                filter,
+                hits,
+                avoidanceProbeDistance
+            );
+
+        if (rightHit == 0)
+        {
+            rememberedAvoidanceDirection = rightDirection.normalized;
+
+            avoidanceMemoryTimer = avoidanceMemoryDuration;
+
+            return rememberedAvoidanceDirection;
+        }
+
+        return desiredDirection;
+    }
+
+    void CheckIfStuck(Vector3 finalTarget)
+    {
+        float movedDistance =
+            Vector2.Distance(
+                rb.position,
+                lastStuckPosition
+            );
+
+        if (movedDistance > stuckMovementThreshold)
+        {
+            stuckTimer = 0f;
+            lastStuckPosition = rb.position;
+            return;
+        }
+
+        stuckTimer += Time.fixedDeltaTime;
+
+        if (stuckTimer < stuckCheckTime)
+            return;
+
+        stuckTimer = 0f;
+        lastStuckPosition = rb.position;
+
+        GenerateTemporaryAvoidanceTarget(finalTarget);
+    }
+
+    void GenerateTemporaryAvoidanceTarget(Vector3 finalTarget)
+    {
+        Vector2 toTarget =
+            ((Vector2)finalTarget - rb.position).normalized;
+
+        Vector2 left =
+            new Vector2(-toTarget.y, toTarget.x);
+
+        Vector2 right =
+            new Vector2(toTarget.y, -toTarget.x);
+
+        Vector2 chosenSide =
+            Random.value > 0.5f
+            ? left
+            : right;
+
+        temporaryAvoidanceTarget =
+            transform.position +
+            (Vector3)(chosenSide * avoidanceTargetDistance);
+
+        hasTemporaryAvoidanceTarget = true;
+    }
+
+    Vector2 GetSteeringDirection(Vector2 targetDirection)
+    {
+        if (hasObstacleMemory)
+        {
+            obstacleMemoryTimer -= Time.fixedDeltaTime;
+
+            if (obstacleMemoryTimer <= 0f)
+            {
+                hasObstacleMemory = false;
+            }
+        }
+
+        Vector2 steering = Vector2.zero;
+
+        //---------------------------------
+        // 1. Målriktning
+        //---------------------------------
+
+        steering += targetDirection * targetWeight;
+
+        if (hasObstacleMemory)
+        {
+            steering +=
+                rememberedAvoidanceDirection *
+                obstacleWeight;
+        }
+
+        //---------------------------------
+        // 2. Hinder-undvikande
+        //---------------------------------
+
+        Vector2 obstacleForce =
+            CalculateObstacleAvoidance(targetDirection);
+
+        steering += obstacleForce * obstacleWeight;
+
+        //---------------------------------
+        // 3. Separation från andra NPCs
+        //---------------------------------
+
+        Vector2 separationForce =
+            CalculateSeparationForce();
+
+        steering += separationForce * separationWeight;
+
+        //---------------------------------
+
+        if (steering.sqrMagnitude < 0.001f)
+            return targetDirection;
+
+        return steering.normalized;
+    }
+
+    Vector2 CalculateObstacleAvoidance(Vector2 desiredDirection)
+    {
+        RaycastHit2D hit =
+            Physics2D.Raycast(
+                rb.position,
+                desiredDirection,
+                1.2f,
+                LayerMask.GetMask("World")
+            );
+
+        if (!hit)
+            return Vector2.zero;
+
+        Vector2 left =
+            new Vector2(
+                -desiredDirection.y,
+                 desiredDirection.x
+            );
+
+        Vector2 right =
+            new Vector2(
+                 desiredDirection.y,
+                -desiredDirection.x
+            );
+
+        float leftClear =
+            Physics2D.Raycast(
+                rb.position,
+                left,
+                1.5f,
+                LayerMask.GetMask("World")
+            )
+            ? 0f
+            : 1f;
+
+        float rightClear =
+            Physics2D.Raycast(
+                rb.position,
+                right,
+                1.5f,
+                LayerMask.GetMask("World")
+            )
+            ? 0f
+            : 1f;
+
+        if (leftClear > rightClear)
+        {
+            RememberObstacleDirection(left);
+            return left;
+        }
+
+        RememberObstacleDirection(right);
+        return right;
+    }
+
+    void RememberObstacleDirection(Vector2 direction)
+    {
+        rememberedAvoidanceDirection =
+            direction.normalized;
+
+        obstacleMemoryTimer =
+            obstacleMemoryDuration;
+
+        hasObstacleMemory = true;
+    }
+
+    Vector2 CalculateSeparationForce()
+    {
+        Collider2D[] hits =
+            Physics2D.OverlapCircleAll(
+                transform.position,
+                separationRadius,
+                LayerMask.GetMask(
+                    "NPC",
+                    "HostileMob"
+                )
+            );
+
+        Vector2 force = Vector2.zero;
+
+        foreach (var hit in hits)
+        {
+            if (hit.attachedRigidbody == rb)
+                continue;
+
+            Vector2 away =
+                rb.position -
+                (Vector2)hit.transform.position;
+
+            float distance = away.magnitude;
+
+            if (distance < 0.01f)
+                continue;
+
+            force += away.normalized / distance;
+        }
+
+        return force;
     }
 }

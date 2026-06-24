@@ -330,11 +330,14 @@ MonoBehaviour:
   moveSpeed: 2.1
   canAggro: 1
   aggroRange: 4
+  canWander: 0
   wanderRadius: 3
   wanderMoveTime: 2
   wanderPauseTime: 2
   wanderSpeedMultiplier: 0.5
-  canWander: 0
+  canPatrol: 1
+  patrolPath: {fileID: 0}
+  patrolSpeedMultiplier: 0.75
   fleeDistance: 12
   safeDistanceFromThreat: 18
   resumeFleeDistance: 12
