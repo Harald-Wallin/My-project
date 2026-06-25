@@ -278,6 +278,11 @@ public class AgressiveMobAI : MonoBehaviour
     protected virtual void EnterAggroState(CharacterStats target)
     {
 
+        Debug.Log(
+    $"{name} ENTER AGGRO -> {target.name}\n" +
+    System.Environment.StackTrace
+);
+
         if (target == null)
             return;
 
@@ -610,32 +615,29 @@ public class AgressiveMobAI : MonoBehaviour
         // NPCReactionController styr reaktionen istället
     }
 
-    protected virtual bool ShouldAggro(
-    CharacterStats potentialTarget)
+    protected virtual bool ShouldAggro(CharacterStats potentialTarget)
     {
         if (potentialTarget == null)
             return false;
 
-        if (!CombatTargeting.CanAttack(
-            selfStats,
-            potentialTarget))
-        {
+        if (potentialTarget == selfStats)
             return false;
-        }
 
-        bool hasLoS =
-            LineOfSightUtility.HasLineOfSight(
+        // Central regel:
+        // Avgör först om detta överhuvudtaget är ett giltigt mål.
+        if (!CombatTargeting.CanAttack(selfStats, potentialTarget))
+            return false;
+
+        // Därefter krävs fri sikt.
+        if (!LineOfSightUtility.HasLineOfSight(
                 transform.position,
-                potentialTarget.transform.position
-            );
-
-        if (!hasLoS)
+                potentialTarget.transform.position))
             return false;
 
         return true;
     }
 
-    void MoveTowards(Vector3 target, float speedMultiplier = 1f, float customStopDistance = -1f)
+    bool MoveTowards(Vector3 target,float speedMultiplier = 1f,float customStopDistance = -1f)
     {
         float stopDist = customStopDistance > 0f ? customStopDistance : stopDistance;
 
@@ -656,32 +658,26 @@ public class AgressiveMobAI : MonoBehaviour
         }
 
         if (selfStats.IsStunned)
-            return;
+            return false;
 
         float moveSpeedStat = selfStats.GetStat(StatType.MovementSpeed);
 
         if (moveSpeedStat <= 0f)
-            return;
+            return false;
 
         Vector2 toTarget = (Vector2)target - rb.position;
         float distance = toTarget.magnitude;
 
         if (distance <= stopDist)
-            return;
-
-        Vector2 direction;
-
-        if (currentState == AIState.Aggro)
         {
-            direction = toTarget.normalized;
-        }
-        else
-        {
-            direction = GetSteeringDirection(toTarget.normalized );
+            UpdateVisualAnimation(false);
+            wasMovingLastFrame = false;
+            return false;
         }
 
-        Vector2 desiredMove =
-        direction * moveSpeed * speedMultiplier * moveSpeedStat * Time.fixedDeltaTime;
+        Vector2 direction = GetSteeringDirection(toTarget.normalized);
+
+        Vector2 desiredMove = direction * moveSpeed * speedMultiplier * moveSpeedStat * Time.fixedDeltaTime;
 
         ContactFilter2D filter = new ContactFilter2D();
         filter.useLayerMask = true;
@@ -706,7 +702,22 @@ public class AgressiveMobAI : MonoBehaviour
         if (hitCount == 0)
         {
             hasObstacleMemory = false;
+
             rb.MovePosition(rb.position + desiredMove);
+
+            if (npcEquipment != null)
+                npcEquipment.UpdateVisualDirection(direction);
+
+            if (visualController != null)
+                visualController.UpdateSkinDirection(direction);
+
+            CurrentFacingDirection = direction;
+
+            UpdateVisualAnimation(true);
+
+            wasMovingLastFrame = true;
+
+            return true;
         }
         else
         {
@@ -715,8 +726,7 @@ public class AgressiveMobAI : MonoBehaviour
             float dot =
                 Vector2.Dot(
                     desiredMove,
-                    hitNormal
-                );
+                    hitNormal);
 
             Vector2 slideMove =
                 desiredMove -
@@ -724,10 +734,40 @@ public class AgressiveMobAI : MonoBehaviour
 
             if (slideMove.sqrMagnitude > 0.0001f)
             {
-                rb.MovePosition(
-                    rb.position + slideMove
-                );
+                RaycastHit2D[] slideHits =
+                    new RaycastHit2D[1];
+
+                int slideBlocked =
+                    rb.Cast(
+                        slideMove.normalized,
+                        filter,
+                        slideHits,
+                        slideMove.magnitude + 0.02f);
+
+                if (slideBlocked == 0)
+                {
+                    rb.MovePosition(
+                        rb.position + slideMove);
+
+                    Vector2 slideDir =
+                        slideMove.normalized;
+
+                    if (npcEquipment != null)
+                        npcEquipment.UpdateVisualDirection(slideDir);
+
+                    if (visualController != null)
+                        visualController.UpdateSkinDirection(slideDir);
+
+                    CurrentFacingDirection = slideDir;
+
+                    UpdateVisualAnimation(true);
+
+                    wasMovingLastFrame = true;
+
+                    return true;
+                }
             }
+
         }
 
         if (npcEquipment != null)
@@ -738,10 +778,17 @@ public class AgressiveMobAI : MonoBehaviour
             visualController.UpdateSkinDirection(direction);
         }
 
-        CheckIfStuck(target);
+        /*CheckIfStuck(target);
         CurrentFacingDirection = direction;
         UpdateVisualAnimation(true);
-        wasMovingLastFrame = true;
+        wasMovingLastFrame = true;*/
+
+        CheckIfStuck(target);
+
+        UpdateVisualAnimation(false);
+        wasMovingLastFrame = false;
+
+        return false;
     }
 
     void HandleIdleAnimation()
@@ -1143,35 +1190,63 @@ public class AgressiveMobAI : MonoBehaviour
         Vector2 steering = Vector2.zero;
 
         //---------------------------------
-        // 1. Målriktning
+        // Vikter beroende på AI-state
         //---------------------------------
 
-        steering += targetDirection * targetWeight;
+        float currentTargetWeight = targetWeight;
+        float currentObstacleWeight = obstacleWeight;
+        float currentSeparationWeight = separationWeight;
 
-        if (hasObstacleMemory)
+        switch (currentState)
         {
-            steering +=
-                rememberedAvoidanceDirection *
-                obstacleWeight;
+            case AIState.Aggro:
+
+                // Vill komma fram aggressivt.
+                currentTargetWeight *= 2.0f;
+                currentObstacleWeight *= 0.6f;
+                currentSeparationWeight *= 0.2f;
+                break;
+
+            case AIState.Patrolling:
+
+                currentObstacleWeight *= 1.0f;
+                currentSeparationWeight *= 1.0f;
+                break;
+
+            case AIState.Wandering:
+
+                currentObstacleWeight *= 1.1f;
+                currentSeparationWeight *= 1.2f;
+                break;
+
+            case AIState.Fleeing:
+
+                currentObstacleWeight *= 1.6f;
+                currentSeparationWeight *= 1.5f;
+                break;
         }
 
-        //---------------------------------
-        // 2. Hinder-undvikande
-        //---------------------------------
+        // Målriktning
+        steering += targetDirection * currentTargetWeight;
 
+
+        // Obstacle Memory
+        if (hasObstacleMemory)
+        {
+            steering += rememberedAvoidanceDirection * currentObstacleWeight;
+        }
+
+        // Nya hinder
         Vector2 obstacleForce =
             CalculateObstacleAvoidance(targetDirection);
 
-        steering += obstacleForce * obstacleWeight;
+        steering += obstacleForce * currentObstacleWeight;
 
-        //---------------------------------
-        // 3. Separation från andra NPCs
-        //---------------------------------
-
+        // Separation
         Vector2 separationForce =
             CalculateSeparationForce();
 
-        steering += separationForce * separationWeight;
+        steering += separationForce * currentSeparationWeight;
 
         //---------------------------------
 
