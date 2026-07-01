@@ -1,0 +1,751 @@
+using UnityEngine;
+
+[RequireComponent(typeof(Rigidbody2D))]
+public class NPCMovement : MonoBehaviour
+{
+    protected CharacterStats stats;
+    protected HumanoidEquipment equipment;
+
+    private HumanoidVisualController visualController;
+    protected HumanoidEquipment npcEquipment;
+
+    private Rigidbody2D rb;
+
+    [Header("Movement Settings")]
+    [SerializeField] private float moveSpeed = 2.5f;
+
+    [Header("Object Avoidance")]
+    [SerializeField] private float stopDistance = 0.8f;
+    [SerializeField] private float avoidanceProbeDistance = 1.2f;
+    [SerializeField] private float avoidanceAngle = 35f;
+    [SerializeField] private float avoidanceMemoryDuration = 1.5f;
+    [SerializeField] private float stuckCheckTime = 0.5f;
+    [SerializeField] private float stuckMovementThreshold = 0.1f;
+    [SerializeField] private float avoidanceTargetDistance = 2f;
+    [SerializeField] private float targetWeight = 1.0f;
+    [SerializeField] private float obstacleWeight = 2.0f;
+    [SerializeField] private float separationWeight = 1.2f;
+    [SerializeField] private float separationRadius = 1.2f;
+    [SerializeField] private float obstacleMemoryDuration = 2f;
+
+    public float DefaultStopDistance => stopDistance;
+    private Vector2 rememberedAvoidanceDirection;
+    private float obstacleMemoryTimer;
+    private bool hasObstacleMemory;
+
+    private float stuckTimer;
+    private Vector2 lastStuckPosition;
+
+    private bool hasTemporaryAvoidanceTarget;
+    private Vector3 temporaryAvoidanceTarget;
+
+    private bool wasMovingLastFrame;
+
+    [Header("Wander Settings")]
+    [SerializeField] float wanderRadius = 3f;
+    [SerializeField] float wanderMoveTime = 2f;
+    [SerializeField] float wanderPauseTime = 2f;
+    [SerializeField] float wanderSpeedMultiplier = 0.5f;
+    private Vector2 wanderTarget;
+    private float wanderTimer;
+    private bool isWandering;
+    private bool isPausing;
+
+    //[Header("Flee Settings")]
+    private bool isFleeing;
+    private CharacterStats fleeSource;
+    private float fleeDistance;
+    private float safeDistance;
+
+    [Header("Patrol Settings")]
+    [SerializeField] protected float patrolSpeedMultiplier = 0.75f;
+    private int patrolIndex = 0;
+    private bool patrolForward = true;
+    private float patrolWaitTimer = 0f;
+    private bool waitingAtPatrolNode = false;
+
+    public Vector2 CurrentFacingDirection { get; private set; }
+        = Vector2.down;
+
+    public Vector3 SpawnPosition { get; private set; }
+
+    public enum NPCMovementMode
+    {
+        Default,
+        Aggressive,
+        Patrol,
+        Wander,
+        Flee
+    }
+
+    private NPCMovementMode movementMode = NPCMovementMode.Default;
+
+    void Awake()
+    {
+        rb = GetComponent<Rigidbody2D>();
+
+        stats = GetComponent<CharacterStats>();
+
+        visualController =
+            GetComponentInChildren<HumanoidVisualController>();
+
+        equipment =
+            GetComponent<HumanoidEquipment>();
+
+        SpawnPosition = transform.position;
+    }
+
+    public void SetMovementMode(NPCMovementMode mode)
+    {
+        movementMode = mode;
+    }
+
+    public void SetFacing(Vector2 direction)
+    {
+        if (direction.sqrMagnitude <= 0.001f)
+            return;
+
+        CurrentFacingDirection = direction;
+
+        equipment?.UpdateVisualDirection(direction);
+
+        visualController?.UpdateSkinDirection(direction);
+    }
+
+    public void SetAnimation(bool moving)
+    {
+        if (visualController == null)
+            return;
+
+        visualController.SetAnimationState(
+            moving
+                ? HumanoidAnimationState.Walk
+                : HumanoidAnimationState.Idle
+        );
+
+        visualController.UpdateSkinDirection(
+            CurrentFacingDirection
+        );
+    }
+
+    public bool MoveTowards(Vector3 target, float speedMultiplier = 1f, float customStopDistance = -1f)
+    {
+        float stopDist = customStopDistance > 0f ? customStopDistance : stopDistance;
+
+        if (hasTemporaryAvoidanceTarget)
+        {
+            target = temporaryAvoidanceTarget;
+
+            float avoidanceDistance =
+                Vector2.Distance(
+                    rb.position,
+                    temporaryAvoidanceTarget
+                );
+
+            if (avoidanceDistance <= stopDistance)
+            {
+                hasTemporaryAvoidanceTarget = false;
+            }
+        }
+
+        if (stats.IsStunned)
+            return false;
+
+        float moveSpeedStat = stats.GetStat(StatType.MovementSpeed);
+
+        if (moveSpeedStat <= 0f)
+            return false;
+
+        Vector2 toTarget = (Vector2)target - rb.position;
+        float distance = toTarget.magnitude;
+
+        if (distance <= stopDist)
+        {
+            UpdateVisualAnimation(false);
+            wasMovingLastFrame = false;
+            return false;
+        }
+
+        Vector2 direction = GetSteeringDirection(toTarget.normalized);
+
+        Vector2 desiredMove = direction * moveSpeed * speedMultiplier * moveSpeedStat * Time.fixedDeltaTime;
+
+        ContactFilter2D filter = new ContactFilter2D();
+        filter.useLayerMask = true;
+        filter.layerMask = LayerMask.GetMask(
+        "World",
+        "NPC",
+        "HostileMob",
+        "Player"
+        );
+
+        filter.useTriggers = false;
+
+        RaycastHit2D[] hits = new RaycastHit2D[1];
+
+        int hitCount = rb.Cast(
+            direction,
+            filter,
+            hits,
+            desiredMove.magnitude + 0.02f
+        );
+
+        if (hitCount == 0)
+        {
+            hasObstacleMemory = false;
+
+            rb.MovePosition(rb.position + desiredMove);
+
+            if (equipment != null)
+                equipment.UpdateVisualDirection(direction);
+
+            if (visualController != null)
+                visualController.UpdateSkinDirection(direction);
+
+            CurrentFacingDirection = direction;
+
+            UpdateVisualAnimation(true);
+
+            wasMovingLastFrame = true;
+
+            return true;
+        }
+        else
+        {
+            Vector2 hitNormal = hits[0].normal;
+
+            float dot =
+                Vector2.Dot(
+                    desiredMove,
+                    hitNormal);
+
+            Vector2 slideMove =
+                desiredMove -
+                hitNormal * dot;
+
+            if (slideMove.sqrMagnitude > 0.0001f)
+            {
+                RaycastHit2D[] slideHits =
+                    new RaycastHit2D[1];
+
+                int slideBlocked =
+                    rb.Cast(
+                        slideMove.normalized,
+                        filter,
+                        slideHits,
+                        slideMove.magnitude + 0.02f);
+
+                if (slideBlocked == 0)
+                {
+                    rb.MovePosition(
+                        rb.position + slideMove);
+
+                    Vector2 slideDir =
+                        slideMove.normalized;
+
+                    if (equipment != null)
+                        equipment.UpdateVisualDirection(slideDir);
+
+                    if (visualController != null)
+                        visualController.UpdateSkinDirection(slideDir);
+
+                    CurrentFacingDirection = slideDir;
+
+                    UpdateVisualAnimation(true);
+
+                    wasMovingLastFrame = true;
+
+                    return true;
+                }
+            }
+
+        }
+
+        if (equipment != null)
+            equipment.UpdateVisualDirection(direction);
+
+        if (visualController != null)
+        {
+            visualController.UpdateSkinDirection(direction);
+        }
+
+        CheckIfStuck(target);
+
+        UpdateVisualAnimation(false);
+        wasMovingLastFrame = false;
+
+        return false;
+    }
+
+    public void BeginPatrol()
+    {
+        waitingAtPatrolNode = false;
+
+        patrolWaitTimer = 0f;
+
+        patrolForward = true;
+
+        patrolIndex = 0;
+    }
+
+    public void EndPatrol()
+    {
+        waitingAtPatrolNode = false;
+
+        patrolWaitTimer = 0f;
+    }
+
+    public void BeginWander()
+    {
+        isWandering = true;
+        isPausing = false;
+
+        Vector2 randomDirection = Random.insideUnitCircle.normalized;
+        float randomDistance = Random.Range(0.5f, wanderRadius);
+
+        wanderTarget =
+            (Vector2)SpawnPosition +
+            randomDirection * randomDistance;
+
+        wanderTimer = wanderMoveTime;
+    }
+
+    public void UpdateWander(Vector3 spawnPosition)
+    {
+        wanderTimer -= Time.fixedDeltaTime;
+
+        if (isPausing)
+        {
+            if (wanderTimer <= 0f)
+            {
+                isPausing = false;
+                isWandering = true;
+
+                Vector2 randomDirection = Random.insideUnitCircle.normalized;
+                float randomDistance = Random.Range(0.5f, wanderRadius);
+
+                wanderTarget = (Vector2)spawnPosition + randomDirection * randomDistance;
+                wanderTimer = wanderMoveTime;
+            }
+
+            return;
+        }
+
+        if (isWandering)
+        {
+            MoveTowards(wanderTarget, wanderSpeedMultiplier);
+
+            if (wanderTimer <= 0f || Vector2.Distance(transform.position, wanderTarget) <= DefaultStopDistance)
+            {
+                isWandering = false;
+                isPausing = true;
+                wanderTimer = Random.Range(1f, wanderPauseTime);
+            }
+        }
+    }
+
+    public void EndWander()
+    {
+        isWandering = false;
+        isPausing = false;
+    }
+
+    public void BeginFlee(
+    CharacterStats source,
+    float fleeDistance,
+    float safeDistance)
+    {
+        if (source == null)
+            return;
+
+        fleeSource = source;
+
+        this.fleeDistance = fleeDistance;
+        this.safeDistance = safeDistance;
+
+        isFleeing = true;
+
+        SetMovementMode(NPCMovementMode.Flee);
+    }
+
+    public void EndFlee()
+    {
+        isFleeing = false;
+
+        fleeSource = null;
+    }
+
+    public bool UpdateFlee()
+    {
+        if (!isFleeing)
+            return true;
+
+        if (fleeSource == null)
+            return true;
+
+        float distance =
+            Vector2.Distance(
+                transform.position,
+                fleeSource.transform.position);
+
+        if (distance >= safeDistance)
+            return true;
+
+        Vector2 fleeDirection =
+            (
+                (Vector2)transform.position -
+                (Vector2)fleeSource.transform.position
+            ).normalized;
+
+        Vector3 fleeTarget =
+            transform.position +
+            (Vector3)(fleeDirection * fleeDistance);
+
+        MoveTowards(fleeTarget);
+
+        return false;
+    }
+
+    void CheckIfStuck(Vector3 finalTarget)
+    {
+        float movedDistance =
+            Vector2.Distance(
+                rb.position,
+                lastStuckPosition
+            );
+
+        if (movedDistance > stuckMovementThreshold)
+        {
+            stuckTimer = 0f;
+            lastStuckPosition = rb.position;
+            return;
+        }
+
+        stuckTimer += Time.fixedDeltaTime;
+
+        if (stuckTimer < stuckCheckTime)
+            return;
+
+        stuckTimer = 0f;
+        lastStuckPosition = rb.position;
+
+        GenerateTemporaryAvoidanceTarget(finalTarget);
+    }
+
+    void GenerateTemporaryAvoidanceTarget(Vector3 finalTarget)
+    {
+        Vector2 toTarget =
+            ((Vector2)finalTarget - rb.position).normalized;
+
+        Vector2 left =
+            new Vector2(-toTarget.y, toTarget.x);
+
+        Vector2 right =
+            new Vector2(toTarget.y, -toTarget.x);
+
+        Vector2 chosenSide =
+            Random.value > 0.5f
+            ? left
+            : right;
+
+        temporaryAvoidanceTarget =
+            transform.position +
+            (Vector3)(chosenSide * avoidanceTargetDistance);
+
+        hasTemporaryAvoidanceTarget = true;
+    }
+
+    Vector2 GetSteeringDirection(Vector2 targetDirection)
+    {
+        if (hasObstacleMemory)
+        {
+            obstacleMemoryTimer -= Time.fixedDeltaTime;
+
+            if (obstacleMemoryTimer <= 0f)
+            {
+                hasObstacleMemory = false;
+            }
+        }
+
+        Vector2 steering = Vector2.zero;
+
+        // Vikter beroende på AI-state
+        float currentTargetWeight = targetWeight;
+        float currentObstacleWeight = obstacleWeight;
+        float currentSeparationWeight = separationWeight;
+
+        switch (movementMode)
+        {
+            case NPCMovementMode.Aggressive:
+
+                // Vill komma fram aggressivt.
+                currentTargetWeight *= 2.0f;
+                currentObstacleWeight *= 0.6f;
+                currentSeparationWeight *= 0.2f;
+                break;
+
+            case NPCMovementMode.Patrol:
+
+                currentObstacleWeight *= 1.0f;
+                currentSeparationWeight *= 1.0f;
+                break;
+
+            case NPCMovementMode.Wander:
+
+                currentObstacleWeight *= 1.1f;
+                currentSeparationWeight *= 1.2f;
+                break;
+
+            case NPCMovementMode.Flee:
+
+                currentObstacleWeight *= 1.6f;
+                currentSeparationWeight *= 1.5f;
+                break;
+
+            case NPCMovementMode.Default:
+            default:
+                break;
+        }
+
+        // Målriktning
+        steering += targetDirection * currentTargetWeight;
+
+
+        // Obstacle Memory
+        if (hasObstacleMemory)
+        {
+            steering += rememberedAvoidanceDirection * currentObstacleWeight;
+        }
+
+        // Nya hinder
+        Vector2 obstacleForce =
+            CalculateObstacleAvoidance(targetDirection);
+
+        steering += obstacleForce * currentObstacleWeight;
+
+        // Separation
+        Vector2 separationForce =
+            CalculateSeparationForce();
+
+        steering += separationForce * currentSeparationWeight;
+
+        //---------------------------------
+
+        if (steering.sqrMagnitude < 0.001f)
+            return targetDirection;
+
+        return steering.normalized;
+    }
+
+    Vector2 CalculateObstacleAvoidance(Vector2 desiredDirection)
+    {
+        RaycastHit2D hit =
+            Physics2D.Raycast(
+                rb.position,
+                desiredDirection,
+                1.2f,
+                LayerMask.GetMask("World")
+            );
+
+        if (!hit)
+            return Vector2.zero;
+
+        Vector2 left =
+            new Vector2(
+                -desiredDirection.y,
+                 desiredDirection.x
+            );
+
+        Vector2 right =
+            new Vector2(
+                 desiredDirection.y,
+                -desiredDirection.x
+            );
+
+        float leftClear =
+            Physics2D.Raycast(
+                rb.position,
+                left,
+                1.5f,
+                LayerMask.GetMask("World")
+            )
+            ? 0f
+            : 1f;
+
+        float rightClear =
+            Physics2D.Raycast(
+                rb.position,
+                right,
+                1.5f,
+                LayerMask.GetMask("World")
+            )
+            ? 0f
+            : 1f;
+
+        if (leftClear > rightClear)
+        {
+            RememberObstacleDirection(left);
+            return left;
+        }
+
+        RememberObstacleDirection(right);
+        return right;
+    }
+
+    void RememberObstacleDirection(Vector2 direction)
+    {
+        rememberedAvoidanceDirection =
+            direction.normalized;
+
+        obstacleMemoryTimer =
+            obstacleMemoryDuration;
+
+        hasObstacleMemory = true;
+    }
+
+    Vector2 CalculateSeparationForce()
+    {
+        Collider2D[] hits =
+            Physics2D.OverlapCircleAll(
+                transform.position,
+                separationRadius,
+                LayerMask.GetMask(
+                    "NPC",
+                    "HostileMob"
+                )
+            );
+
+        Vector2 force = Vector2.zero;
+
+        foreach (var hit in hits)
+        {
+            if (hit.attachedRigidbody == rb)
+                continue;
+
+            Vector2 away =
+                rb.position -
+                (Vector2)hit.transform.position;
+
+            float distance = away.magnitude;
+
+            if (distance < 0.01f)
+                continue;
+
+            force += away.normalized / distance;
+        }
+
+        return force;
+    }
+
+    void UpdateVisualAnimation(bool moving)
+    {
+        SetAnimation(moving);
+    }
+
+    public void UpdateAggroMovement(CharacterStats target, float attackRange)
+    {
+        if (target == null)
+            return;
+
+        MoveTowards(
+            target.transform.position,
+            1f,
+            attackRange * 0.9f
+        );
+    }
+
+    public void UpdateReturnMovement(Vector3 spawnPosition)
+    {
+        MoveTowards(spawnPosition);
+    }
+    public void UpdatePatrol(PatrolPath patrolPath)
+    {
+        if (patrolPath == null)
+            return;
+
+        if (patrolPath.points.Count == 0)
+            return;
+
+        PatrolPoint point = patrolPath.points[patrolIndex];
+
+        if (point == null)
+            return;
+
+        if (waitingAtPatrolNode)
+        {
+            patrolWaitTimer -= Time.fixedDeltaTime;
+
+            if (patrolWaitTimer <= 0f)
+            {
+                waitingAtPatrolNode = false;
+                AdvancePatrolPoint(patrolPath);
+            }
+
+            return;
+        }
+
+        MoveTowards(
+             point.transform.position,
+             patrolSpeedMultiplier
+         );
+
+        float distance =
+            Vector2.Distance(
+                transform.position,
+                point.transform.position
+            );
+
+        if (distance <= DefaultStopDistance)
+        {
+            waitingAtPatrolNode = true;
+            patrolWaitTimer = point.waitTime;
+        }
+    }
+
+    void AdvancePatrolPoint(PatrolPath patrolPath)
+    {
+        if (patrolPath.patrolMode ==
+            PatrolPath.PatrolMode.Loop)
+        {
+            patrolIndex++;
+
+            if (patrolIndex >= patrolPath.points.Count)
+                patrolIndex = 0;
+
+            return;
+        }
+
+        if (patrolForward)
+        {
+            patrolIndex++;
+
+            if (patrolIndex >= patrolPath.points.Count)
+            {
+                patrolIndex =
+                    patrolPath.points.Count - 2;
+
+                patrolForward = false;
+            }
+        }
+        else
+        {
+            patrolIndex--;
+
+            if (patrolIndex < 0)
+            {
+                patrolIndex = 1;
+                patrolForward = true;
+            }
+        }
+    }
+
+    public void Stop()
+    {
+        rb.linearVelocity = Vector2.zero;
+
+        hasTemporaryAvoidanceTarget = false;
+        hasObstacleMemory = false;
+
+        SetAnimation(false);
+    }
+}

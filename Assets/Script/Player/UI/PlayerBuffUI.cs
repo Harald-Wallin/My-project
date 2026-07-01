@@ -62,7 +62,7 @@ public class PlayerBuffUI : MonoBehaviour
 
     public void AddBuff(ActiveBuff buff, BuffSystem owner = null)
     {
-        Debug.Log($"PlayerBuffUI.AddBuff: adding '{buff?.Name}' owner={(owner!=null?owner.gameObject.name:"null")}");
+        //Debug.Log($"PlayerBuffUI.AddBuff: adding '{buff?.Name}' owner={(owner!=null?owner.gameObject.name:"null")}");
         var go = Instantiate(buffSlotPrefab, container);
         var slot = go.GetComponent<BuffSlotUI>();
 

@@ -14,6 +14,17 @@ public class BaseAttackController : MonoBehaviour
     private float cooldownTimer;
 
     public bool IsReady => cooldownTimer <= 0f;
+
+    public BaseAttackData CurrentAttack =>
+    collection != null
+        ? collection.GetEquippedAttack()
+        : null;
+
+    public float CurrentAttackRange =>
+        CurrentAttack != null
+            ? CurrentAttack.range
+            : 1f;
+
     public Vector2 CurrentDirection { get; private set; }
     private PlayerBaseAttackCollection collection;
 
@@ -60,12 +71,7 @@ public class BaseAttackController : MonoBehaviour
 
     public void TryAttack()
     {
-
-        //Debug.Log("TryAttack called");
-
         BaseAttackData attack = collection.GetEquippedAttack();
-
-        //Debug.Log($"Equipped attack: {attack}");
 
         if (attack == null)
             return;
@@ -91,51 +97,38 @@ public class BaseAttackController : MonoBehaviour
 
     public bool TryAttackTarget(CharacterStats target)
     {
-        Debug.Log($"{name} attacking {target.name} | CanAttack = {CombatTargeting.CanAttack(stats, target)}");
-        //Debug.Log("ENTER TryAttackTarget");
-
-        //Debug.Log($"Target: {target}");
-        //Debug.Log($"Stats: {stats}");
-
         BaseAttackData attack = collection.GetEquippedAttack();
 
-        //Debug.Log($"EquippedAttack: {attack}");
-
         if (attack == null)
-            return false;
+        return false;
 
         if (!stats.CanAct())
-            return false;
+        return false;
 
         if (!IsReady)
-            return false;
+        return false;
 
         if (target == null)
+        {
             return false;
+        }
 
-        if (!CombatTargeting.CanAttack(stats, target))
+        bool canAttack = CombatTargeting.CanAttack(stats, target);
+
+
+        if (!canAttack)
+        {
             return false;
+        }
 
-        //Debug.Log("PASSED ATTACK VALIDATION");
-
-        float distance =
-            Vector2.Distance(
-                transform.position,
-                target.transform.position
-            );
-
-        ////Debug.Log($"Distance: {distance}");
-
-        //Debug.Log($"Attack range: {attack.range}");
+        float distance = Vector2.Distance(transform.position, target.transform.position);
 
         if (distance > attack.range)
+        {
             return false;
-
-        //Debug.Log("CALLING ATTACK USE");
+        }
 
         attack.Use(stats, target);
-
-        //Debug.Log("ATTACK USE FINISHED");
 
         StartCooldown();
 
@@ -240,8 +233,8 @@ public class BaseAttackController : MonoBehaviour
         }
 
         // NPC
-        AgressiveMobAI ai =
-            GetComponent<AgressiveMobAI>();
+        NPCBehavior ai =
+            GetComponent<NPCBehavior>();
 
         if (ai != null && ai.CurrentTarget != null)
         {

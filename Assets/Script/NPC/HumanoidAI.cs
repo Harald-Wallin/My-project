@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class HumanoidAI : AgressiveMobAI
+public class HumanoidAI : NPCBehavior
 {
     [Header("Assist Settings")]
     public float assistRadius = 10f;

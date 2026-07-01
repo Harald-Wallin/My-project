@@ -721,6 +721,10 @@ PrefabInstance:
       value: 1.4
       objectReference: {fileID: 0}
     - target: {fileID: 7937148959269716275, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
+      propertyPath: movement
+      value: 
+      objectReference: {fileID: 1402952646}
+    - target: {fileID: 7937148959269716275, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: combatDialogueTable
       value: 
       objectReference: {fileID: 11400000, guid: 7d0e87d427b35df418719908f6282181, type: 2}
@@ -763,7 +767,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3459725347379031730, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1402952646}
   m_SourcePrefab: {fileID: 100100000, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
 --- !u!1 &57884005
 GameObject:
@@ -6374,6 +6381,11 @@ MonoBehaviour:
   indicator: {fileID: 0}
   attackOrigin: {fileID: 0}
   distance: 0.5
+--- !u!1 &401332764 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3459725347379031730, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
+  m_PrefabInstance: {fileID: 51499934}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &411108496
 GameObject:
   m_ObjectHideFlags: 0
@@ -16401,7 +16413,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3459725347379031730, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4234482838763025597, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: m_LocalPosition.x
@@ -16463,6 +16475,10 @@ PrefabInstance:
       propertyPath: patrolSpeedMultiplier
       value: 0.3
       objectReference: {fileID: 0}
+    - target: {fileID: 7937148959269716275, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
+      propertyPath: movement
+      value: 
+      objectReference: {fileID: 1964825769}
     - target: {fileID: 8316761676699160559, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: back
       value: 
@@ -16498,7 +16514,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3459725347379031730, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1964825769}
   m_SourcePrefab: {fileID: 100100000, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
 --- !u!1001 &961939101
 PrefabInstance:
@@ -24522,6 +24541,31 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4234482838763025597, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
   m_PrefabInstance: {fileID: 51499934}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1402952646
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 401332764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8655f0806a2ecd479ce7c3fdd96658d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
+  moveSpeed: 2.5
+  stopDistance: 0.8
+  avoidanceProbeDistance: 1.2
+  avoidanceAngle: 35
+  avoidanceMemoryDuration: 1.5
+  stuckCheckTime: 0.5
+  stuckMovementThreshold: 0.1
+  avoidanceTargetDistance: 2
+  targetWeight: 1
+  obstacleWeight: 2
+  separationWeight: 1.2
+  separationRadius: 1.2
+  obstacleMemoryDuration: 2
 --- !u!1 &1404608862
 GameObject:
   m_ObjectHideFlags: 0
@@ -24678,21 +24722,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AgressiveMobAI
   player: {fileID: 0}
   maxDistanceFromSpawn: 8
-  stopDistance: 0.8
-  attackRange: 0
   abilityDelayAfterAggro: 3
-  moveSpeed: 1.5
-  avoidanceProbeDistance: 1.2
-  avoidanceAngle: 35
-  avoidanceMemoryDuration: 1.5
-  stuckCheckTime: 0.5
-  stuckMovementThreshold: 0.1
-  avoidanceTargetDistance: 2
-  targetWeight: 1
-  obstacleWeight: 2
-  separationWeight: 1.2
-  separationRadius: 1.2
-  obstacleMemoryDuration: 2
+  stopDistanceDefault: 1
   canAggro: 0
   aggroRange: 4
   canWander: 1
@@ -24709,6 +24740,31 @@ MonoBehaviour:
   maxHoldDistanceFromSpawn: 50
   selfStats: {fileID: 0}
   reaggroCooldown: 0
+--- !u!114 &1407074002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 650430848}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8655f0806a2ecd479ce7c3fdd96658d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
+  moveSpeed: 2.5
+  stopDistance: 0.8
+  avoidanceProbeDistance: 1.2
+  avoidanceAngle: 35
+  avoidanceMemoryDuration: 1.5
+  stuckCheckTime: 0.5
+  stuckMovementThreshold: 0.1
+  avoidanceTargetDistance: 2
+  targetWeight: 1
+  obstacleWeight: 2
+  separationWeight: 1.2
+  separationRadius: 1.2
+  obstacleMemoryDuration: 2
 --- !u!1001 &1408408321
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -24862,6 +24918,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2063733837}
     - target: {fileID: 4275189061858033796, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
+      propertyPath: movement
+      value: 
+      objectReference: {fileID: 2063733850}
+    - target: {fileID: 4275189061858033796, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
       propertyPath: combatDialogueTable
       value: 
       objectReference: {fileID: 11400000, guid: 0a5999f018f9338468637bfd398f9fad, type: 2}
@@ -24928,6 +24988,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3459725347379031730, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2063733837}
+    - targetCorrespondingSourceObject: {fileID: 3459725347379031730, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2063733850}
   m_SourcePrefab: {fileID: 100100000, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
 --- !u!224 &1408455751 stripped
 RectTransform:
@@ -28502,6 +28565,10 @@ PrefabInstance:
       propertyPath: ai
       value: 
       objectReference: {fileID: 1407073988}
+    - target: {fileID: 3635404862814747553, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
+      propertyPath: movement
+      value: 
+      objectReference: {fileID: 1407074002}
     - target: {fileID: 4540798747271290074, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
       propertyPath: m_Enabled
       value: 1
@@ -28633,6 +28700,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1333578090657008725, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1407073988}
+    - targetCorrespondingSourceObject: {fileID: 1333578090657008725, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1407074002}
   m_SourcePrefab: {fileID: 100100000, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
 --- !u!224 &1613488930 stripped
 RectTransform:
@@ -34808,6 +34878,36 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1959083298}
   m_CullTransparentMesh: 1
+--- !u!1 &1964825753 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3459725347379031730, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
+  m_PrefabInstance: {fileID: 958552659}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1964825769
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1964825753}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8655f0806a2ecd479ce7c3fdd96658d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
+  moveSpeed: 2.5
+  stopDistance: 0.8
+  avoidanceProbeDistance: 1.2
+  avoidanceAngle: 35
+  avoidanceMemoryDuration: 1.5
+  stuckCheckTime: 0.5
+  stuckMovementThreshold: 0.1
+  avoidanceTargetDistance: 2
+  targetWeight: 1
+  obstacleWeight: 2
+  separationWeight: 1.2
+  separationRadius: 1.2
+  obstacleMemoryDuration: 2
 --- !u!1 &1967421615
 GameObject:
   m_ObjectHideFlags: 0
@@ -36795,21 +36895,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AgressiveMobAI
   player: {fileID: 0}
   maxDistanceFromSpawn: 8
-  stopDistance: 0.8
-  attackRange: 0
   abilityDelayAfterAggro: 3
-  moveSpeed: 1.5
-  avoidanceProbeDistance: 1.2
-  avoidanceAngle: 35
-  avoidanceMemoryDuration: 1.5
-  stuckCheckTime: 0.5
-  stuckMovementThreshold: 0.1
-  avoidanceTargetDistance: 2
-  targetWeight: 1
-  obstacleWeight: 2
-  separationWeight: 1.2
-  separationRadius: 1.2
-  obstacleMemoryDuration: 2
+  stopDistanceDefault: 1
   canAggro: 0
   aggroRange: 4
   canWander: 0
@@ -36826,6 +36913,31 @@ MonoBehaviour:
   maxHoldDistanceFromSpawn: 50
   selfStats: {fileID: 0}
   reaggroCooldown: 0
+--- !u!114 &2063733850
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2063733815}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8655f0806a2ecd479ce7c3fdd96658d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
+  moveSpeed: 2.5
+  stopDistance: 0.8
+  avoidanceProbeDistance: 1.2
+  avoidanceAngle: 35
+  avoidanceMemoryDuration: 1.5
+  stuckCheckTime: 0.5
+  stuckMovementThreshold: 0.1
+  avoidanceTargetDistance: 2
+  targetWeight: 1
+  obstacleWeight: 2
+  separationWeight: 1.2
+  separationRadius: 1.2
+  obstacleMemoryDuration: 2
 --- !u!1 &2068031847
 GameObject:
   m_ObjectHideFlags: 0

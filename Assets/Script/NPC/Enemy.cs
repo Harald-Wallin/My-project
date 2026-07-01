@@ -68,7 +68,7 @@ public class Enemy : CharacterStats
         isDead = true;
 
         // Stop AI
-        AgressiveMobAI ai = GetComponent<AgressiveMobAI>();
+        NPCBehavior ai = GetComponent<NPCBehavior>();
         if (ai != null)
             ai.enabled = false;
 
@@ -138,8 +138,6 @@ public class Enemy : CharacterStats
 
     void SpawnCorpse()
     {
-        //Debug.Log("SpawnCorpse() körs");
-
         if (corpsePrefab == null) return;
 
         GameObject corpse = Instantiate(

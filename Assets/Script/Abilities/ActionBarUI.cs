@@ -16,7 +16,6 @@ public class ActionBarUI : MonoBehaviour
 
         if (player == null)
         {
-            Debug.LogError("Player not found!");
             yield break;
         }
 
@@ -24,7 +23,6 @@ public class ActionBarUI : MonoBehaviour
 
         if (collection == null)
         {
-            Debug.LogError("PlayerAbilityCollection missing on Player!");
             yield break;
         }
 
@@ -32,7 +30,6 @@ public class ActionBarUI : MonoBehaviour
 
         if (abilityController == null)
         {
-            Debug.LogError("AbilityController missing on Player!");
             yield break;
         }
 
@@ -42,7 +39,6 @@ public class ActionBarUI : MonoBehaviour
         {
             if (slots[i] == null)
             {
-                //Debug.LogError($"Action slot {i} is NULL!");
                 continue;
             }
 

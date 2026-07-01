@@ -7,17 +7,14 @@ public static class CombatTargeting
     CharacterStats target
 )
     {
-        //Debug.Log($"CanAttack? {attacker.name} -> {target.name}");
 
         if (attacker == null || target == null)
         {
-            //Debug.Log("FAILED: null attacker or target");
             return false;
         }
 
         if (attacker == target)
         {
-            //Debug.Log("FAILED: attacker == target");
             return false;
         }
 
@@ -37,8 +34,8 @@ public static class CombatTargeting
         // NPC RULES
         // =========================
 
-        AgressiveMobAI ai =
-            attacker.GetComponent<AgressiveMobAI>();
+        NPCBehavior ai =
+            attacker.GetComponent<NPCBehavior>();
 
         if (ai != null)
         {

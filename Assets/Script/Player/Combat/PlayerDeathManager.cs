@@ -49,8 +49,8 @@ public class PlayerDeathManager : MonoBehaviour
         //Debug.Log($"Death stacks: {deathStacks}");
 
         //reset aggro
-        AgressiveMobAI[] mobs =
-        FindObjectsByType<AgressiveMobAI>(
+        NPCBehavior[] mobs =
+        FindObjectsByType<NPCBehavior>(
         FindObjectsSortMode.None
         );
 

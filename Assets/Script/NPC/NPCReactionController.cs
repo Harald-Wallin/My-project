@@ -40,7 +40,7 @@ public class NPCReactionController : MonoBehaviour
     //public bool IsAlerted =>
     //    IsHostile;
 
-    private AgressiveMobAI ai;
+    private NPCBehavior ai;
 
     private CharacterStats selfStats;
     private Rigidbody2D rb;
@@ -75,7 +75,7 @@ public class NPCReactionController : MonoBehaviour
     void Awake()
     {
         selfStats = GetComponent<CharacterStats>();
-        ai = GetComponent<AgressiveMobAI>();
+        ai = GetComponent<NPCBehavior>();
         rb = GetComponent<Rigidbody2D>();
 
         player = PlayerReference.Player?.transform;
@@ -440,6 +440,12 @@ public class NPCReactionController : MonoBehaviour
 
                 if (ai != null)
                 {
+                    Debug.Log(
+    $"[{name}] Passive hostility wants to aggro PLAYER. " +
+    $"CurrentTarget={(ai.CurrentTarget != null ? ai.CurrentTarget.name : "NULL")} " +
+    $"State={ai.CurrentState} " +
+    $"Hostile={IsHostile}"
+);
                     ai.ForceAggro(player);
                 }
 

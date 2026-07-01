@@ -6,7 +6,7 @@ public class NPCAmbientDialogue : MonoBehaviour
     
     [Header("Dialogue Tables")]
     public List<NPCDialogueTable> dialogueTables = new();
-    [SerializeField] AgressiveMobAI ai;
+
 
     [Header("Combat Dialogue")]
     public NPCDialogueTable combatDialogueTable;
@@ -37,18 +37,28 @@ public class NPCAmbientDialogue : MonoBehaviour
     Vendor vendor;
     PlayerReputationManager reputationManager;
     public GameObject dialogueBubblePrefab;
+    private NPCBehavior ai;
+    private NPCMovement movement;
+
+    void Awake()
+    {
+        ai = GetComponent<NPCBehavior>();
+        movement = GetComponent<NPCMovement>();
+    }
 
     void Start()
     {
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+
+        ai = GetComponent<NPCBehavior>();
+        movement = GetComponent<NPCMovement>();
+
         vendor = GetComponent<Vendor>();
 
         reputationManager = FindFirstObjectByType<PlayerReputationManager>();
 
         if (playerObj != null)
             player = playerObj.transform;
-
-        ai = GetComponent<AgressiveMobAI>();
 
         stats = GetComponent<CharacterStats>();
 
@@ -97,7 +107,7 @@ public class NPCAmbientDialogue : MonoBehaviour
                     {
                         if (vendor.CanTrade(reputationManager))
                         {
-                            Debug.Log("Opening Vendor UI...");
+                            //Debug.Log("Opening Vendor UI...");
                         }
                         else
                         {
@@ -119,15 +129,17 @@ public class NPCAmbientDialogue : MonoBehaviour
 
     bool IsPlayerInFront()
     {
-        if (ai == null)
+        if (movement == null)
             return true;
 
         Vector2 directionToPlayer =
             (player.position - transform.position).normalized;
 
-        Vector2 npcForward = ai.CurrentFacingDirection.normalized;
+        Vector2 npcForward =
+            movement.CurrentFacingDirection.normalized;
 
-        float dot = Vector2.Dot(npcForward, directionToPlayer);
+        float dot =
+            Vector2.Dot(npcForward, directionToPlayer);
 
         return dot >= forwardThreshold;
     }
@@ -234,21 +246,15 @@ public class NPCAmbientDialogue : MonoBehaviour
         return level >= table.minReputationLevel;
     }
 
-    void OnValidate()
-    {
-        if (ai == null)
-            ai = GetComponent<AgressiveMobAI>();
-    }
-
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, triggerRadius);
 
-        if (!Application.isPlaying || ai == null)
+        if (!Application.isPlaying || ai == null || movement == null)
             return;
 
-        Vector2 forward = ai.CurrentFacingDirection.normalized;
+        Vector2 forward = movement.CurrentFacingDirection.normalized;
 
         float angle = Mathf.Acos(forwardThreshold) * Mathf.Rad2Deg;
 

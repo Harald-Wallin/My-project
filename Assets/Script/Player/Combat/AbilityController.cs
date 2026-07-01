@@ -118,7 +118,6 @@ public class AbilityController : MonoBehaviour
                 2f,
                 LayerMask.GetMask("Hitbox")
             );
-        //Debug.Log($"Hits found: {hits.Length}");
 
         foreach (var hit in hits)
         {
@@ -140,7 +139,6 @@ public class AbilityController : MonoBehaviour
             if (!CombatTargeting.CanAttack(stats, target))
                 continue;
 
-            //Debug.Log($"Found target: {target.name}");
             return target;
         }
 

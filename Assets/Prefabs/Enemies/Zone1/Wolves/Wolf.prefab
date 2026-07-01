@@ -126,6 +126,7 @@ GameObject:
   - component: {fileID: 1898894088392311568}
   - component: {fileID: 1886271859279076144}
   - component: {fileID: 8452496395842813275}
+  - component: {fileID: 4693989535447528578}
   m_Layer: 9
   m_Name: Wolf
   m_TagString: Enemy
@@ -286,17 +287,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WolfAI
   player: {fileID: 0}
   maxDistanceFromSpawn: 10
-  stopDistance: 0.8
-  attackRange: 2
   abilityDelayAfterAggro: 3
-  moveSpeed: 2.4
+  stopDistanceDefault: 1
   canAggro: 1
   aggroRange: 4
-  wanderRadius: 5
-  wanderMoveTime: 3
-  wanderPauseTime: 3
-  wanderSpeedMultiplier: 0.3
   canWander: 1
+  canPatrol: 0
+  patrolPath: {fileID: 0}
   fleeDistance: 12
   safeDistanceFromThreat: 18
   resumeFleeDistance: 12
@@ -391,6 +388,36 @@ MonoBehaviour:
   learnedAttacks:
   - {fileID: 11400000, guid: ef961514809aaa741a1d92d2f70b0c6b, type: 2}
   equippedAttack: {fileID: 11400000, guid: ef961514809aaa741a1d92d2f70b0c6b, type: 2}
+--- !u!114 &4693989535447528578
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8655f0806a2ecd479ce7c3fdd96658d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
+  moveSpeed: 2
+  stopDistance: 0.8
+  avoidanceProbeDistance: 1.2
+  avoidanceAngle: 35
+  avoidanceMemoryDuration: 1.5
+  stuckCheckTime: 0.5
+  stuckMovementThreshold: 0.1
+  avoidanceTargetDistance: 2
+  targetWeight: 1
+  obstacleWeight: 2
+  separationWeight: 1.2
+  separationRadius: 1.2
+  obstacleMemoryDuration: 2
+  wanderRadius: 5
+  wanderMoveTime: 2
+  wanderPauseTime: 2
+  wanderSpeedMultiplier: 0.5
+  patrolSpeedMultiplier: 0.75
 --- !u!1 &5964683598601086679
 GameObject:
   m_ObjectHideFlags: 0

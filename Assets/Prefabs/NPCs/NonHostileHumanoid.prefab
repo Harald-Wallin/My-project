@@ -136,6 +136,7 @@ GameObject:
   - component: {fileID: 4809851477537448337}
   - component: {fileID: 1802090772005005079}
   - component: {fileID: 6315390715080252590}
+  - component: {fileID: -7708469110709135478}
   m_Layer: 6
   m_Name: NonHostileHumanoid
   m_TagString: Enemy
@@ -441,13 +442,27 @@ MonoBehaviour:
   attackRange: 0
   abilityDelayAfterAggro: 3
   moveSpeed: 2.5
+  avoidanceProbeDistance: 1.2
+  avoidanceAngle: 35
+  avoidanceMemoryDuration: 1.5
+  stuckCheckTime: 0.5
+  stuckMovementThreshold: 0.1
+  avoidanceTargetDistance: 2
+  targetWeight: 1
+  obstacleWeight: 2
+  separationWeight: 1.2
+  separationRadius: 1.2
+  obstacleMemoryDuration: 2
   canAggro: 1
   aggroRange: 0
+  canWander: 0
   wanderRadius: 3
   wanderMoveTime: 2
   wanderPauseTime: 2
   wanderSpeedMultiplier: 0.5
-  canWander: 0
+  canPatrol: 0
+  patrolPath: {fileID: 0}
+  patrolSpeedMultiplier: 0.75
   fleeDistance: 10
   safeDistanceFromThreat: 18
   resumeFleeDistance: 12
@@ -481,6 +496,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FactionDiscoverySource
   discoveryRadius: 10
+--- !u!114 &-7708469110709135478
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8655f0806a2ecd479ce7c3fdd96658d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
 --- !u!1001 &6559884275791562813
 PrefabInstance:
   m_ObjectHideFlags: 0

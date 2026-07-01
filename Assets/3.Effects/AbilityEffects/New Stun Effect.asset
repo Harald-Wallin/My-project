@@ -17,4 +17,4 @@ MonoBehaviour:
   maxStacks: 1
   refreshDurationOnStack: 0
   removeOnDeath: 1
-  duration: 5
+  duration: 2

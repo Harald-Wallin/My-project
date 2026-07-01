@@ -32,10 +32,6 @@ public static class LineOfSightUtility
             if (hit.collider.gameObject.layer ==
                 LayerMask.NameToLayer("World"))
             {
-                Debug.Log(
-                    $"LoS BLOCKED by {hit.collider.name}"
-                );
-
                 return false;
             }
         }

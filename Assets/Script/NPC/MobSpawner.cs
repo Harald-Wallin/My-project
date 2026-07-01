@@ -37,7 +37,7 @@ public class MobSpawner : MonoBehaviour
             enemy.SetLevel(mobLevel);
         }
 
-        AgressiveMobAI ai = currentMob.GetComponent<AgressiveMobAI>();
+        NPCBehavior ai = currentMob.GetComponent<NPCBehavior>();
 
         if (ai != null && patrolPath != null)
         {

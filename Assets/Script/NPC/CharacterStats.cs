@@ -68,7 +68,6 @@ public class CharacterStats : MonoBehaviour
 
     public int TakeDamage(DamageResult result, CharacterStats attacker)
     {
-
         if (result.isMiss)
         {
             FloatingTextSpawner.Instance?.SpawnCustomText(transform.position, "Miss", false);
@@ -89,25 +88,21 @@ public class CharacterStats : MonoBehaviour
 
         if (result.isBlocked)
         {
-            //Debug.Log("Attack blocked!");
-
             PlayerStats player = GetComponent<PlayerStats>();
 
             if (player != null)
             {
-                //Debug.Log("Blocked by player!");
-
                 WardSystem ward = GetComponent<WardSystem>();
 
                 if (ward != null)
                 {
-                    //Debug.Log("WardSystem found, adding ward");
                     ward.AddWard(1);
                 }
             }
         }
 
         currentHP -= finalDamage;
+
         RaiseHealthChanged();
 
         OnDamagedBy?.Invoke(attacker);
@@ -347,10 +342,7 @@ public class CharacterStats : MonoBehaviour
     {
         RaiseDied(this);
 
-        string killerName =
-            killer != null ? killer.name : "Unknown";
-
-        //Debug.Log($"{name} died. Killer: {killerName}");
+        string killerName = killer != null ? killer.name : "Unknown";
 
         HandleDeathCleanup();
 

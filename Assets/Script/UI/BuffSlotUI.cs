@@ -19,7 +19,7 @@ public class BuffSlotUI : MonoBehaviour,
 
     public void Setup(ActiveBuff buff, BuffSystem owner)
     {
-        Debug.Log($"BuffSlot Setup: {buff.Name} on {gameObject.name}");
+        //Debug.Log($"BuffSlot Setup: {buff.Name} on {gameObject.name}");
 
         this.buff = buff;
         ownerBuffSystem = owner;

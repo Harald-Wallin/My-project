@@ -25,6 +25,7 @@ GameObject:
   - component: {fileID: 5337025547157977040}
   - component: {fileID: 7173887725524883641}
   - component: {fileID: 5911326519326787468}
+  - component: {fileID: 4264153015817480343}
   m_Layer: 8
   m_Name: Bandit1
   m_TagString: Enemy
@@ -246,6 +247,17 @@ MonoBehaviour:
   attackRange: 2
   abilityDelayAfterAggro: 3
   moveSpeed: 2
+  avoidanceProbeDistance: 1.2
+  avoidanceAngle: 35
+  avoidanceMemoryDuration: 1.5
+  stuckCheckTime: 0.5
+  stuckMovementThreshold: 0.1
+  avoidanceTargetDistance: 2
+  targetWeight: 1
+  obstacleWeight: 2
+  separationWeight: 1.2
+  separationRadius: 1.2
+  obstacleMemoryDuration: 2
   canAggro: 1
   aggroRange: 4
   canWander: 1
@@ -426,6 +438,18 @@ MonoBehaviour:
   attackIndicator: {fileID: 0}
   attackOrigin: {fileID: 0}
   indicatorDistance: 0.6
+--- !u!114 &4264153015817480343
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8655f0806a2ecd479ce7c3fdd96658d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
 --- !u!1 &3778626201625969471
 GameObject:
   m_ObjectHideFlags: 0
