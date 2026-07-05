@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 5736848361525762513}
   - component: {fileID: 8989297590621840723}
   m_Layer: 0
-  m_Name: Humanoid_VisualTemplate
+  m_Name: INACTIVEHumanoid_VisualTemplate
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -65,6 +65,20 @@ MonoBehaviour:
       left: []
       right: []
       up: []
+    combatIdle:
+      down:
+      - {fileID: 21300000, guid: c825cfea68ddc7548a5d0cf18c74da3c, type: 3}
+      left:
+      - {fileID: 21300000, guid: a5ffbdfb70ef2b247ae4b7e39c2714f9, type: 3}
+      right:
+      - {fileID: 21300000, guid: 354bbebb18c430748bca242660e6a9e6, type: 3}
+      up:
+      - {fileID: 21300000, guid: 06837f05aae750e4cbb364f1a6876eb5, type: 3}
+    combatWalk:
+      down: []
+      left: []
+      right: []
+      up: []
   torsoAnimations:
     idle:
       down:
@@ -96,6 +110,20 @@ MonoBehaviour:
       - {fileID: 21300000, guid: 0d16270da06fef34fa9f9f4094aa8cd3, type: 3}
       - {fileID: 21300000, guid: 41a90553e6b754846906a72ee85337a0, type: 3}
       - {fileID: 21300000, guid: 7c17ea68e327b224194f219fb072734a, type: 3}
+    combatIdle:
+      down:
+      - {fileID: 21300000, guid: 550abbe7c7f5cd64dbdd81cd2f444d88, type: 3}
+      left:
+      - {fileID: 21300000, guid: 67723a8f84b1abe41b8bd096253806f7, type: 3}
+      right:
+      - {fileID: 21300000, guid: 7c394a214ec8e7241a82ca17c5d06529, type: 3}
+      up:
+      - {fileID: 21300000, guid: 3d2ff6aacebdb0f4c90880c362bf0404, type: 3}
+    combatWalk:
+      down: []
+      left: []
+      right: []
+      up: []
   armsAnimations:
     idle:
       down:
@@ -127,6 +155,20 @@ MonoBehaviour:
       - {fileID: 21300000, guid: 9267027d86a18a74f80b197c7343b39b, type: 3}
       - {fileID: 21300000, guid: d7771c2b54095114a9cad25ba8746e93, type: 3}
       - {fileID: 21300000, guid: 04e86ca5e30d6994ebd7cd9987661e52, type: 3}
+    combatIdle:
+      down:
+      - {fileID: 21300000, guid: 5b749f87e0617d049b6f623886a1ed4c, type: 3}
+      left:
+      - {fileID: 21300000, guid: 953ab906cb82a5d4aa09ff85844e7d65, type: 3}
+      right:
+      - {fileID: 21300000, guid: f6fd18878a1828549b33d56d642d292b, type: 3}
+      up:
+      - {fileID: 21300000, guid: 52ac9b128e33efe49b4d53a9ac336036, type: 3}
+    combatWalk:
+      down: []
+      left: []
+      right: []
+      up: []
   legsAnimations:
     idle:
       down:
@@ -158,6 +200,20 @@ MonoBehaviour:
       - {fileID: 21300000, guid: fe363360ddd3a4e468f0bb3fe61bb345, type: 3}
       - {fileID: 21300000, guid: 79b099f7b5776f841b1dd08b58dc2cdd, type: 3}
       - {fileID: 21300000, guid: 05f0c192537e17a4fa60a798bab19b45, type: 3}
+    combatIdle:
+      down:
+      - {fileID: 21300000, guid: 37219da63b89a5f4da7f55e5bf20f7bf, type: 3}
+      left:
+      - {fileID: 21300000, guid: ae8bd21e26f0dce41896a56f39451fdb, type: 3}
+      right:
+      - {fileID: 21300000, guid: cf16c5f0f4b8aed47bed4867517b2bd9, type: 3}
+      up:
+      - {fileID: 21300000, guid: f2f6740369010fc47ad23533fc13eb1c, type: 3}
+    combatWalk:
+      down: []
+      left: []
+      right: []
+      up: []
   feetAnimations:
     idle:
       down:
@@ -189,6 +245,20 @@ MonoBehaviour:
       - {fileID: 21300000, guid: fd6d948ce44046e4d9d9074b977020b2, type: 3}
       - {fileID: 21300000, guid: 14f80c60de624a44c91983b1d3767ef5, type: 3}
       - {fileID: 21300000, guid: f2eacd8a99f329d439bc4ae5402f6958, type: 3}
+    combatIdle:
+      down:
+      - {fileID: 21300000, guid: 334c227118a453341a2776b7496290bf, type: 3}
+      left:
+      - {fileID: 21300000, guid: 29bdff15fbb31464dbf8c8a58c45a2d3, type: 3}
+      right:
+      - {fileID: 21300000, guid: 3c9b7d8036bc93b489f5219472fe0d3e, type: 3}
+      up:
+      - {fileID: 21300000, guid: e6d9c6e7722658b47bb5d53890ed6ad9, type: 3}
+    combatWalk:
+      down: []
+      left: []
+      right: []
+      up: []
 --- !u!1 &2195204520044499360
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,13 +1,4 @@
 using UnityEngine;
-
-
-public enum FacingDirection
-{
-    Front,
-    Back,
-    Left,
-    Right
-}
 public class HumanoidVisualController : MonoBehaviour
 {
     [Header("=== SKIN RENDERERS ===")]
@@ -25,11 +16,16 @@ public class HumanoidVisualController : MonoBehaviour
     private float animationTimer;
     private int animationFrame;
     [SerializeField] private float frameRate = 8f;
+
     private HumanoidAnimationState currentState = HumanoidAnimationState.Idle;
-    private Vector2 currentDirection = Vector2.down;
+    private CharacterStateController characterState;
+    private bool inCombat;
+
+    private HumanoidEquipment equipment;
+    public Vector2 CurrentFacing => currentFacing;
 
     [Header("Initial Facing")]
-    [SerializeField] private FacingDirection initialFacing = FacingDirection.Front;
+    [SerializeField] private Vector2 initialFacing = Vector2.down;
 
     public HumanoidAnimationSet headAnimations;
     public HumanoidAnimationSet torsoAnimations;
@@ -37,6 +33,20 @@ public class HumanoidVisualController : MonoBehaviour
     public HumanoidAnimationSet legsAnimations;
     public HumanoidAnimationSet feetAnimations;
 
+    private Vector2 currentFacing = Vector2.down;
+    private bool isMoving = false;
+
+    private void Awake()
+    {
+        characterState = transform.root.GetComponent<CharacterStateController>();
+        equipment = GetComponentInParent<HumanoidEquipment>();
+
+        if (characterState != null)
+        {
+            inCombat = characterState.InCombat;
+            characterState.OnCombatStateChanged += HandleCombatStateChanged;
+        }
+    }
 
     private void Start()
     {
@@ -51,16 +61,45 @@ public class HumanoidVisualController : MonoBehaviour
         {
             animationTimer = 0f;
             animationFrame++;
+
+            RefreshAnimation();
         }
-        UpdateSkinDirection(currentDirection);
     }
 
-    public void UpdateSkinDirection(Vector2 dir)
+    public void SetFacing(Vector2 direction)
+    {
+        if (direction.sqrMagnitude <= 0.001f)
+            return;
+
+        if (currentFacing == direction)
+            return;
+
+        currentFacing = direction;
+
+        RefreshAnimation();
+    }
+
+    public void SetMoving(bool moving)
+    {
+        if (isMoving == moving)
+            return;
+
+        isMoving = moving;
+
+        RefreshAnimation();
+    }
+
+    public void SetCombatState(bool state)
+    {
+        inCombat = state;
+    }
+
+    private void UpdateSprites(Vector2 dir)
     {
         if (dir == Vector2.zero)
             dir = Vector2.down;
 
-        currentDirection = dir;
+        currentFacing = dir;
 
         DirectionalSpriteSet headSet = GetSet(headAnimations);
         DirectionalSpriteSet torsoSet = GetSet(torsoAnimations);
@@ -88,14 +127,37 @@ public class HumanoidVisualController : MonoBehaviour
 
     DirectionalSpriteSet GetSet(HumanoidAnimationSet set)
     {
-        switch (currentState)
-        {
-            case HumanoidAnimationState.Walk:
-                return set.walk;
+        bool moving = currentState == HumanoidAnimationState.Walk;
 
-            default:
-                return set.idle;
+        if (inCombat)
+        {
+            if (moving)
+            {
+                if (HasSprites(set.combatWalk))
+                    return set.combatWalk;
+
+                return set.walk;
+            }
+
+            if (HasSprites(set.combatIdle))
+                return set.combatIdle;
+
+            return set.idle;
         }
+
+        return moving ? set.walk : set.idle;
+    }
+
+    private bool HasSprites(DirectionalSpriteSet set)
+    {
+        if (set == null)
+            return false;
+
+        return
+            (set.down != null && set.down.Length > 0) ||
+            (set.up != null && set.up.Length > 0) ||
+            (set.left != null && set.left.Length > 0) ||
+            (set.right != null && set.right.Length > 0);
     }
 
     public void SetAnimationState(HumanoidAnimationState state)
@@ -149,27 +211,36 @@ public class HumanoidVisualController : MonoBehaviour
             skinFeet.enabled = state;
     }
 
+    private void HandleCombatStateChanged(bool combat)
+    {
+        inCombat = combat;
+
+        RefreshAnimation();
+    }
+
     void ApplyInitialFacing()
     {
-        switch (initialFacing)
+        SetFacing(initialFacing);
+    }
+
+    private void RefreshAnimation()
+    {
+        SetAnimationState(
+            isMoving
+                ? HumanoidAnimationState.Walk
+                : HumanoidAnimationState.Idle
+        );
+
+        UpdateSprites(currentFacing);
+
+        equipment?.UpdateVisualDirection(currentFacing);
+    }
+
+    private void OnDestroy()
+    {
+        if (characterState != null)
         {
-            case FacingDirection.Front:
-                currentDirection = Vector2.down;
-                break;
-
-            case FacingDirection.Back:
-                currentDirection = Vector2.up;
-                break;
-
-            case FacingDirection.Left:
-                currentDirection = Vector2.left;
-                break;
-
-            case FacingDirection.Right:
-                currentDirection = Vector2.right;
-                break;
+            characterState.OnCombatStateChanged -= HandleCombatStateChanged;
         }
-
-        UpdateSkinDirection(currentDirection);
     }
 }

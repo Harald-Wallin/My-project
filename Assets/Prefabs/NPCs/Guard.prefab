@@ -107,6 +107,7 @@ GameObject:
   - component: {fileID: 822371957010129274}
   - component: {fileID: 3706294627332642803}
   - component: {fileID: 4287925351190680984}
+  - component: {fileID: 8581354136658360309}
   m_Layer: 8
   m_Name: Guard
   m_TagString: Enemy
@@ -324,20 +325,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GuardAI
   player: {fileID: 0}
   maxDistanceFromSpawn: 8
-  stopDistance: 0.8
-  attackRange: 0.9
   abilityDelayAfterAggro: 3
-  moveSpeed: 2.1
+  stopDistanceDefault: 1
   canAggro: 1
   aggroRange: 4
   canWander: 0
-  wanderRadius: 3
-  wanderMoveTime: 2
-  wanderPauseTime: 2
-  wanderSpeedMultiplier: 0.5
   canPatrol: 1
   patrolPath: {fileID: 0}
-  patrolSpeedMultiplier: 0.75
   fleeDistance: 12
   safeDistanceFromThreat: 18
   resumeFleeDistance: 12
@@ -404,7 +398,6 @@ MonoBehaviour:
   dialogueTables:
   - {fileID: 11400000, guid: 38f0e32abab83ef41abf95dd69cf3961, type: 2}
   - {fileID: 11400000, guid: 7d0e87d427b35df418719908f6282181, type: 2}
-  ai: {fileID: 6810676288775379224}
   combatDialogueTable: {fileID: 0}
   combatExitDelay: 5
   triggerRadius: 3
@@ -500,6 +493,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FactionDiscoverySource
   discoveryRadius: 5
+--- !u!114 &8581354136658360309
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37316f05d2f08934583405a4136f3f3c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterStateController
+  combatDuration: 5
 --- !u!1 &5967507019914542932
 GameObject:
   m_ObjectHideFlags: 0

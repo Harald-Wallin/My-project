@@ -36,6 +36,7 @@ public class AbilityData : ScriptableObject, ITooltipProvider
     public bool canMiss = true;
     public bool isSelfCast = false;
     public bool requiresHitCheck = false;
+    public bool entersCombatState = true;
 
     [Header("Effects")]
     public AbilityEffect[] effects;
@@ -67,6 +68,22 @@ public class AbilityData : ScriptableObject, ITooltipProvider
 
                 target.TakeDamage(evadeResult, caster);
                 return;
+            }
+        }
+
+        if (entersCombatState)
+        {
+            CharacterStateController casterState =
+                caster.GetComponent<CharacterStateController>();
+
+            casterState?.NotifyCombatActivity();
+
+            if (target != null)
+            {
+                CharacterStateController targetState =
+                    target.GetComponent<CharacterStateController>();
+
+                targetState?.NotifyCombatActivity();
             }
         }
 

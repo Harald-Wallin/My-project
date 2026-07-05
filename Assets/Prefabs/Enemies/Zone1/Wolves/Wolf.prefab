@@ -127,6 +127,7 @@ GameObject:
   - component: {fileID: 1886271859279076144}
   - component: {fileID: 8452496395842813275}
   - component: {fileID: 4693989535447528578}
+  - component: {fileID: -6503705790845319704}
   m_Layer: 9
   m_Name: Wolf
   m_TagString: Enemy
@@ -418,6 +419,19 @@ MonoBehaviour:
   wanderPauseTime: 2
   wanderSpeedMultiplier: 0.5
   patrolSpeedMultiplier: 0.75
+--- !u!114 &-6503705790845319704
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37316f05d2f08934583405a4136f3f3c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterStateController
+  combatTimeout: 5
 --- !u!1 &5964683598601086679
 GameObject:
   m_ObjectHideFlags: 0

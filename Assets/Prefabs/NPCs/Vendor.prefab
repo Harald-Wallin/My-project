@@ -90,6 +90,7 @@ GameObject:
   - component: {fileID: 624745517931037195}
   - component: {fileID: 690243871359771641}
   - component: {fileID: -3748099821319228853}
+  - component: {fileID: 5334490503844849957}
   m_Layer: 8
   m_Name: Vendor
   m_TagString: Enemy
@@ -221,7 +222,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCAmbientDialogue
   dialogueTables: []
-  ai: {fileID: 0}
   combatDialogueTable: {fileID: 0}
   combatExitDelay: 5
   triggerRadius: 3
@@ -411,6 +411,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FactionDiscoverySource
   discoveryRadius: 5
+--- !u!114 &5334490503844849957
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37316f05d2f08934583405a4136f3f3c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterStateController
+  combatDuration: 5
 --- !u!1 &6174543494682163032
 GameObject:
   m_ObjectHideFlags: 0

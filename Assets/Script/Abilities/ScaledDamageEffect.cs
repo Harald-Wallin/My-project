@@ -23,11 +23,6 @@ public class ScaledDamageEffect : AbilityEffect
                 damage
             );
 
-        Debug.Log(
-    $"[{caster.displayName}] deals {result.damage} damage to [{target.displayName}] " +
-    $"Crit:{result.isCrit} Miss:{result.isMiss} Evade:{result.isEvaded}"
-);
-
         target.TakeDamage(result, caster);
     }
 

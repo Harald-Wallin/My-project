@@ -20,3 +20,5 @@ MonoBehaviour:
   reputationGain: {fileID: 0}
   reputationLoss: {fileID: 0}
   zoneDiscovery: {fileID: 0}
+  enteringCombat: {fileID: 11400000, guid: d01f970d11fa5bd4394a223dce9b3aa7, type: 2}
+  leavingCombat: {fileID: 11400000, guid: 356c378d6ce5b6341969a8a62e3f2d9e, type: 2}

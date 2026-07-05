@@ -27,12 +27,19 @@ public class HumanoidEquipment : MonoBehaviour
     void Awake()
     {
         stats = GetComponent<CharacterStats>();
-        //ApplyAll();
+        ApplyAll();
     }
 
-    private void Start()
+    private void ApplyAll()
     {
-        UpdateVisualDirection(Vector2.down);
+        ApplyVisual(head);
+        ApplyVisual(chest);
+        ApplyVisual(shoulders);
+        ApplyVisual(back);
+        ApplyVisual(legs);
+        ApplyVisual(feet);
+        ApplyVisual(weapon);
+        ApplyVisual(offhand);
     }
 
     public void Equip(ItemData item)
@@ -53,6 +60,13 @@ public class HumanoidEquipment : MonoBehaviour
         }
 
         ApplyVisual(item);
+
+        HumanoidVisualController visual = GetComponentInChildren<HumanoidVisualController>();
+
+        if (visual != null)
+        {
+            UpdateVisualDirection(visual.CurrentFacing);
+        }
     }
 
     public void Unequip(ItemData item)
@@ -77,6 +91,13 @@ public class HumanoidEquipment : MonoBehaviour
         }
 
         RestoreHiddenParts();
+
+        HumanoidVisualController visual = GetComponentInChildren<HumanoidVisualController>();
+
+        if (visual != null)
+        {
+            UpdateVisualDirection(visual.CurrentFacing);
+        }
     }
 
     void ApplyVisual(ItemData item)

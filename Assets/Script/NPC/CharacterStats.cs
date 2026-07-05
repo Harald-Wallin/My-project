@@ -34,6 +34,7 @@ public class CharacterStats : MonoBehaviour
     public int blockValue = 0;
 
     private List<StatModifier> modifiers = new List<StatModifier>();
+    private CharacterStateController stateController;
 
     [Header("Combat")]
     public float critChance = 0.3f;
@@ -53,6 +54,7 @@ public class CharacterStats : MonoBehaviour
     {
         currentHP = maxHP;
         baseStrength = strength;
+        stateController = GetComponent<CharacterStateController>();
     }
 
     protected void RaiseDied(CharacterStats deadCharacter)
@@ -105,6 +107,16 @@ public class CharacterStats : MonoBehaviour
 
         RaiseHealthChanged();
 
+        stateController?.NotifyCombatActivity();
+
+        if (attacker != null)
+        {
+            CharacterStateController attackerState =
+                attacker.GetComponent<CharacterStateController>();
+
+            attackerState?.NotifyCombatActivity();
+        }
+
         OnDamagedBy?.Invoke(attacker);
 
         DamageReaction reaction = GetComponentInChildren<DamageReaction>();
@@ -120,6 +132,11 @@ public class CharacterStats : MonoBehaviour
         CrimeManager.HandleAttackCrime(attacker, this);
 
         // NPC reaction BEFORE death
+        if (stateController != null)
+        {
+            stateController.EnterCombat();
+        }
+
         OnDamaged(attacker);
 
         string damageText = $"-{finalDamage}";
@@ -458,6 +475,16 @@ public class CharacterStats : MonoBehaviour
         }
 
         return false;
+    }
+
+    public void EnterCombat()
+    {
+        stateController?.EnterCombat();
+    }
+
+    public bool IsInCombat()
+    {
+        return stateController != null && stateController.InCombat;
     }
 
 }

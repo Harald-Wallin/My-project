@@ -208,7 +208,6 @@ public class ItemTooltip : MonoBehaviour
     {
         currentProvider = null;
 
-        Debug.Log($"TARGET CLEARED HERE");
         currentTarget = null;
         currentCaster = null;
 

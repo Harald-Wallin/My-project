@@ -26,6 +26,7 @@ GameObject:
   - component: {fileID: 7173887725524883641}
   - component: {fileID: 5911326519326787468}
   - component: {fileID: 4264153015817480343}
+  - component: {fileID: 329194703700394155}
   m_Layer: 8
   m_Name: Bandit1
   m_TagString: Enemy
@@ -243,31 +244,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WolfAI
   player: {fileID: 0}
   maxDistanceFromSpawn: 10
-  stopDistance: 0.8
-  attackRange: 2
   abilityDelayAfterAggro: 3
-  moveSpeed: 2
-  avoidanceProbeDistance: 1.2
-  avoidanceAngle: 35
-  avoidanceMemoryDuration: 1.5
-  stuckCheckTime: 0.5
-  stuckMovementThreshold: 0.1
-  avoidanceTargetDistance: 2
-  targetWeight: 1
-  obstacleWeight: 2
-  separationWeight: 1.2
-  separationRadius: 1.2
-  obstacleMemoryDuration: 2
+  stopDistanceDefault: 1
   canAggro: 1
   aggroRange: 4
   canWander: 1
-  wanderRadius: 4
-  wanderMoveTime: 3
-  wanderPauseTime: 3
-  wanderSpeedMultiplier: 0.3
   canPatrol: 0
   patrolPath: {fileID: 0}
-  patrolSpeedMultiplier: 0.75
   fleeDistance: 12
   safeDistanceFromThreat: 18
   resumeFleeDistance: 12
@@ -301,7 +284,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCAmbientDialogue
   dialogueTables: []
-  ai: {fileID: 2834215142199529430}
   combatDialogueTable: {fileID: 0}
   combatExitDelay: 5
   triggerRadius: 3
@@ -450,6 +432,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c8655f0806a2ecd479ce7c3fdd96658d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
+  moveSpeed: 2.5
+  stopDistance: 0.8
+  avoidanceProbeDistance: 1.2
+  avoidanceAngle: 35
+  avoidanceMemoryDuration: 1.5
+  stuckCheckTime: 0.5
+  stuckMovementThreshold: 0.1
+  avoidanceTargetDistance: 2
+  targetWeight: 1
+  obstacleWeight: 2
+  separationWeight: 1.2
+  separationRadius: 1.2
+  obstacleMemoryDuration: 2
+  wanderRadius: 3
+  wanderMoveTime: 2
+  wanderPauseTime: 2
+  wanderSpeedMultiplier: 0.5
+  patrolSpeedMultiplier: 0.75
+--- !u!114 &329194703700394155
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37316f05d2f08934583405a4136f3f3c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterStateController
+  combatDuration: 5
 --- !u!1 &3778626201625969471
 GameObject:
   m_ObjectHideFlags: 0

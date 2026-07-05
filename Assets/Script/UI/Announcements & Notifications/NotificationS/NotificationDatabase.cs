@@ -20,4 +20,10 @@ public class NotificationDatabase : ScriptableObject
     public NotificationData reputationLoss;
 
     public NotificationData zoneDiscovery;
+
+    [Header("Combat")]
+
+    public NotificationData enteringCombat;
+
+    public NotificationData leavingCombat;
 }

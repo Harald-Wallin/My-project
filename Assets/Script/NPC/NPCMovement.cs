@@ -107,26 +107,9 @@ public class NPCMovement : MonoBehaviour
 
         CurrentFacingDirection = direction;
 
-        equipment?.UpdateVisualDirection(direction);
-
-        visualController?.UpdateSkinDirection(direction);
+        visualController?.SetFacing(CurrentFacingDirection);
     }
 
-    public void SetAnimation(bool moving)
-    {
-        if (visualController == null)
-            return;
-
-        visualController.SetAnimationState(
-            moving
-                ? HumanoidAnimationState.Walk
-                : HumanoidAnimationState.Idle
-        );
-
-        visualController.UpdateSkinDirection(
-            CurrentFacingDirection
-        );
-    }
 
     public bool MoveTowards(Vector3 target, float speedMultiplier = 1f, float customStopDistance = -1f)
     {
@@ -161,7 +144,7 @@ public class NPCMovement : MonoBehaviour
 
         if (distance <= stopDist)
         {
-            UpdateVisualAnimation(false);
+            visualController?.SetMoving(false);
             wasMovingLastFrame = false;
             return false;
         }
@@ -196,15 +179,10 @@ public class NPCMovement : MonoBehaviour
 
             rb.MovePosition(rb.position + desiredMove);
 
-            if (equipment != null)
-                equipment.UpdateVisualDirection(direction);
-
-            if (visualController != null)
-                visualController.UpdateSkinDirection(direction);
-
             CurrentFacingDirection = direction;
 
-            UpdateVisualAnimation(true);
+            visualController?.SetFacing(CurrentFacingDirection);
+            visualController?.SetMoving(true);
 
             wasMovingLastFrame = true;
 
@@ -240,18 +218,11 @@ public class NPCMovement : MonoBehaviour
                     rb.MovePosition(
                         rb.position + slideMove);
 
-                    Vector2 slideDir =
-                        slideMove.normalized;
-
-                    if (equipment != null)
-                        equipment.UpdateVisualDirection(slideDir);
-
-                    if (visualController != null)
-                        visualController.UpdateSkinDirection(slideDir);
+                    Vector2 slideDir = slideMove.normalized;
 
                     CurrentFacingDirection = slideDir;
-
-                    UpdateVisualAnimation(true);
+                    visualController?.SetFacing(CurrentFacingDirection);
+                    visualController?.SetMoving(true);
 
                     wasMovingLastFrame = true;
 
@@ -261,17 +232,12 @@ public class NPCMovement : MonoBehaviour
 
         }
 
-        if (equipment != null)
-            equipment.UpdateVisualDirection(direction);
-
-        if (visualController != null)
-        {
-            visualController.UpdateSkinDirection(direction);
-        }
+        CurrentFacingDirection = direction;
+        visualController?.SetFacing(CurrentFacingDirection);
 
         CheckIfStuck(target);
 
-        UpdateVisualAnimation(false);
+        visualController?.SetMoving(false);
         wasMovingLastFrame = false;
 
         return false;
@@ -637,11 +603,6 @@ public class NPCMovement : MonoBehaviour
         return force;
     }
 
-    void UpdateVisualAnimation(bool moving)
-    {
-        SetAnimation(moving);
-    }
-
     public void UpdateAggroMovement(CharacterStats target, float attackRange)
     {
         if (target == null)
@@ -746,6 +707,6 @@ public class NPCMovement : MonoBehaviour
         hasTemporaryAvoidanceTarget = false;
         hasObstacleMemory = false;
 
-        SetAnimation(false);
+        visualController?.SetMoving(false);
     }
 }

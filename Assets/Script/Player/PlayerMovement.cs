@@ -17,7 +17,7 @@ public class PlayerMovement : MonoBehaviour
     private bool mouseMoved;
     private Vector2 lastMovement;
 
-
+    private CharacterStateController stateController;
 
     private Rigidbody2D rb;
     private Vector2 movement;
@@ -31,29 +31,27 @@ public class PlayerMovement : MonoBehaviour
         visual = GetComponentInChildren<HumanoidVisualController>();
         equipment = GetComponent<HumanoidEquipment>();
         stats = GetComponent<CharacterStats>();
+        stateController = GetComponent<CharacterStateController>();
 
     }
 
     void Start()
     {
         if (visual != null)
-            visual.UpdateSkinDirection(FacingDirection);
-
-        if (equipment != null)
-            equipment.UpdateVisualDirection(FacingDirection);
+        {
+            visual.SetFacing(FacingDirection);
+            visual.SetMoving(false);
+        }
     }
 
     void Update()
     {
-
         if (IsTypingInInputField())
         {
-            // Om spelaren skriver i ett inputfält, ignorera rörelseinput   
             rb.linearVelocity = Vector2.zero;
             return;
         }
 
-        // --- Läs movement ---
         Vector2 currentMovement;
         currentMovement.x = Input.GetAxisRaw("Horizontal");
         currentMovement.y = Input.GetAxisRaw("Vertical");
@@ -63,34 +61,34 @@ public class PlayerMovement : MonoBehaviour
         // Kolla om movement ändrades
         if (currentMovement != lastMovement)
         {
-            if (currentMovement != Vector2.zero)
+            if (stateController == null || stateController.CanRotate)
             {
-                UpdateFacingDirectionFromMovement();
+                if (currentMovement != Vector2.zero)
+                {
+                    UpdateFacingDirectionFromMovement();
+                }
             }
 
             lastMovement = currentMovement;
         }
 
         // --- Kolla mus ---
-        if (Input.mousePosition != lastMousePosition)
+        if (stateController == null || stateController.CanRotate)
         {
-            UpdateFacingDirectionFromMouse();
-            lastMousePosition = Input.mousePosition;
+            if (Input.mousePosition != lastMousePosition)
+            {
+                UpdateFacingDirectionFromMouse();
+                lastMousePosition = Input.mousePosition;
+            }
         }
 
         if (visual != null)
         {
-            if (movement != Vector2.zero)
-                visual.SetAnimationState(HumanoidAnimationState.Walk);
-            else
-                visual.SetAnimationState(HumanoidAnimationState.Idle);
+            bool moving = (stateController == null || stateController.CanMove) && movement != Vector2.zero;
 
-            visual.UpdateSkinDirection(FacingDirection);
+            visual.SetFacing(FacingDirection);
+            visual.SetMoving(moving);
         }
-
-        if (equipment != null)
-            equipment.UpdateVisualDirection(FacingDirection);
-
     }
 
     bool IsTypingInInputField()
@@ -143,7 +141,7 @@ public class PlayerMovement : MonoBehaviour
         // 🔒 Stoppa ALL extern fysikpåverkan
         rb.linearVelocity = Vector2.zero;
 
-        if (!stats.CanAct())
+        if (stateController != null && !stateController.CanMove)
         {
             rb.linearVelocity = Vector2.zero;
             return;
