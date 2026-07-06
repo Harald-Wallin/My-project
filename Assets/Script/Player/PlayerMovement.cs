@@ -82,12 +82,17 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
+        bool moving = (stateController == null || stateController.CanMove) && movement != Vector2.zero;
+
         if (visual != null)
         {
-            bool moving = (stateController == null || stateController.CanMove) && movement != Vector2.zero;
-
             visual.SetFacing(FacingDirection);
             visual.SetMoving(moving);
+        }
+
+        if (equipment != null)
+        {
+            equipment.UpdateVisualDirection(FacingDirection);
         }
     }
 

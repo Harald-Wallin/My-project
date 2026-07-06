@@ -60,6 +60,7 @@ public class HumanoidEquipment : MonoBehaviour
         }
 
         ApplyVisual(item);
+        UpdateVisualDirection(lastDirection); ;
 
         HumanoidVisualController visual = GetComponentInChildren<HumanoidVisualController>();
 
@@ -91,6 +92,7 @@ public class HumanoidEquipment : MonoBehaviour
         }
 
         RestoreHiddenParts();
+        UpdateVisualDirection(lastDirection);
 
         HumanoidVisualController visual = GetComponentInChildren<HumanoidVisualController>();
 
@@ -141,8 +143,15 @@ public class HumanoidEquipment : MonoBehaviour
         return null;
     }
 
+    private Vector2 lastDirection = Vector2.down;
+
     public void UpdateVisualDirection(Vector2 dir)
     {
+        if (dir == Vector2.zero)
+            dir = lastDirection;
+
+        lastDirection = dir;
+
         UpdateItemVisual(head, headRenderer, dir);
         UpdateItemVisual(chest, chestRenderer, dir);
         UpdateItemVisual(shoulders, shouldersRenderer, dir);
