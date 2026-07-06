@@ -44,7 +44,8 @@ public class HumanoidEquipment : MonoBehaviour
 
     public void Equip(ItemData item)
     {
-        if (item == null) return;
+        if (item == null)
+            return;
 
         switch (item.itemType)
         {
@@ -56,18 +57,11 @@ public class HumanoidEquipment : MonoBehaviour
             case ItemType.Feet: feet = item; break;
             case ItemType.Weapon: weapon = item; break;
             case ItemType.Offhand: offhand = item; break;
-            default: return;
         }
 
         ApplyVisual(item);
-        UpdateVisualDirection(lastDirection); ;
 
-        HumanoidVisualController visual = GetComponentInChildren<HumanoidVisualController>();
-
-        if (visual != null)
-        {
-            UpdateVisualDirection(visual.CurrentFacing);
-        }
+        UpdateVisualDirection(Vector2.down);
     }
 
     public void Unequip(ItemData item)
@@ -166,10 +160,19 @@ public class HumanoidEquipment : MonoBehaviour
 
     void UpdateItemVisual(ItemData item, SpriteRenderer renderer, Vector2 dir)
     {
-        if (item == null || renderer == null)
+        if (item == null)
+        {
             return;
+        }
 
-        renderer.sprite = GetDirectionalSprite(item, dir);
+        if (renderer == null)
+        {
+            return;
+        }
+
+        Sprite sprite = GetDirectionalSprite(item, dir);
+
+        renderer.sprite = sprite;
     }
 
     Sprite GetDirectionalSprite(ItemData item, Vector2 dir)
@@ -224,5 +227,19 @@ public class HumanoidEquipment : MonoBehaviour
         visual.SetHeadVisible(true);
         visual.SetLegsVisible(true);
         visual.SetFeetVisible(true);
+    }
+
+    void OnDisable()
+    {
+        Debug.LogError(
+            "HumanoidEquipment Disabled\n" +
+            UnityEngine.StackTraceUtility.ExtractStackTrace(),
+            this
+        );
+    }
+
+    void OnEnable()
+    {
+        Debug.Log("HumanoidEquipment ENABLED", this);
     }
 }
