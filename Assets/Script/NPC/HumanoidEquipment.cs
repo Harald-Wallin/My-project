@@ -98,16 +98,18 @@ public class HumanoidEquipment : MonoBehaviour
 
     void ApplyVisual(ItemData item)
     {
+        if (item == null)
+            return;
+
         SpriteRenderer renderer = GetRendererForItem(item);
 
         if (renderer == null)
             return;
 
-        // Default: visa front sprite när vi spawnar
         renderer.sprite = item.frontSprite;
 
         HumanoidVisualController visual =
-        GetComponentInChildren<HumanoidVisualController>();
+            GetComponentInChildren<HumanoidVisualController>();
 
         if (visual != null)
         {
@@ -161,14 +163,10 @@ public class HumanoidEquipment : MonoBehaviour
     void UpdateItemVisual(ItemData item, SpriteRenderer renderer, Vector2 dir)
     {
         if (item == null)
-        {
             return;
-        }
 
         if (renderer == null)
-        {
             return;
-        }
 
         Sprite sprite = GetDirectionalSprite(item, dir);
 
@@ -230,16 +228,8 @@ public class HumanoidEquipment : MonoBehaviour
     }
 
     void OnDisable()
-    {
-        Debug.LogError(
-            "HumanoidEquipment Disabled\n" +
-            UnityEngine.StackTraceUtility.ExtractStackTrace(),
-            this
-        );
-    }
+    {}
 
     void OnEnable()
-    {
-        Debug.Log("HumanoidEquipment ENABLED", this);
-    }
+    {}
 }

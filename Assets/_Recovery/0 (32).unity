@@ -804,7 +804,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &57884006
 Transform:
   m_ObjectHideFlags: 0
@@ -8422,7 +8422,7 @@ MonoBehaviour:
   hair: {fileID: 1971072392}
   beard: {fileID: 1454042476}
   frameRate: 6
-  initialFacing: 0
+  initialFacing: {x: 0, y: -1}
   headAnimations:
     idle:
       down:
@@ -9003,7 +9003,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3594232167526997346, guid: b8a4447fd6371804082c56c0a9df1fca, type: 3}
       propertyPath: m_Name
-      value: VisualRoot (1)
+      value: VisualRoot
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -11876,7 +11876,7 @@ MonoBehaviour:
   legsRenderer: {fileID: 591596693}
   feetRenderer: {fileID: 703551786}
   weaponRenderer: {fileID: 1214057647}
-  offhandRenderer: {fileID: 0}
+  offhandRenderer: {fileID: 1228858653}
 --- !u!114 &638953997
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15942,7 +15942,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 662154a3b1ea4264ca0ef84a3b72f44c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentManager
-  equipmentSlots: []
+  equipmentSlots:
+  - {fileID: 267764926}
+  - {fileID: 1992418303}
+  - {fileID: 202086979}
+  - {fileID: 1293577564}
+  - {fileID: 1009491068}
+  - {fileID: 1977354918}
+  - {fileID: 174779244}
+  - {fileID: 1417448776}
+  - {fileID: 644033501}
+  - {fileID: 132637291}
+  - {fileID: 1956840773}
   inventory: {fileID: 638953987}
   playerStats: {fileID: 638953985}
   humanoidEquipment: {fileID: 638953995}
@@ -24382,6 +24393,11 @@ MonoBehaviour:
   messageText: {fileID: 332080697}
   yesButton: {fileID: 415869964}
   noButton: {fileID: 969300217}
+--- !u!212 &1228858653 stripped
+SpriteRenderer:
+  m_CorrespondingSourceObject: {fileID: 7689173801329212147, guid: b8a4447fd6371804082c56c0a9df1fca, type: 3}
+  m_PrefabInstance: {fileID: 477213887}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1232235908
 GameObject:
   m_ObjectHideFlags: 0

@@ -56,6 +56,7 @@ public class EquipmentManager : MonoBehaviour
 
     public void TryEquipItem(ItemData item, int fromSlotIndex)
     {
+        Debug.Log($"EquipmentManager -> {item.itemName}");
 
         if (!item.MeetsRequirements(playerStats))
         {

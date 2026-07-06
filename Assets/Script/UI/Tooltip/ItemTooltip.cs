@@ -73,7 +73,6 @@ public class ItemTooltip : MonoBehaviour
 
         currentProvider = provider;
 
-        Debug.Log($"TARGET CLEARED HERE");
         currentTarget = target;
         currentCaster = caster;
         currentAnchorMode = mode;
@@ -91,7 +90,6 @@ public class ItemTooltip : MonoBehaviour
         var player = PlayerReference.Player;
         currentProvider = null;
 
-        Debug.Log($"TARGET CLEARED HERE");
         currentTarget = null;
         currentCaster = null;
 

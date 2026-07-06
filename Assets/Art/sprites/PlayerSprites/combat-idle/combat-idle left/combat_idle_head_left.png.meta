@@ -129,8 +129,8 @@ TextureImporter:
       name: combat_idle_head_left_0
       rect:
         serializedVersion: 2
-        x: 9
-        y: 36
+        x: 7
+        y: 37
         width: 9
         height: 11
       alignment: 0
