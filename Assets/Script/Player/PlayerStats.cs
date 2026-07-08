@@ -3,8 +3,6 @@ using System;
 
 public class PlayerStats : CharacterStats
 {
-
-    public int level = 1;
     public int currentExp = 0;
     public int expToNextLevel = 112;
     [Header("LevelUpConfetti")]
@@ -76,6 +74,7 @@ public class PlayerStats : CharacterStats
         {
             currentExp -= expToNextLevel;
             level++;
+            base.level = level;
 
             ApplyLevelUpStats();
             AnnouncementSpawner.Instance?.QueueAnnouncement(AnnouncementSpawner.Instance.Database.levelUp,$"Hail!\n You reached\nLevel {level}");
@@ -92,6 +91,7 @@ public class PlayerStats : CharacterStats
     protected override void Awake()
     {
         base.Awake();
+        base.level = level;
         regenTimer = regenInterval;
     }
 

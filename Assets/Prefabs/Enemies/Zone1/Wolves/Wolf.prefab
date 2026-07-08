@@ -118,8 +118,9 @@ GameObject:
   - component: {fileID: 7565650016472858170}
   - component: {fileID: 9192460204285460516}
   - component: {fileID: 4847994093137756465}
-  - component: {fileID: 558947386393904139}
+  - component: {fileID: 788226862973081087}
   - component: {fileID: 2834215142199529430}
+  - component: {fileID: -6503705790845319704}
   - component: {fileID: 3520048928441293711}
   - component: {fileID: 6069970325683136558}
   - component: {fileID: 8211094807883814740}
@@ -127,7 +128,6 @@ GameObject:
   - component: {fileID: 1886271859279076144}
   - component: {fileID: 8452496395842813275}
   - component: {fileID: 4693989535447528578}
-  - component: {fileID: -6503705790845319704}
   m_Layer: 9
   m_Name: Wolf
   m_TagString: Enemy
@@ -231,7 +231,7 @@ CapsuleCollider2D:
   m_Offset: {x: 0.02067002, y: 0.16909407}
   m_Size: {x: 1.7651261, y: 0.34807613}
   m_Direction: 1
---- !u!114 &558947386393904139
+--- !u!114 &788226862973081087
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -240,40 +240,30 @@ MonoBehaviour:
   m_GameObject: {fileID: 3459725347379031730}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c01ceffb458c3d047acfeeac3ef4ded7, type: 3}
+  m_Script: {fileID: 11500000, guid: e26a59024476db64a9324782f5c12c54, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Enemy
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterStats
   faction: {fileID: 11400000, guid: e13fb5b85ff5bf2418495430d513911d, type: 2}
   reputationLossOnHit: 0
   reputationLossOnDeath: 0
-  displayName: Starved Wolf
-  maxHP: 21
+  displayName: 'Starving Wolf '
+  level: 1
+  maxHP: 17
   currentHP: 0
-  strength: 1
+  strength: 2
   swiftness: 0
-  armor: 0
-  movementSpeed: 1.5
-  attackSpeed: 0.5
+  armor: 1
+  movementSpeed: 2.5
+  attackSpeed: 1
   weaponDamage: 0
   hitChance: 0.85
-  evasion: 0.03
+  evasion: 0.08
   blockChance: 0
   blockValue: 0
-  critChance: 0.02
+  critChance: 0.2
   critMultiplier: 1.5
+  deathReward: {fileID: 0}
   effectPoint: {fileID: 1917358144810171706}
-  enemyName: Wolf
-  monsterLevel: 1
-  corpsePrefab: {fileID: 2601435471124028453, guid: 842294279c20beb4f87504c8022b763c, type: 3}
-  lootTables:
-  - {fileID: 11400000, guid: 5ba0c18f228bad749a118d57dc4c6788, type: 2}
-  - {fileID: 11400000, guid: bace446e6b5a2e647a3e3fe6b614f7db, type: 2}
-  levelText: {fileID: 0}
-  floatingExpTextPrefab: {fileID: 8131224175839406369, guid: daad473c21b3e5a438a07220b6e1ac3c, type: 3}
-  spawner: {fileID: 0}
-  reputationRewardFaction: {fileID: 11400000, guid: c5488bdfa9793df41979c93540acac0b, type: 2}
-  reputationRewardAmount: 12
-  isStartZoneWolf: 1
 --- !u!114 &2834215142199529430
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -295,12 +285,27 @@ MonoBehaviour:
   canWander: 1
   canPatrol: 0
   patrolPath: {fileID: 0}
-  fleeDistance: 12
-  safeDistanceFromThreat: 18
-  resumeFleeDistance: 12
-  maxHoldDistanceFromSpawn: 50
+  fleeDistance: 0
+  safeDistanceFromThreat: 0
+  resumeFleeDistance: 0
+  maxHoldDistanceFromSpawn: 0
+  corpsePrefab: {fileID: 2601435471124028453, guid: 842294279c20beb4f87504c8022b763c, type: 3}
+  spawner: {fileID: 9153701422449457205, guid: e3fc7c2058c18a642ad734a095353f8e, type: 3}
   selfStats: {fileID: 0}
   reaggroCooldown: 3
+--- !u!114 &-6503705790845319704
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37316f05d2f08934583405a4136f3f3c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterStateController
+  combatDuration: 5
 --- !u!114 &3520048928441293711
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -419,19 +424,6 @@ MonoBehaviour:
   wanderPauseTime: 2
   wanderSpeedMultiplier: 0.5
   patrolSpeedMultiplier: 0.75
---- !u!114 &-6503705790845319704
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3459725347379031730}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 37316f05d2f08934583405a4136f3f3c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterStateController
-  combatTimeout: 5
 --- !u!1 &5964683598601086679
 GameObject:
   m_ObjectHideFlags: 0
@@ -545,7 +537,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ee7bad02aaa8e74d9b5c3a78bbfffb9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatHitbox
-  owner: {fileID: 558947386393904139}
+  owner: {fileID: 0}
 --- !u!1001 &3490736532686318141
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -22315,7 +22315,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1775957794}
   m_HandleRect: {fileID: 1775957793}
   m_Direction: 2
-  m_Value: 1
+  m_Value: 0
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -26980,8 +26980,6 @@ MonoBehaviour:
   safeDistanceFromThreat: 18
   resumeFleeDistance: 12
   maxHoldDistanceFromSpawn: 50
-  corpsePrefab: {fileID: 0}
-  spawner: {fileID: 0}
   selfStats: {fileID: 0}
   reaggroCooldown: 0
 --- !u!114 &1407073989
@@ -39728,8 +39726,6 @@ MonoBehaviour:
   safeDistanceFromThreat: 18
   resumeFleeDistance: 12
   maxHoldDistanceFromSpawn: 50
-  corpsePrefab: {fileID: 0}
-  spawner: {fileID: 0}
   selfStats: {fileID: 0}
   reaggroCooldown: 0
 --- !u!114 &2063733838

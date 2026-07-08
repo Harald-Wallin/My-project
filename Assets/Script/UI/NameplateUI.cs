@@ -52,23 +52,23 @@ public class NameplateUI : MonoBehaviour
 
     void UpdateHealth()
     {
-        if (target.maxHP <= 0)
+        int maxHp = target.GetMaxHP();
+
+        if (maxHp <= 0)
             return;
 
-        float percent = (float)target.currentHP / target.maxHP;
+        float percent = (float)target.currentHP / maxHp;
+
         percent = Mathf.Clamp01(percent);
 
-        healthFill.rectTransform.localScale =
-            new Vector3(percent, 1f, 1f);
+        healthFill.rectTransform.localScale = new Vector3(percent, 1f, 1f);
 
         // Color health fill according to reputation with target's faction
         Color fillColor = Color.white;
 
-        NPCReactionController reaction =
-    target.GetComponent<NPCReactionController>();
+        NPCReactionController reaction = target.GetComponent<NPCReactionController>();
 
-        bool hostile =
-            target.IsHostileToPlayer(player);
+        bool hostile = target.IsHostileToPlayer(player);
 
         bool temporarilyHostile =
             reaction != null &&
@@ -100,7 +100,7 @@ public class NameplateUI : MonoBehaviour
             healthFill.color = fillColor;
 
         if (hpText != null)
-            hpText.text = $"{target.currentHP} / {target.maxHP}";
+            hpText.text = $"{target.currentHP} / {maxHp}";
     }
 
     void UpdateLevelText()
@@ -116,18 +116,10 @@ public class NameplateUI : MonoBehaviour
 
     int GetLevel(CharacterStats stats)
     {
-        // För mobs (Enemy)
-        Enemy enemy = stats.GetComponent<Enemy>();
-        if (enemy != null)
-            return enemy.monsterLevel;
+        if (stats == null)
+            return 1;
 
-        // För player
-        PlayerStats playerStats = stats.GetComponent<PlayerStats>();
-        if (playerStats != null)
-            return playerStats.level;
-
-        // fallback
-        return 1;
+        return stats.level;
     }
 
     Color GetDifficultyColor(int diff)

@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.EventSystems;
 
 public class NPCBehavior : MonoBehaviour
@@ -40,30 +41,24 @@ public class NPCBehavior : MonoBehaviour
     [SerializeField] protected bool canWander = true;
 
     [Header("Patrol")]
-    [SerializeField]
-    protected bool canPatrol = false;
-
-    [SerializeField]
-    protected PatrolPath patrolPath;
-
+    [SerializeField] protected bool canPatrol = false;
+    [SerializeField] protected PatrolPath patrolPath;
     private BaseAttackController baseAttackController;
 
     [Header("Flee")]
-    [SerializeField]
-    protected float fleeDistance = 12f; //Första panic-jumpen
-
-    [SerializeField]
-    protected float safeDistanceFromThreat = 18f; //När NPC slutar springa
-
-    [SerializeField]
-    protected float resumeFleeDistance = 12f; //Om spelaren kommer närmre än detta > fly igen
-
-    [SerializeField]
-    protected float maxHoldDistanceFromSpawn = 50f; //Förhindrar oändlig flykt
-
-
+    [SerializeField] protected float fleeDistance = 12f; //Första panic-jumpen
+    [SerializeField] protected float safeDistanceFromThreat = 18f; //När NPC slutar springa
+    [SerializeField] protected float resumeFleeDistance = 12f; //Om spelaren kommer närmre än detta > fly igen
+    [SerializeField] protected float maxHoldDistanceFromSpawn = 50f; //Förhindrar oändlig flykt
     protected Vector3 fleeTargetPosition;
     protected CharacterStats fleeSource;
+
+    [Header("Death & Respawn")]
+    [SerializeField] private GameObject corpsePrefab;
+    [SerializeField] private MobSpawner spawner;
+    private bool isDead = false;
+
+    private bool handledDeath;
 
     private float aggroDisableTimer;
     //private bool wasMovingLastFrame;
@@ -91,12 +86,14 @@ public class NPCBehavior : MonoBehaviour
         abilityController = GetComponent<AbilityController>();
 
         selfStats = GetComponent<CharacterStats>();
-        currentAggroRange = aggroRange;
 
         if (selfStats != null)
         {
             selfStats.OnDamagedBy += HandleDamaged;
+            selfStats.OnDied += HandleDeath;
         }
+
+        currentAggroRange = aggroRange;
     }
 
     protected virtual void Start()
@@ -504,7 +501,7 @@ public class NPCBehavior : MonoBehaviour
         {
             EnterReturnState();
 
-            GetComponent<Enemy>()?.ResetHealth();
+            selfStats?.ResetHealth();
         }
     }
 
@@ -782,6 +779,7 @@ public class NPCBehavior : MonoBehaviour
         if (selfStats != null)
         {
             selfStats.OnDamagedBy -= HandleDamaged;
+            selfStats.OnDied -= HandleDeath;
         }
 
         if (subscribedPlayer != null)
@@ -812,5 +810,74 @@ public class NPCBehavior : MonoBehaviour
         aggroDisableTimer = 2f;
 
         ReturnToSpawn();
+    }
+
+    void HandleDeath(CharacterStats deadCharacter)
+    {
+        if (isDead)
+            return;
+
+        isDead = true;
+
+        DisableBehaviour();
+
+        SpawnCorpse();
+
+        if (spawner != null)
+        {
+            spawner.OnMobDied();
+        }
+    }
+
+    void DisableBehaviour()
+    {
+        enabled = false;
+
+        if (baseAttackController != null)
+            baseAttackController.enabled = false;
+
+        movement.Stop();
+    }
+
+    void SpawnCorpse()
+    {
+        if (corpsePrefab == null)
+            return;
+
+        GameObject corpse = Instantiate(
+            corpsePrefab,
+            transform.position,
+            Quaternion.identity);
+
+        CharacterStats corpseStats = corpse.GetComponent<CharacterStats>();
+
+        LootContainer loot = corpse.GetComponent<LootContainer>();
+
+        if (loot != null &&
+            selfStats.deathReward != null)
+        {
+            selfStats.deathReward.GenerateLoot(loot);
+        }
+
+        if (corpseStats != null)
+        {
+            corpseStats.faction = null;
+        }
+
+        Transform nameplate =
+            transform.Find("Nameplate");
+
+        if (nameplate != null)
+        {
+            nameplate.SetParent(corpse.transform, true);
+
+            NameplateUI ui =
+                nameplate.GetComponentInChildren<NameplateUI>();
+
+            if (ui != null)
+            {
+                ui.SetCorpseMode();
+            }
+        }
     }
 }

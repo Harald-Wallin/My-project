@@ -93,7 +93,6 @@ public class LootableCorpse : MonoBehaviour
 
     void TryLoot()
     {
-        Debug.Log("Clicked on corpse: " + gameObject.name);
         if (loot == null || player == null || LootUI.Instance == null)
             return;
 

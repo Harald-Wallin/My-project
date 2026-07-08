@@ -3,22 +3,17 @@ using UnityEngine;
 
 public class MobSpawner : MonoBehaviour
 {
-    public GameObject mobPrefab;
-    public float respawnTime = 30f;
-
-    [Header("Level")]
-    [SerializeField] int mobLevel = 1;
+    [Header("Spawn")]
+    [SerializeField] private GameObject mobPrefab;
+    [SerializeField] private float respawnTime = 30f;
 
     [Header("Patrol")]
-    [SerializeField]
-    private PatrolPath patrolPath;
+    [SerializeField] private PatrolPath patrolPath;
 
-
-    GameObject currentMob;
+    private GameObject currentMob;
 
     void Start()
     {
-     
         SpawnMob();
     }
 
@@ -27,24 +22,16 @@ public class MobSpawner : MonoBehaviour
         currentMob = Instantiate(
             mobPrefab,
             transform.position,
-            Quaternion.identity
-        );
+            Quaternion.identity);
 
-        Enemy enemy = currentMob.GetComponent<Enemy>();
-        if (enemy != null)
-        {
-            enemy.spawner = this;
-            enemy.SetLevel(mobLevel);
-        }
-
-        NPCBehavior ai = currentMob.GetComponent<NPCBehavior>();
+        NPCBehavior ai =
+            currentMob.GetComponent<NPCBehavior>();
 
         if (ai != null && patrolPath != null)
         {
             ai.SetPatrolPath(patrolPath);
         }
     }
-
 
     public void OnMobDied()
     {
@@ -54,7 +41,7 @@ public class MobSpawner : MonoBehaviour
     IEnumerator RespawnCoroutine()
     {
         yield return new WaitForSeconds(respawnTime);
+
         SpawnMob();
     }
 }
-

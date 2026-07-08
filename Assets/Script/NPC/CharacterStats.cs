@@ -14,9 +14,13 @@ public class CharacterStats : MonoBehaviour
     [Header("Identity")]
     public string displayName = "NPC";
 
+    [Header("Level")]
+    public int level = 1;
+
     [Header("Base Stats")]
     public int maxHP;
     public int currentHP;
+    //public int CurrentHP => currentHP; SKA DENNA VARA KVAR? ELLER ERSÄTTA den övre currentHP??
     private int baseStrength;
     public int strength;
     public float swiftness = 0f;
@@ -45,6 +49,9 @@ public class CharacterStats : MonoBehaviour
     public event Action<CharacterStats> OnDamagedBy;
     public event Action<CharacterStats> OnDied;
 
+    [Header("Death Rewards")]
+    public DeathRewardData deathReward;
+
     [Header("VFX")]
     public Transform effectPoint;
 
@@ -55,6 +62,12 @@ public class CharacterStats : MonoBehaviour
         currentHP = maxHP;
         baseStrength = strength;
         stateController = GetComponent<CharacterStateController>();
+    }
+
+    public virtual void ResetHealth()
+    {
+        currentHP = GetMaxHP();
+        RaiseHealthChanged();
     }
 
     protected void RaiseDied(CharacterStats deadCharacter)
@@ -358,11 +371,9 @@ public class CharacterStats : MonoBehaviour
     protected virtual void Die(CharacterStats killer)
     {
         RaiseDied(this);
-
-        string killerName = killer != null ? killer.name : "Unknown";
-
+        //string killerName = killer != null ? killer.name : "Unknown";
+        GiveDeathRewards(killer);
         HandleDeathCleanup();
-
         Destroy(gameObject);
     }
 
@@ -477,6 +488,63 @@ public class CharacterStats : MonoBehaviour
         return false;
     }
 
+    protected virtual void GiveDeathRewards(CharacterStats killer)
+    {
+        if (deathReward == null)
+            return;
+
+        PlayerStats player = killer as PlayerStats;
+
+        if (player == null)
+            return;
+
+        // EXP
+        int exp = deathReward.GetExperience(level, player.level);
+
+        if (exp > 0)
+        {
+            player.GainExp(exp);
+            ShowExpText(exp);
+        }
+
+        // Reputation
+        if (deathReward.reputation != 0)
+        {
+            PlayerReputationManager rep =
+                player.GetComponent<PlayerReputationManager>();
+
+            if (rep != null)
+            {
+                Faction factionToReward =
+                    deathReward.reputationFaction != null
+                    ? deathReward.reputationFaction
+                    : faction;
+
+                if (factionToReward != null)
+                {
+                    rep.AddReputation(
+                        factionToReward,
+                        deathReward.reputation
+                    );
+                }
+            }
+        }
+
+        if (player.murderMode && !IsHostileToPlayer(player) && faction != null)
+        {
+            PlayerReputationManager rep =
+                player.GetComponent<PlayerReputationManager>();
+
+            if (rep != null)
+            {
+                rep.AddReputation(
+                    faction,
+                    -reputationLossOnDeath
+                );
+            }
+        }
+    }
+
     public void EnterCombat()
     {
         stateController?.EnterCombat();
@@ -485,6 +553,29 @@ public class CharacterStats : MonoBehaviour
     public bool IsInCombat()
     {
         return stateController != null && stateController.InCombat;
+    }
+
+    protected void ShowExpText(int exp)
+    {
+        if (deathReward == null)
+            return;
+
+        if (deathReward.floatingExpTextPrefab == null)
+            return;
+
+        GameObject textObj = Instantiate(
+            deathReward.floatingExpTextPrefab,
+            transform.position + Vector3.up * 1.5f,
+            Quaternion.identity
+        );
+
+        TMPro.TMP_Text text =
+            textObj.GetComponentInChildren<TMPro.TMP_Text>();
+
+        if (text != null)
+        {
+            text.text = exp + " EXP";
+        }
     }
 
 }

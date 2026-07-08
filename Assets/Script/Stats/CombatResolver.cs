@@ -84,18 +84,10 @@ public static class CombatResolver
 
     static int GetLevel(CharacterStats stats)
     {
-        Enemy enemy = stats.GetComponent<Enemy>();
+        if (stats == null)
+            return 1;
 
-        if (enemy != null)
-            return enemy.monsterLevel;
-
-        PlayerStats player =
-            stats.GetComponent<PlayerStats>();
-
-        if (player != null)
-            return player.level;
-
-        return 1;
+        return stats.level;
     }
 
     public static DamageResult ResolveEffectDamage(

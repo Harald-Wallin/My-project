@@ -163,7 +163,7 @@ public class PlayerMovement : MonoBehaviour
 
         ContactFilter2D filter = new ContactFilter2D();
         filter.useLayerMask = true;
-        filter.layerMask = LayerMask.GetMask("Blocking", "Enemy", "NPC");
+        filter.layerMask = LayerMask.GetMask("Blocking", "NPC");
         filter.useTriggers = false;
 
         RaycastHit2D[] hits = new RaycastHit2D[1];
