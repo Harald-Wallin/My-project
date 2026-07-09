@@ -128,6 +128,7 @@ GameObject:
   - component: {fileID: 1886271859279076144}
   - component: {fileID: 8452496395842813275}
   - component: {fileID: 4693989535447528578}
+  - component: {fileID: 6584142422350811442}
   m_Layer: 9
   m_Name: Wolf
   m_TagString: Enemy
@@ -253,7 +254,7 @@ MonoBehaviour:
   strength: 2
   swiftness: 0
   armor: 1
-  movementSpeed: 2.5
+  movementSpeed: 1.8
   attackSpeed: 1
   weaponDamage: 0
   hitChance: 0.85
@@ -289,8 +290,6 @@ MonoBehaviour:
   safeDistanceFromThreat: 0
   resumeFleeDistance: 0
   maxHoldDistanceFromSpawn: 0
-  corpsePrefab: {fileID: 2601435471124028453, guid: 842294279c20beb4f87504c8022b763c, type: 3}
-  spawner: {fileID: 9153701422449457205, guid: e3fc7c2058c18a642ad734a095353f8e, type: 3}
   selfStats: {fileID: 0}
   reaggroCooldown: 3
 --- !u!114 &-6503705790845319704
@@ -406,7 +405,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c8655f0806a2ecd479ce7c3fdd96658d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
-  moveSpeed: 2
   stopDistance: 0.8
   avoidanceProbeDistance: 1.2
   avoidanceAngle: 35
@@ -422,8 +420,33 @@ MonoBehaviour:
   wanderRadius: 5
   wanderMoveTime: 2
   wanderPauseTime: 2
-  wanderSpeedMultiplier: 0.5
+  wanderSpeedMultiplier: 0.3
   patrolSpeedMultiplier: 0.75
+--- !u!114 &6584142422350811442
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ddad05c25c9f3e45871137733a87048, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DeathReward
+  useDynamicExperience: 1
+  experience: 12
+  reputationRewards:
+  - faction: {fileID: 11400000, guid: c5488bdfa9793df41979c93540acac0b, type: 2}
+    reputation: 100
+  corpsePrefab: {fileID: 2601435471124028453, guid: 842294279c20beb4f87504c8022b763c, type: 3}
+  lootTables:
+  - {fileID: 11400000, guid: 5ba0c18f228bad749a118d57dc4c6788, type: 2}
+  - {fileID: 11400000, guid: bace446e6b5a2e647a3e3fe6b614f7db, type: 2}
+  minLootRolls: 0
+  maxLootRolls: 3
+  floatingExpTextPrefab: {fileID: 8131224175839406369, guid: daad473c21b3e5a438a07220b6e1ac3c, type: 3}
+  unlockStartZoneWolf: 0
 --- !u!1 &5964683598601086679
 GameObject:
   m_ObjectHideFlags: 0

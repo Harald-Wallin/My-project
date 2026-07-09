@@ -16,14 +16,12 @@ public class NPCBehavior : MonoBehaviour
 
     [Header("Ability Delay")]
     [SerializeField] private float abilityDelayAfterAggro = 3f;
-
     private float abilityLockTimer;
 
     [Header("Movement")]
     protected NPCMovement movement;
     [SerializeField]
     float stopDistanceDefault = 1f;
-
 
     [Header("Aggro")]
     [SerializeField]
@@ -54,11 +52,7 @@ public class NPCBehavior : MonoBehaviour
     protected CharacterStats fleeSource;
 
     [Header("Death & Respawn")]
-    [SerializeField] private GameObject corpsePrefab;
-    [SerializeField] private MobSpawner spawner;
     private bool isDead = false;
-
-    private bool handledDeath;
 
     private float aggroDisableTimer;
     //private bool wasMovingLastFrame;
@@ -115,6 +109,13 @@ public class NPCBehavior : MonoBehaviour
         {
             EnterIdleState();
         }
+    }
+
+    private MobSpawner spawner;
+
+    public void SetSpawner(MobSpawner newSpawner)
+    {
+        spawner = newSpawner;
     }
 
     public void SetPatrolPath(PatrolPath path)
@@ -821,12 +822,14 @@ public class NPCBehavior : MonoBehaviour
 
         DisableBehaviour();
 
-        SpawnCorpse();
-
-        if (spawner != null)
+        if (selfStats.deathReward != null)
         {
-            spawner.OnMobDied();
+            selfStats.deathReward.SpawnCorpse(
+                transform.position,
+                selfStats);
         }
+
+        spawner?.OnMobDied();
     }
 
     void DisableBehaviour()
@@ -837,47 +840,5 @@ public class NPCBehavior : MonoBehaviour
             baseAttackController.enabled = false;
 
         movement.Stop();
-    }
-
-    void SpawnCorpse()
-    {
-        if (corpsePrefab == null)
-            return;
-
-        GameObject corpse = Instantiate(
-            corpsePrefab,
-            transform.position,
-            Quaternion.identity);
-
-        CharacterStats corpseStats = corpse.GetComponent<CharacterStats>();
-
-        LootContainer loot = corpse.GetComponent<LootContainer>();
-
-        if (loot != null &&
-            selfStats.deathReward != null)
-        {
-            selfStats.deathReward.GenerateLoot(loot);
-        }
-
-        if (corpseStats != null)
-        {
-            corpseStats.faction = null;
-        }
-
-        Transform nameplate =
-            transform.Find("Nameplate");
-
-        if (nameplate != null)
-        {
-            nameplate.SetParent(corpse.transform, true);
-
-            NameplateUI ui =
-                nameplate.GetComponentInChildren<NameplateUI>();
-
-            if (ui != null)
-            {
-                ui.SetCorpseMode();
-            }
-        }
     }
 }

@@ -13,21 +13,21 @@ GameObject:
   - component: {fileID: 7565650016472858170}
   - component: {fileID: 9192460204285460516}
   - component: {fileID: 4847994093137756465}
-  - component: {fileID: 558947386393904139}
-  - component: {fileID: 2834215142199529430}
+  - component: {fileID: 788226862973081087}
   - component: {fileID: 3520048928441293711}
   - component: {fileID: 4275189061858033796}
   - component: {fileID: 17746861532873532}
   - component: {fileID: -6276876268285353313}
   - component: {fileID: 5122081960522985903}
+  - component: {fileID: 5293376646054317175}
+  - component: {fileID: -261900148879597633}
   - component: {fileID: 6658034871447627093}
   - component: {fileID: -2890300438920332383}
   - component: {fileID: -4741224723462481346}
   - component: {fileID: -1018831399304009737}
-  - component: {fileID: -261900148879597633}
   - component: {fileID: -2672624628164567342}
   m_Layer: 8
-  m_Name: HostileHumanoid
+  m_Name: Humanoid
   m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -60,7 +60,7 @@ SpriteRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3459725347379031730}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 0
   m_ReceiveShadows: 0
   m_DynamicOccludee: 1
@@ -188,7 +188,7 @@ CapsuleCollider2D:
   m_Offset: {x: 0, y: 0.05}
   m_Size: {x: 0.75, y: 0.3}
   m_Direction: 1
---- !u!114 &558947386393904139
+--- !u!114 &788226862973081087
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -197,13 +197,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 3459725347379031730}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c01ceffb458c3d047acfeeac3ef4ded7, type: 3}
+  m_Script: {fileID: 11500000, guid: e26a59024476db64a9324782f5c12c54, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Enemy
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterStats
   faction: {fileID: 0}
-  reputationLossOnHit: 20
-  reputationLossOnDeath: 100
+  reputationLossOnHit: 0
+  reputationLossOnDeath: 0
   displayName: NPC
+  level: 1
   maxHP: 0
   currentHP: 0
   strength: 0
@@ -216,46 +217,10 @@ MonoBehaviour:
   evasion: 0.08
   blockChance: 0
   blockValue: 0
-  critChance: 0
-  critMultiplier: 0
-  effectPoint: {fileID: 5155013851662899411}
-  enemyName: Humanoid
-  monsterLevel: 1
-  corpsePrefab: {fileID: 0}
-  lootTables: []
-  levelText: {fileID: 0}
-  floatingExpTextPrefab: {fileID: 8131224175839406369, guid: daad473c21b3e5a438a07220b6e1ac3c, type: 3}
-  spawner: {fileID: 0}
-  reputationRewardFaction: {fileID: 0}
-  reputationRewardAmount: 0
-  isStartZoneWolf: 0
---- !u!114 &2834215142199529430
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3459725347379031730}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b1ff74424220cb34788cab7ebfab8b4c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::WolfAI
-  player: {fileID: 0}
-  maxDistanceFromSpawn: 10
-  abilityDelayAfterAggro: 3
-  stopDistanceDefault: 1
-  canAggro: 1
-  aggroRange: 4
-  canWander: 1
-  canPatrol: 0
-  patrolPath: {fileID: 0}
-  fleeDistance: 12
-  safeDistanceFromThreat: 18
-  resumeFleeDistance: 12
-  maxHoldDistanceFromSpawn: 50
-  selfStats: {fileID: 0}
-  reaggroCooldown: 3
+  critChance: 0.3
+  critMultiplier: 2
+  deathReward: {fileID: 0}
+  effectPoint: {fileID: 0}
 --- !u!114 &3520048928441293711
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -349,6 +314,63 @@ MonoBehaviour:
   reactionType: 0
   hostilityDuration: 300
   alertDuration: 10
+--- !u!114 &5293376646054317175
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1ff74424220cb34788cab7ebfab8b4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCBehavior
+  player: {fileID: 0}
+  maxDistanceFromSpawn: 8
+  abilityDelayAfterAggro: 3
+  stopDistanceDefault: 1
+  canAggro: 1
+  aggroRange: 4
+  canWander: 0
+  canPatrol: 0
+  patrolPath: {fileID: 0}
+  fleeDistance: 12
+  safeDistanceFromThreat: 18
+  resumeFleeDistance: 12
+  maxHoldDistanceFromSpawn: 50
+  selfStats: {fileID: 0}
+  reaggroCooldown: 3
+--- !u!114 &-261900148879597633
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8655f0806a2ecd479ce7c3fdd96658d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
+  moveSpeed: 1.5
+  stopDistance: 0.8
+  avoidanceProbeDistance: 1.2
+  avoidanceAngle: 35
+  avoidanceMemoryDuration: 1.5
+  stuckCheckTime: 0.5
+  stuckMovementThreshold: 0.1
+  avoidanceTargetDistance: 2
+  targetWeight: 1
+  obstacleWeight: 2
+  separationWeight: 1.2
+  separationRadius: 1.2
+  obstacleMemoryDuration: 2
+  wanderRadius: 3
+  wanderMoveTime: 2
+  wanderPauseTime: 2
+  wanderSpeedMultiplier: 0.5
+  patrolSpeedMultiplier: 0.75
 --- !u!114 &6658034871447627093
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -404,36 +426,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AbilityController
   equippedAbilities: []
---- !u!114 &-261900148879597633
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3459725347379031730}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c8655f0806a2ecd479ce7c3fdd96658d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
-  moveSpeed: 2.5
-  stopDistance: 0.8
-  avoidanceProbeDistance: 1.2
-  avoidanceAngle: 35
-  avoidanceMemoryDuration: 1.5
-  stuckCheckTime: 0.5
-  stuckMovementThreshold: 0.1
-  avoidanceTargetDistance: 2
-  targetWeight: 1
-  obstacleWeight: 2
-  separationWeight: 1.2
-  separationRadius: 1.2
-  obstacleMemoryDuration: 2
-  wanderRadius: 3
-  wanderMoveTime: 2
-  wanderPauseTime: 2
-  wanderSpeedMultiplier: 0.5
-  patrolSpeedMultiplier: 0.75
 --- !u!114 &-2672624628164567342
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -446,7 +438,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 37316f05d2f08934583405a4136f3f3c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterStateController
-  combatTimeout: 5
+  combatDuration: 5
 --- !u!1 &3778626201625969471
 GameObject:
   m_ObjectHideFlags: 0

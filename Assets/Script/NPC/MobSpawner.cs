@@ -24,12 +24,14 @@ public class MobSpawner : MonoBehaviour
             transform.position,
             Quaternion.identity);
 
-        NPCBehavior ai =
-            currentMob.GetComponent<NPCBehavior>();
+        NPCBehavior ai = currentMob.GetComponent<NPCBehavior>();
 
-        if (ai != null && patrolPath != null)
+        if (ai != null)
         {
-            ai.SetPatrolPath(patrolPath);
+            ai.SetSpawner(this);
+
+            if (patrolPath != null)
+                ai.SetPatrolPath(patrolPath);
         }
     }
 

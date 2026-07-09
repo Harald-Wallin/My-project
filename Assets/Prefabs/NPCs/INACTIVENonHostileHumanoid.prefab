@@ -139,7 +139,7 @@ GameObject:
   - component: {fileID: -7708469110709135478}
   - component: {fileID: 4273111933795554471}
   m_Layer: 6
-  m_Name: NonHostileHumanoid
+  m_Name: INACTIVENonHostileHumanoid
   m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

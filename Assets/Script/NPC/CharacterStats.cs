@@ -50,7 +50,7 @@ public class CharacterStats : MonoBehaviour
     public event Action<CharacterStats> OnDied;
 
     [Header("Death Rewards")]
-    public DeathRewardData deathReward;
+    public DeathReward deathReward;
 
     [Header("VFX")]
     public Transform effectPoint;
@@ -62,6 +62,7 @@ public class CharacterStats : MonoBehaviour
         currentHP = maxHP;
         baseStrength = strength;
         stateController = GetComponent<CharacterStateController>();
+        deathReward = GetComponent<DeathReward>();
     }
 
     public virtual void ResetHealth()
@@ -490,59 +491,7 @@ public class CharacterStats : MonoBehaviour
 
     protected virtual void GiveDeathRewards(CharacterStats killer)
     {
-        if (deathReward == null)
-            return;
-
-        PlayerStats player = killer as PlayerStats;
-
-        if (player == null)
-            return;
-
-        // EXP
-        int exp = deathReward.GetExperience(level, player.level);
-
-        if (exp > 0)
-        {
-            player.GainExp(exp);
-            ShowExpText(exp);
-        }
-
-        // Reputation
-        if (deathReward.reputation != 0)
-        {
-            PlayerReputationManager rep =
-                player.GetComponent<PlayerReputationManager>();
-
-            if (rep != null)
-            {
-                Faction factionToReward =
-                    deathReward.reputationFaction != null
-                    ? deathReward.reputationFaction
-                    : faction;
-
-                if (factionToReward != null)
-                {
-                    rep.AddReputation(
-                        factionToReward,
-                        deathReward.reputation
-                    );
-                }
-            }
-        }
-
-        if (player.murderMode && !IsHostileToPlayer(player) && faction != null)
-        {
-            PlayerReputationManager rep =
-                player.GetComponent<PlayerReputationManager>();
-
-            if (rep != null)
-            {
-                rep.AddReputation(
-                    faction,
-                    -reputationLossOnDeath
-                );
-            }
-        }
+        deathReward?.GiveRewards(this, killer);
     }
 
     public void EnterCombat()
@@ -554,29 +503,5 @@ public class CharacterStats : MonoBehaviour
     {
         return stateController != null && stateController.InCombat;
     }
-
-    protected void ShowExpText(int exp)
-    {
-        if (deathReward == null)
-            return;
-
-        if (deathReward.floatingExpTextPrefab == null)
-            return;
-
-        GameObject textObj = Instantiate(
-            deathReward.floatingExpTextPrefab,
-            transform.position + Vector3.up * 1.5f,
-            Quaternion.identity
-        );
-
-        TMPro.TMP_Text text =
-            textObj.GetComponentInChildren<TMPro.TMP_Text>();
-
-        if (text != null)
-        {
-            text.text = exp + " EXP";
-        }
-    }
-
 }
 

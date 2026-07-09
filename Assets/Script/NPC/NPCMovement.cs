@@ -11,22 +11,32 @@ public class NPCMovement : MonoBehaviour
 
     private Rigidbody2D rb;
 
-    [Header("Movement Settings")]
-    [SerializeField] private float moveSpeed = 2.5f;
-
     [Header("Object Avoidance")]
-    [SerializeField] private float stopDistance = 0.8f;
-    [SerializeField] private float avoidanceProbeDistance = 1.2f;
-    [SerializeField] private float avoidanceAngle = 35f;
-    [SerializeField] private float avoidanceMemoryDuration = 1.5f;
-    [SerializeField] private float stuckCheckTime = 0.5f;
-    [SerializeField] private float stuckMovementThreshold = 0.1f;
-    [SerializeField] private float avoidanceTargetDistance = 2f;
-    [SerializeField] private float targetWeight = 1.0f;
-    [SerializeField] private float obstacleWeight = 2.0f;
-    [SerializeField] private float separationWeight = 1.2f;
-    [SerializeField] private float separationRadius = 1.2f;
-    [SerializeField] private float obstacleMemoryDuration = 2f;
+
+    [Tooltip("How close to the target the NPC stops before it stops moving.")]
+        [SerializeField] private float stopDistance = 0.8f;
+    [Tooltip("How far ahead the NPC looks for obstacles.")]
+        [SerializeField] private float avoidanceProbeDistance = 1.2f;
+    [Tooltip("The angle used when the NPC searches for alternative paths around an obstacle.")]
+        [SerializeField] private float avoidanceAngle = 35f;
+    [Tooltip("How long the NPC remembers a previously chosen avoidance direction.")]
+        [SerializeField] private float avoidanceMemoryDuration = 1.5f;
+    [Tooltip("How long the NPC must be stuck before it tries to find a new path.")]
+        [SerializeField] private float stuckCheckTime = 0.5f;
+    [Tooltip("The minimum movement required for the NPC not to be considered stuck.")]
+        [SerializeField] private float stuckMovementThreshold = 0.1f;
+    [Tooltip("How far to the side a temporary avoidance target is placed.")]
+        [SerializeField] private float avoidanceTargetDistance = 2f;
+    [Tooltip("How strongly the NPC prioritizes moving towards its target.")]
+        [SerializeField] private float targetWeight = 1.0f;
+    [Tooltip("How strongly the NPC prioritizes avoiding walls and other obstacles.")]
+        [SerializeField] private float obstacleWeight = 2.0f;
+    [Tooltip("How strongly the NPC prioritizes maintaining distance from other NPCs.")]
+        [SerializeField] private float separationWeight = 1.2f;
+    [Tooltip("Radius within which other NPCs affect separation.")]
+        [SerializeField] private float separationRadius = 1.2f;
+    [Tooltip("How long a detected obstacle continues to affect steering.")]
+        [SerializeField] private float obstacleMemoryDuration = 2f;
 
     public float DefaultStopDistance => stopDistance;
     private Vector2 rememberedAvoidanceDirection;
@@ -134,9 +144,9 @@ public class NPCMovement : MonoBehaviour
         if (stats.IsStunned)
             return false;
 
-        float moveSpeedStat = stats.GetStat(StatType.MovementSpeed);
+        float moveSpeed = stats.GetStat(StatType.MovementSpeed);
 
-        if (moveSpeedStat <= 0f)
+        if (moveSpeed <= 0f)
             return false;
 
         Vector2 toTarget = (Vector2)target - rb.position;
@@ -151,14 +161,13 @@ public class NPCMovement : MonoBehaviour
 
         Vector2 direction = GetSteeringDirection(toTarget.normalized);
 
-        Vector2 desiredMove = direction * moveSpeed * speedMultiplier * moveSpeedStat * Time.fixedDeltaTime;
+        Vector2 desiredMove = direction * moveSpeed * speedMultiplier * moveSpeed * Time.fixedDeltaTime;
 
         ContactFilter2D filter = new ContactFilter2D();
         filter.useLayerMask = true;
         filter.layerMask = LayerMask.GetMask(
         "World",
         "NPC",
-        "HostileMob",
         "Player"
         );
 
