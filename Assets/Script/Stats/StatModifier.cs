@@ -1,23 +1,5 @@
 using UnityEngine;
 
-public enum StatType
-{
-    Strength,
-    Armor,
-    WeaponDamage,
-    MaxHP,
-    CritChance,
-    CritMultiplier,
-    HitChance,
-    Evasion,
-    Swiftness,
-    MovementSpeed,
-    AttackSpeed,
-
-    BlockChance,
-    BlockValue,
-}
-
 public enum ModifierType
 {
     Flat,

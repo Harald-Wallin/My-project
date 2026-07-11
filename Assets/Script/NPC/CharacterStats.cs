@@ -18,11 +18,19 @@ public class CharacterStats : MonoBehaviour
     public int level = 1;
 
     [Header("Base Stats")]
+    [SerializeField]
+    private List<BaseStatEntry> baseStatEntries = new();
+    private readonly Dictionary<StatType, float> baseStats =new();
     public int maxHP;
     public int currentHP;
     //public int CurrentHP => currentHP; SKA DENNA VARA KVAR? ELLER ERSÄTTA den övre currentHP??
     private int baseStrength;
     public int strength;
+    [Tooltip("Base damage without any weapon equipped.")]
+    public int baseMeleeDamage = 2;
+
+    [Tooltip("Derived combat stat. Normally calculated from Strength.")]
+    public int attackPower = 0;
     public float swiftness = 0f;
     public int armor;
     public float movementSpeed = 2.5f;
@@ -61,6 +69,7 @@ public class CharacterStats : MonoBehaviour
     {
         currentHP = maxHP;
         baseStrength = strength;
+        InitializeBaseStats();
         stateController = GetComponent<CharacterStateController>();
         deathReward = GetComponent<DeathReward>();
     }
@@ -186,10 +195,14 @@ public class CharacterStats : MonoBehaviour
 
     public int GetAttackDamage()
     {
-        float str = GetStat(StatType.Strength);
-        float weapon = GetStat(StatType.WeaponDamage);
+        float baseDamage = GetStat(StatType.BaseMeleeDamage);
 
-        return Mathf.Max(1, Mathf.RoundToInt(str + weapon));
+        float weaponDamage = GetStat(StatType.WeaponDamage);
+
+        return Mathf.Max(
+            1,
+            Mathf.RoundToInt(baseDamage + weaponDamage)
+        );
     }
 
     public int GetMaxHP()
@@ -199,7 +212,6 @@ public class CharacterStats : MonoBehaviour
 
     public virtual void Heal(int amount)
     {
-       // currentHP = Mathf.Clamp(currentHP, 0, Mathf.RoundToInt(GetStat(StatType.MaxHP)));
           currentHP  =Mathf.Clamp(currentHP + amount, 0, Mathf.RoundToInt(GetStat(StatType.MaxHP)));
         RaiseHealthChanged();
     }
@@ -218,26 +230,9 @@ public class CharacterStats : MonoBehaviour
     }
 
     // ---- STAT MODIFIERS ADD ----
-
     float GetBaseStat(StatType stat)
     {
-        switch (stat)
-        {
-            case StatType.Strength: return strength;
-            case StatType.Armor: return armor;
-            case StatType.WeaponDamage: return weaponDamage;
-            case StatType.MaxHP: return maxHP;
-            case StatType.CritChance: return critChance;
-            case StatType.CritMultiplier: return critMultiplier;
-            case StatType.HitChance: return hitChance;
-            case StatType.Evasion: return evasion;
-            case StatType.MovementSpeed: return movementSpeed;
-            case StatType.AttackSpeed: return attackSpeed;
-            case StatType.BlockChance: return blockChance;
-            case StatType.BlockValue: return blockValue;
-
-            default: return 0f;
-        }
+        return GetBaseStatValue(stat);
     }
 
     public void AddStun()
@@ -313,20 +308,6 @@ public class CharacterStats : MonoBehaviour
         float withEquipment = (talentBase + equipmentFlat) * (1f + equipmentPercent);
 
         float finalValue = withEquipment * (1f + buffPercent + oathPercent);
-
-        // 🔥 SWIFTNESS påverkar movement speed
-        if (stat == StatType.MovementSpeed)
-        {
-            float swiftness = GetStat(StatType.Swiftness);
-            finalValue += swiftness * 0.02f; // tweak senare
-        }
-
-        // 🔥 SWIFTNESS påverkar crit
-        if (stat == StatType.CritChance)
-        {
-            float swiftness = GetStat(StatType.Swiftness);
-            finalValue += swiftness * 0.0003f;
-        }
 
         return finalValue;
     }
@@ -502,6 +483,31 @@ public class CharacterStats : MonoBehaviour
     public bool IsInCombat()
     {
         return stateController != null && stateController.InCombat;
+    }
+
+    void InitializeBaseStats()
+    {
+        baseStats.Clear();
+
+        foreach (var entry in baseStatEntries)
+        {
+            baseStats[entry.stat] = entry.value;
+        }
+
+        StatScaling.ApplyDerivedStats(this);
+    }
+
+    public void SetBaseStat(StatType stat, float value)
+    {
+        baseStats[stat] = value;
+    }
+
+    public float GetBaseStatValue(StatType stat)
+    {
+        if (baseStats.TryGetValue(stat, out float value))
+            return value;
+
+        return 0f;
     }
 }
 
