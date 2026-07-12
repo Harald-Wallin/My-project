@@ -19,38 +19,19 @@ public class CharacterStats : MonoBehaviour
 
     [Header("Base Stats")]
     [SerializeField]
-    private List<BaseStatEntry> baseStatEntries = new();
-    private readonly Dictionary<StatType, float> baseStats =new();
-    public int maxHP;
-    public int currentHP;
-    //public int CurrentHP => currentHP; SKA DENNA VARA KVAR? ELLER ERSÄTTA den övre currentHP??
-    private int baseStrength;
-    public int strength;
-    [Tooltip("Base damage without any weapon equipped.")]
-    public int baseMeleeDamage = 2;
+    private List<StatEntry> stats = new();
 
-    [Tooltip("Derived combat stat. Normally calculated from Strength.")]
-    public int attackPower = 0;
-    public float swiftness = 0f;
-    public int armor;
-    public float movementSpeed = 2.5f;
-    public float attackSpeed = 1f;//attack per sekund
+    private readonly Dictionary<StatType, float> statLookup = new();
+    public int currentHP;
+    private static StatScalingProfile cachedScalingProfile;
+
 
     [Header("Advanced Stats")]
     public bool IsStunned => stunCount > 0;
     private int stunCount = 0;
-    public int weaponDamage;
-    public float hitChance = 0.85f;
-    public float evasion = 0.08f;
-    public float blockChance = 0f;
-    public int blockValue = 0;
 
     private List<StatModifier> modifiers = new List<StatModifier>();
     private CharacterStateController stateController;
-
-    [Header("Combat")]
-    public float critChance = 0.3f;
-    public float critMultiplier = 2f;
 
     public event Action OnHealthChanged;
     public event Action OnStatsChanged;
@@ -67,9 +48,9 @@ public class CharacterStats : MonoBehaviour
 
     protected virtual void Awake()
     {
-        currentHP = maxHP;
-        baseStrength = strength;
         InitializeBaseStats();
+        currentHP = GetMaxHP();
+        
         stateController = GetComponent<CharacterStateController>();
         deathReward = GetComponent<DeathReward>();
     }
@@ -309,6 +290,23 @@ public class CharacterStats : MonoBehaviour
 
         float finalValue = withEquipment * (1f + buffPercent + oathPercent);
 
+        // Derived stats från ScalingProfile
+        if (ScalingProfile != null)
+        {
+            foreach (var rule in ScalingProfile.rules)
+            {
+                float sourceValue = GetStat(rule.source);
+
+                foreach (var output in rule.outputs)
+                {
+                    if (output.stat != stat)
+                        continue;
+
+                    finalValue += sourceValue * output.value;
+                }
+            }
+        }
+
         return finalValue;
     }
 
@@ -487,27 +485,39 @@ public class CharacterStats : MonoBehaviour
 
     void InitializeBaseStats()
     {
-        baseStats.Clear();
+        statLookup.Clear();
 
-        foreach (var entry in baseStatEntries)
+        foreach (var stat in stats)
         {
-            baseStats[entry.stat] = entry.value;
+            statLookup[stat.stat] = stat.value;
         }
-
-        StatScaling.ApplyDerivedStats(this);
     }
 
     public void SetBaseStat(StatType stat, float value)
     {
-        baseStats[stat] = value;
+        statLookup[stat] = value;
     }
 
     public float GetBaseStatValue(StatType stat)
     {
-        if (baseStats.TryGetValue(stat, out float value))
+        if (statLookup.TryGetValue(stat, out float value))
             return value;
 
         return 0f;
+    }
+
+    private StatScalingProfile ScalingProfile
+    {
+        get
+        {
+            if (cachedScalingProfile == null)
+            {
+                cachedScalingProfile =
+                    Resources.Load<StatScalingProfile>("StatScalingProfile");
+            }
+
+            return cachedScalingProfile;
+        }
     }
 }
 

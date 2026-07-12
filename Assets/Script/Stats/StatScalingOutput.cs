@@ -2,9 +2,9 @@ using System;
 using UnityEngine;
 
 [Serializable]
-public class BaseStatEntry
+public class StatScalingOutput
 {
     public StatType stat;
 
-    public float value;
+    public float value = 1f;
 }

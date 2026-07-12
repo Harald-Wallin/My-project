@@ -36,12 +36,14 @@ public class PlayerStats : CharacterStats
 
     void ApplyLevelUpStats()
     {
-        strength += 1;
+        SetBaseStat(StatType.Strength,GetBaseStatValue(StatType.Strength) + 1);
 
         float oldMaxHP = GetStat(StatType.MaxHP);
-        maxHP += 4;
+
+        SetBaseStat(StatType.MaxHP,GetBaseStatValue(StatType.MaxHP) + 4);
 
         float newMaxHP = GetStat(StatType.MaxHP);
+
         float gainedHP= newMaxHP - oldMaxHP;
         currentHP += Mathf.RoundToInt(gainedHP);
         currentHP = Mathf.Clamp(currentHP, 0, Mathf.RoundToInt(newMaxHP));
