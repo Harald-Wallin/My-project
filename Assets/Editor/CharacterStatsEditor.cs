@@ -2,14 +2,20 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof(CharacterStats))]
+[CustomEditor(typeof(CharacterStats), true)]
 public class CharacterStatsEditor : Editor
 {
     SerializedProperty statsProperty;
+    SerializedProperty derivedStatsProperty;
+
+    bool showPrimary = true;
+    bool showDerived = true;
 
     void OnEnable()
     {
         statsProperty = serializedObject.FindProperty("stats");
+        derivedStatsProperty = serializedObject.FindProperty("derivedStats");
+
         EnsureAllStatsExist();
     }
 
@@ -21,14 +27,20 @@ public class CharacterStatsEditor : Editor
 
         EditorGUILayout.Space(10);
 
-        DrawCategory("Primary Stats",
-            StatType.Strength,
-            StatType.Swiftness,
-            StatType.Armor,
-            StatType.Spirit,
-            StatType.Intellect);
+        showPrimary = EditorGUILayout.BeginFoldoutHeaderGroup(showPrimary,"Primary Stats");
 
-        DrawCategory("Sub Stats",
+        if (showPrimary)
+        {
+            DrawStat(StatType.Strength);
+            DrawStat(StatType.Swiftness);
+            DrawStat(StatType.Armor);
+            DrawStat(StatType.Spirit);
+            DrawStat(StatType.Intellect);
+        }
+
+        EditorGUILayout.EndFoldoutHeaderGroup();
+
+        /*DrawCategory("Sub Stats",
             StatType.MaxHP,
             StatType.BaseMeleeDamage,
             StatType.BaseRangedDamage,
@@ -46,14 +58,83 @@ public class CharacterStatsEditor : Editor
             StatType.CritMultiplier,
             StatType.Evasion,
             StatType.BlockChance,
-            StatType.BlockValue);
+            StatType.BlockValue);*/
+
+        showDerived = EditorGUILayout.BeginFoldoutHeaderGroup(showDerived,"Derived Stats");
+
+        if (showDerived)
+        {
+            DrawDerivedStats();
+        }
+
+        EditorGUILayout.EndFoldoutHeaderGroup();
+
+        if (GUI.changed)
+        {
+            serializedObject.ApplyModifiedProperties();
+
+            foreach (CharacterStats stats in targets)
+            {
+                stats.RecalculateDerivedStats();
+
+                EditorUtility.SetDirty(stats);
+            }
+
+            serializedObject.Update();
+        }
 
         serializedObject.ApplyModifiedProperties();
+
+        /*if (target is PlayerStats)
+        {
+            DrawPlayerSection();
+        }*/
+    }
+
+    void DrawPlayerSection()
+    {
+        EditorGUILayout.Space();
+
+        EditorGUILayout.LabelField(
+            "Player",
+            EditorStyles.boldLabel);
+
+        DrawPropertiesExcluding(
+            serializedObject,
+            "m_Script",
+            "stats",
+            "derivedStats"
+        );
+    }
+
+    void DrawDerivedStats()
+    {
+        GUI.enabled = false;
+
+        for (int i = 0; i < derivedStatsProperty.arraySize; i++)
+        {
+            SerializedProperty stat =
+                derivedStatsProperty.GetArrayElementAtIndex(i);
+
+            EditorGUILayout.BeginHorizontal();
+
+            EditorGUILayout.LabelField(
+                stat.FindPropertyRelative("stat").enumDisplayNames[
+                    stat.FindPropertyRelative("stat").enumValueIndex],
+                GUILayout.Width(180));
+
+            EditorGUILayout.FloatField(
+                stat.FindPropertyRelative("value").floatValue);
+
+            EditorGUILayout.EndHorizontal();
+        }
+
+        GUI.enabled = true;
     }
 
     void DrawDefaultInspectorExceptStats()
     {
-        DrawPropertiesExcluding(serializedObject, "stats");
+        DrawPropertiesExcluding( serializedObject,"stats","derivedStats");
     }
 
     void DrawCategory(string title, params StatType[] statTypes)

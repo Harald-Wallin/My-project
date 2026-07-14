@@ -10738,87 +10738,6 @@ MonoBehaviour:
   stats:
   - stat: 16
     value: 100
-  - stat: 0
-    value: 0
-  - stat: 1
-    value: 4
-  - stat: 2
-    value: 0
-  - stat: 3
-    value: 0
-  - stat: 4
-    value: 0
-  - stat: 5
-    value: 0
-  - stat: 6
-    value: 0
-  - stat: 7
-    value: 0
-  - stat: 8
-    value: 0
-  - stat: 9
-    value: 0
-  - stat: 10
-    value: 0
-  - stat: 11
-    value: 0
-  - stat: 12
-    value: 0
-  - stat: 13
-    value: 0
-  - stat: 14
-    value: 0
-  - stat: 15
-    value: 0
-  - stat: 17
-    value: 0
-  - stat: 18
-    value: 0
-  - stat: 19
-    value: 0
-  - stat: 20
-    value: 0
-  - stat: 21
-    value: 0
-  - stat: 22
-    value: 0
-  derivedStats:
-  - stat: 5
-    value: 0
-  - stat: 6
-    value: 0
-  - stat: 7
-    value: 0
-  - stat: 8
-    value: 0
-  - stat: 9
-    value: 0
-  - stat: 10
-    value: 0
-  - stat: 11
-    value: 0
-  - stat: 12
-    value: 0
-  - stat: 13
-    value: 0
-  - stat: 14
-    value: 1.8
-  - stat: 15
-    value: 0
-  - stat: 16
-    value: 101.8
-  - stat: 17
-    value: 0
-  - stat: 18
-    value: 0
-  - stat: 19
-    value: 0
-  - stat: 20
-    value: 0
-  - stat: 21
-    value: 0
-  - stat: 22
-    value: 0
   currentHP: 0
   deathReward: {fileID: 0}
   effectPoint: {fileID: 641019748}
@@ -22047,7 +21966,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1775957794}
   m_HandleRect: {fileID: 1775957793}
   m_Direction: 2
-  m_Value: 0
+  m_Value: 1
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -25828,7 +25747,7 @@ Transform:
   m_GameObject: {fileID: 1386004207}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -2.7, y: 1.19, z: 0}
+  m_LocalPosition: {x: 0, y: 0.07, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

@@ -249,20 +249,91 @@ MonoBehaviour:
   reputationLossOnDeath: 0
   displayName: 'Starving Wolf '
   level: 1
-  maxHP: 17
+  stats:
+  - stat: 0
+    value: 5
+  - stat: 1
+    value: 4
+  - stat: 2
+    value: 0
+  - stat: 3
+    value: 0
+  - stat: 4
+    value: 0
+  - stat: 5
+    value: 0
+  - stat: 6
+    value: 0
+  - stat: 7
+    value: 0
+  - stat: 8
+    value: 0
+  - stat: 9
+    value: 0
+  - stat: 10
+    value: 0
+  - stat: 11
+    value: 0
+  - stat: 12
+    value: 0
+  - stat: 13
+    value: 0
+  - stat: 14
+    value: 0
+  - stat: 15
+    value: 0
+  - stat: 16
+    value: 2
+  - stat: 17
+    value: 0
+  - stat: 18
+    value: 0
+  - stat: 19
+    value: 0
+  - stat: 20
+    value: 0
+  - stat: 21
+    value: 0
+  - stat: 22
+    value: 0
+  derivedStats:
+  - stat: 5
+    value: 0
+  - stat: 6
+    value: 2.25
+  - stat: 7
+    value: 0
+  - stat: 8
+    value: 0
+  - stat: 9
+    value: 0
+  - stat: 10
+    value: 0
+  - stat: 11
+    value: 0
+  - stat: 12
+    value: 0
+  - stat: 13
+    value: 0
+  - stat: 14
+    value: 1.8
+  - stat: 15
+    value: 0
+  - stat: 16
+    value: 2
+  - stat: 17
+    value: 0
+  - stat: 18
+    value: 0
+  - stat: 19
+    value: 0
+  - stat: 20
+    value: 0
+  - stat: 21
+    value: 0
+  - stat: 22
+    value: 2.5
   currentHP: 0
-  strength: 2
-  swiftness: 0
-  armor: 1
-  movementSpeed: 1.8
-  attackSpeed: 1
-  weaponDamage: 0
-  hitChance: 0.85
-  evasion: 0.08
-  blockChance: 0
-  blockValue: 0
-  critChance: 0.2
-  critMultiplier: 1.5
   deathReward: {fileID: 0}
   effectPoint: {fileID: 1917358144810171706}
 --- !u!114 &2834215142199529430
