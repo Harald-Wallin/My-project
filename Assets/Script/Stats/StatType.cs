@@ -1,36 +1,50 @@
 public enum StatType
 {
-    Strength,
-    Swiftness,
-    Armor,
+    // ---------- PRIMARY ----------
+    Strength = 0,
+    Swiftness = 1,
+    Armor = 2,
+    Health = 3,
 
-    Spirit,
-    Intellect,
+    // ---------- DERIVED ----------
+    MaxHP = 4,
 
-    MaxHP,
+    BaseMeleeDamage = 5,
+    BaseRangedDamage = 6,
+    BaseMagicDamage = 7,
 
-    BaseMeleeDamage,
-    BaseRangedDamage,
-    BaseMagicDamage,
+    WeaponDamage = 8,
 
-    WeaponDamage,
+    AttackPower = 9,
+    RangedPower = 10,
+    SpellPower = 11,
 
-    AttackPower,
-    RangedPower,
-    SpellPower,
+    DamageReduction = 12,
 
-    DamageReduction,
+    AttackSpeed = 13,
+    Haste = 14,
+    MovementSpeed = 15,
 
-    AttackSpeed,
-    Haste,
-    MovementSpeed,
+    HitChance = 16,
+    CritChance = 17,
+    CritMultiplier = 18,
 
-    HitChance,
-    CritChance,
-    CritMultiplier,
+    Evasion = 19,
 
-    Evasion,
+    BlockChance = 20,
+    BlockValue = 21,
 
-    BlockChance,
-    BlockValue
+    // ========= FUTURE =========
+
+    LifeSteal = 22,
+    MeleeLifeSteal = 23,
+    RangedLifeSteal = 24,
+    MagicLifeSteal = 25,
+
+    DamageReflection = 26,
+    MeleeReflection = 27,
+    RangedReflection = 28,
+    MagicReflection = 29
+
+    // ALL NEW STATS GO BELOW THIS LINE
 }

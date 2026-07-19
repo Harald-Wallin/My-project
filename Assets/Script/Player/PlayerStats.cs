@@ -103,7 +103,6 @@ public class PlayerStats : CharacterStats
         if (Input.GetKeyDown(KeyCode.H))
         {
             TakeDamage(new DamageResult { damage = 5 }, this);
-            //Debug.Log("Player took damage");
         }
 
         if (Input.GetKeyDown(KeyCode.J))
@@ -115,9 +114,7 @@ public class PlayerStats : CharacterStats
         // Passive regeneration: restore approx regenPercentPerTick of max HP every regenInterval seconds
         int actualMaxHP = Mathf.RoundToInt(GetStat(StatType.MaxHP));
 
-        if (actualMaxHP > 0 &&
-            currentHP > 0 &&
-            currentHP < actualMaxHP)
+        if (actualMaxHP > 0 && currentHP > 0 && currentHP < actualMaxHP)
         {
             regenTimer -= Time.deltaTime;
 

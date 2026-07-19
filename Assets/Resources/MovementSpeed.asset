@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 748bcbb5a027553409951c9e52b6a2e0, type: 3}
   m_Name: MovementSpeed
   m_EditorClassIdentifier: Assembly-CSharp::StatDefinition
-  stat: 16
+  stat: 17
   displayName: Movement Speed
   category: 0
   editable: 1

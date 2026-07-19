@@ -786,23 +786,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: derivedStats.Array.data[1].value
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
-      propertyPath: derivedStats.Array.data[2].value
       value: 13.5
       objectReference: {fileID: 0}
     - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: derivedStats.Array.data[11].value
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
-      propertyPath: derivedStats.Array.data[12].value
       value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: derivedStats.Array.data[17].value
-      value: 0
+      value: 15
       objectReference: {fileID: 0}
     - target: {fileID: 1962818018642762191, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: initialFacing
@@ -961,7 +953,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &57884006
 Transform:
   m_ObjectHideFlags: 0
@@ -1223,7 +1215,7 @@ SpriteRenderer:
   m_SortingLayer: 3
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 6f96c44abc8a6cc4187baf7f7a377c11, type: 3}
+  m_Sprite: {fileID: 21300000, guid: ea66ad5026eb1514ba2a574b4d9e1c56, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -1242,7 +1234,7 @@ Transform:
   m_GameObject: {fileID: 75291088}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.48, y: 16.23, z: 0}
+  m_LocalPosition: {x: -23.99, y: 12.25, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1275,133 +1267,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::YSorter
   sortingOrderOffset: 0
   yOffset: 0
---- !u!1 &81782073
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 81782076}
-  - component: {fileID: 81782075}
-  - component: {fileID: 81782074}
-  m_Layer: 0
-  m_Name: GameObject
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &81782074
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 81782073}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 37316f05d2f08934583405a4136f3f3c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterStateController
-  combatDuration: 5
---- !u!114 &81782075
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 81782073}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3532526f15fe63a449522103248904c8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerStats
-  faction: {fileID: 0}
-  reputationLossOnHit: 20
-  reputationLossOnDeath: 100
-  displayName: NPC
-  level: 1
-  stats:
-  - stat: 0
-    value: 0
-  - stat: 1
-    value: 0
-  - stat: 2
-    value: 0
-  - stat: 4
-    value: 0
-  - stat: 5
-    value: 0
-  - stat: 3
-    value: 0
-  derivedStats:
-  - stat: 3
-    value: 0
-  - stat: 6
-    value: 0
-  - stat: 7
-    value: 0
-  - stat: 8
-    value: 0
-  - stat: 9
-    value: 0
-  - stat: 10
-    value: 0
-  - stat: 11
-    value: 0
-  - stat: 12
-    value: 0
-  - stat: 13
-    value: 0
-  - stat: 14
-    value: 0
-  - stat: 15
-    value: 0
-  - stat: 16
-    value: 0
-  - stat: 17
-    value: 0
-  - stat: 18
-    value: 0
-  - stat: 19
-    value: 0
-  - stat: 20
-    value: 0
-  - stat: 21
-    value: 0
-  - stat: 22
-    value: 0
-  - stat: 23
-    value: 0
-  - stat: 5
-    value: 0
-  _currentHP: 0
-  deathReward: {fileID: 0}
-  effectPoint: {fileID: 0}
-  currentExp: 0
-  expToNextLevel: 112
-  confettiPrefab: {fileID: 0}
-  confettiDuration: 5
-  murderMode: 0
-  regenPercentPerTick: 0.01
-  regenInterval: 3
---- !u!4 &81782076
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 81782073}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -9.30805, y: 19.89829, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &86552238
 GameObject:
   m_ObjectHideFlags: 0
@@ -10935,9 +10800,9 @@ MonoBehaviour:
   - stat: 5
     value: 0
   - stat: 6
-    value: 2.6999998
+    value: 95
   - stat: 7
-    value: 0
+    value: 2.6999998
   - stat: 8
     value: 0
   - stat: 9
@@ -10949,15 +10814,15 @@ MonoBehaviour:
   - stat: 12
     value: 0
   - stat: 13
-    value: 1
-  - stat: 14
     value: 0
+  - stat: 14
+    value: 1
   - stat: 15
     value: 0
   - stat: 16
-    value: -0.010000001
-  - stat: 17
     value: 0
+  - stat: 17
+    value: 1.99
   - stat: 18
     value: 0
   - stat: 19
@@ -10967,11 +10832,11 @@ MonoBehaviour:
   - stat: 21
     value: 0
   - stat: 22
-    value: 3
+    value: 0
   - stat: 3
     value: 0
   - stat: 23
-    value: 0
+    value: 3
   _currentHP: 10
   deathReward: {fileID: 0}
   effectPoint: {fileID: 641019748}
@@ -22201,7 +22066,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1775957794}
   m_HandleRect: {fileID: 1775957793}
   m_Direction: 2
-  m_Value: 1
+  m_Value: 0
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -23361,26 +23226,26 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: -0.43650025, y: 0.73106223}
-  - {x: -0.8898737, y: 0.6655682}
-  - {x: -0.94554573, y: 0.5644685}
-  - {x: -0.997223, y: 0.49731672}
-  - {x: -1.0234371, y: 0.33732522}
-  - {x: -0.9177356, y: 0.29834205}
-  - {x: -0.61419344, y: 0.28798687}
-  - {x: -0.16531241, y: 0.30983895}
-  - {x: 0.079586275, y: 0.32154322}
-  - {x: 0.16269526, y: 0.4730827}
-  - {x: 0.099604905, y: 0.56699014}
-  - {x: 0.006215349, y: 0.64174145}
-  - {x: -0.20845687, y: 0.72705275}
-  - {x: -0.3704418, y: 0.74915683}
-  - {x: -0.5216564, y: 0.7078228}
-  - {x: -0.32322598, y: 0.59418577}
-  - {x: -0.21776617, y: 0.5676416}
-  - {x: -0.32269323, y: 0.6711841}
-  - {x: -0.3308482, y: 0.66253275}
-  - {x: -0.45628962, y: 0.72608006}
+  - {x: -0.5101433, y: 0.7744179}
+  - {x: -1.1893559, y: 0.578856}
+  - {x: -1.5155268, y: 0.33572245}
+  - {x: -1.6809149, y: 0.1315093}
+  - {x: -1.4743223, y: 0.016271591}
+  - {x: -0.82841396, y: 0.123053074}
+  - {x: -0.5248718, y: -0.004161358}
+  - {x: -0.21931744, y: 0.049701214}
+  - {x: 0.19250584, y: 0.075856686}
+  - {x: 0.62910223, y: 0.12141466}
+  - {x: 0.67893124, y: 0.36466026}
+  - {x: 0.76719475, y: 0.34788227}
+  - {x: 0.9158292, y: 0.31757784}
+  - {x: 1.1220603, y: 0.41194105}
+  - {x: 0.84810686, y: 0.73672724}
+  - {x: 0.8059697, y: 0.75315905}
+  - {x: 0.592309, y: 1.010839}
+  - {x: -0.14594936, y: 1.008399}
+  - {x: -0.4241295, y: 1.0142007}
+  - {x: -0.4955659, y: 0.77907085}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
@@ -23434,7 +23299,7 @@ SpriteRenderer:
   m_SortingLayer: 3
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 4b76208b536ac92489339d2b631eb9a9, type: 3}
+  m_Sprite: {fileID: 21300000, guid: ea66ad5026eb1514ba2a574b4d9e1c56, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -23453,8 +23318,8 @@ Transform:
   m_GameObject: {fileID: 1237671701}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 2.62, y: 13.56, z: 0}
-  m_LocalScale: {x: 0.9511, y: 0.9693, z: 1}
+  m_LocalPosition: {x: 5.51, y: 11.47, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -43426,4 +43291,3 @@ SceneRoots:
   - {fileID: 1424154098}
   - {fileID: 1663448611}
   - {fileID: 482097468}
-  - {fileID: 81782076}

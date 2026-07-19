@@ -257,7 +257,7 @@ MonoBehaviour:
   - stat: 2
     value: 0
   - stat: 3
-    value: 0
+    value: 15
   - stat: 4
     value: 0
   - stat: 5
@@ -296,11 +296,13 @@ MonoBehaviour:
     value: 0
   - stat: 22
     value: 0
+  - stat: 23
+    value: 0
   derivedStats:
   - stat: 5
     value: 0
   - stat: 6
-    value: 2.25
+    value: 17.25
   - stat: 7
     value: 0
   - stat: 8
@@ -320,7 +322,7 @@ MonoBehaviour:
   - stat: 15
     value: 0
   - stat: 16
-    value: 2
+    value: 3.966
   - stat: 17
     value: 0
   - stat: 18
@@ -333,6 +335,10 @@ MonoBehaviour:
     value: 0
   - stat: 22
     value: 2.5
+  - stat: 3
+    value: 0
+  - stat: 23
+    value: 0
   currentHP: 0
   deathReward: {fileID: 0}
   effectPoint: {fileID: 1917358144810171706}

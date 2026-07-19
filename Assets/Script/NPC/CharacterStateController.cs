@@ -120,9 +120,16 @@ public class CharacterStateController : MonoBehaviour
     // PERMISSIONS
     //---------------------------------------------------
 
-    public bool CanMove =>
+    /*public bool CanMove =>
         IsAlive &&
-        !IsStunned;
+        !IsStunned;*/
+    public bool CanMove
+    {
+        get
+        {
+            return IsAlive && !IsStunned;
+        }
+    }
 
     public bool CanRotate =>
         IsAlive &&

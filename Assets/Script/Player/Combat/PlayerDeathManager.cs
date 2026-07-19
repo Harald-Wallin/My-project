@@ -46,8 +46,6 @@ public class PlayerDeathManager : MonoBehaviour
             MakeDebuffsPermanent();
         }
 
-        //Debug.Log($"Death stacks: {deathStacks}");
-
         //reset aggro
         NPCBehavior[] mobs =
         FindObjectsByType<NPCBehavior>(

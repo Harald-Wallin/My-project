@@ -31,34 +31,10 @@ public class CharacterStatsEditor : Editor
 
         if (showPrimary)
         {
-            DrawStat(StatType.Strength);
-            DrawStat(StatType.Swiftness);
-            DrawStat(StatType.Armor);
-            DrawStat(StatType.Spirit);
-            DrawStat(StatType.Intellect);
+            DrawStatsByKind(StatKind.Primary);
         }
 
         EditorGUILayout.EndFoldoutHeaderGroup();
-
-        /*DrawCategory("Sub Stats",
-            StatType.MaxHP,
-            StatType.BaseMeleeDamage,
-            StatType.BaseRangedDamage,
-            StatType.BaseMagicDamage,
-            StatType.WeaponDamage,
-            StatType.AttackPower,
-            StatType.RangedPower,
-            StatType.SpellPower,
-            StatType.DamageReduction,
-            StatType.AttackSpeed,
-            StatType.Haste,
-            StatType.MovementSpeed,
-            StatType.HitChance,
-            StatType.CritChance,
-            StatType.CritMultiplier,
-            StatType.Evasion,
-            StatType.BlockChance,
-            StatType.BlockValue);*/
 
         showDerived = EditorGUILayout.BeginFoldoutHeaderGroup(showDerived,"Derived Stats");
 
@@ -84,11 +60,19 @@ public class CharacterStatsEditor : Editor
         }
 
         serializedObject.ApplyModifiedProperties();
+    }
 
-        /*if (target is PlayerStats)
+    void DrawStatsByKind(StatKind kind)
+    {
+        foreach (var definition in StatDatabase.Instance.stats)
         {
-            DrawPlayerSection();
-        }*/
+            if (definition.kind != kind)
+                continue;
+
+            if (!definition.visible)
+                continue;
+            DrawStat(definition.stat);
+        }
     }
 
     void DrawPlayerSection()
@@ -118,9 +102,18 @@ public class CharacterStatsEditor : Editor
 
             EditorGUILayout.BeginHorizontal();
 
+            StatType statType = (StatType)stat.FindPropertyRelative("stat").enumValueIndex;
+
+            StatDefinition definition =
+                StatDatabase.Instance.GetDefinition(statType);
+
+            string label =
+                definition != null
+                ? definition.displayName
+                : statType.ToString();
+
             EditorGUILayout.LabelField(
-                stat.FindPropertyRelative("stat").enumDisplayNames[
-                    stat.FindPropertyRelative("stat").enumValueIndex],
+                label,
                 GUILayout.Width(180));
 
             EditorGUILayout.FloatField(
@@ -158,10 +151,26 @@ public class CharacterStatsEditor : Editor
         SerializedProperty value =
             entry.FindPropertyRelative("value");
 
+        StatDefinition definition =
+            StatDatabase.Instance.GetDefinition(stat);
+
+        string label =
+            definition != null
+            ? definition.displayName
+            : stat.ToString();
+
+        bool editable =
+            definition == null ||
+            definition.editable;
+
+        GUI.enabled = editable;
+
         EditorGUILayout.PropertyField(
             value,
-            new GUIContent(stat.ToString())
+            new GUIContent(label)
         );
+
+        GUI.enabled = true;
     }
 
     SerializedProperty FindEntry(StatType stat)
@@ -197,9 +206,12 @@ public class CharacterStatsEditor : Editor
                 .enumValueIndex);
         }
 
-        foreach (StatType stat in System.Enum.GetValues(typeof(StatType)))
+        foreach (var definition in StatDatabase.Instance.stats)
         {
-            if (existing.Contains(stat))
+            if (definition.kind != StatKind.Primary)
+                continue;
+
+            if (existing.Contains(definition.stat))
                 continue;
 
             int index = statsProperty.arraySize;
@@ -210,7 +222,7 @@ public class CharacterStatsEditor : Editor
                 statsProperty.GetArrayElementAtIndex(index);
 
             newEntry.FindPropertyRelative("stat").enumValueIndex =
-                (int)stat;
+                (int)definition.stat;
 
             newEntry.FindPropertyRelative("value").floatValue = 0;
         }

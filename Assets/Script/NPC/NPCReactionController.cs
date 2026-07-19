@@ -218,14 +218,11 @@ public class NPCReactionController : MonoBehaviour
 
     void OnDamaged(CharacterStats attacker)
     {
-        //Debug.Log($"{name} damaged by {attacker.name} | Hostile? {selfStats.IsHostileTo(attacker)}");
-
         if (selfStats.currentHP <= 0)
         {
             RefreshAlert();
             HandleAwarenessPropagation();
         }
-        //Debug.Log($"{name} NPCReactionController.OnDamaged triggered by {attacker.name}");
 
         if (attacker == null)
             return;
@@ -269,8 +266,6 @@ public class NPCReactionController : MonoBehaviour
         {
             case NPCReactionType.Flee:
 
-                //Debug.Log($"{name} ENTERING FLEE");
-
                 if (ai != null)
                 {
                     ai.StartFleeing(attacker);
@@ -278,8 +273,6 @@ public class NPCReactionController : MonoBehaviour
                 break;
 
             case NPCReactionType.Aggro:
-
-                //Debug.Log($"{name} ENTERING AGGRO");
 
                 if (ai != null)
                 {
@@ -440,13 +433,7 @@ public class NPCReactionController : MonoBehaviour
 
                 if (ai != null)
                 {
-                    Debug.Log(
-    $"[{name}] Passive hostility wants to aggro PLAYER. " +
-    $"CurrentTarget={(ai.CurrentTarget != null ? ai.CurrentTarget.name : "NULL")} " +
-    $"State={ai.CurrentState} " +
-    $"Hostile={IsHostile}"
-);
-                    ai.ForceAggro(player);
+                 ai.ForceAggro(player);
                 }
 
                 break;
@@ -472,13 +459,6 @@ public class NPCReactionController : MonoBehaviour
         }
 
         lastThreatSource = attacker;
-
-        if (!wasAlreadyAlerted)
-        {
-            //Debug.Log($"{name} was alerted by {attacker.name}");
-
-            //PropagateAwareness(attacker);
-        }
 
         switch (reactionType)
         {

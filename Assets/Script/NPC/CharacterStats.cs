@@ -30,7 +30,27 @@ public class CharacterStats : MonoBehaviour
 
     private readonly Dictionary<StatType, float> derivedLookup = new();
 
-    public int currentHP;
+
+
+    [SerializeField]
+    private int _currentHP;
+
+    public int currentHP
+    {
+        get => _currentHP;
+
+        set
+        {
+            Debug.Log(
+                $"currentHP {_currentHP} -> {value}\n{Environment.StackTrace}"
+            );
+
+            _currentHP = value;
+        }
+    }
+
+
+
     private static StatScalingProfile cachedScalingProfile;
 
 
@@ -57,9 +77,31 @@ public class CharacterStats : MonoBehaviour
     protected virtual void Awake()
     {
         InitializeBaseStats();
+
         RecalculateDerivedStats();
+        //Debug.Log($"derivedLookup.Count = {derivedLookup.Count}");
+
+        //Debug.Log($"Contains MaxHP = {derivedLookup.ContainsKey(StatType.MaxHP)}");
+
+        if (derivedLookup.TryGetValue(StatType.MaxHP, out var hp)) ;
+        //Debug.Log($"Dictionary MaxHP = {hp}");
+
+        //-----------
+        //Debug.Log($"Before GetMaxHP: derivedLookup contains MaxHP = {derivedLookup.ContainsKey(StatType.MaxHP)}");
+
+        if (derivedLookup.TryGetValue(StatType.MaxHP, out float hp2)) ;
+            //Debug.Log($"Dictionary value = {hp}");
+            
+
+        //Debug.Log($"GetBaseStatValue(MaxHP) = {GetBaseStatValue(StatType.MaxHP)}");
+
+        //Debug.Log($"GetStat(MaxHP) = {GetStat(StatType.MaxHP)}");
+
+        //Debug.Log($"GetMaxHP() = {GetMaxHP()}");
+        //-----------
 
         currentHP = GetMaxHP();
+        //Debug.Log($"Awake assigned currentHP = {currentHP}");
 
         stateController = GetComponent<CharacterStateController>();
         deathReward = GetComponent<DeathReward>();
@@ -67,18 +109,11 @@ public class CharacterStats : MonoBehaviour
 
     bool IsPrimaryStat(StatType stat)
     {
-        switch (stat)
-        {
-            case StatType.Strength:
-            case StatType.Swiftness:
-            case StatType.Armor:
-            case StatType.Spirit:
-            case StatType.Intellect:
-                return true;
+        StatDefinition definition =
+            StatDatabase.Instance.GetDefinition(stat);
 
-            default:
-                return false;
-        }
+        return definition != null &&
+               definition.kind == StatKind.Primary;
     }
 
     public virtual void ResetHealth()
@@ -259,14 +294,21 @@ public class CharacterStats : MonoBehaviour
 
     void InitializeDerivedStats()
     {
-        foreach (StatType stat in Enum.GetValues(typeof(StatType)))
+        if (StatDatabase.Instance == null)
+            return;
+
+        foreach (var definition in StatDatabase.Instance.stats)
         {
-            if (IsPrimaryStat(stat))
+            if (definition.kind != StatKind.Derived)
+                continue;
+
+
+            if (derivedStats.Exists(x => x.stat == definition.stat))
                 continue;
 
             derivedStats.Add(new DerivedStat
             {
-                stat = stat,
+                stat = definition.stat,
                 value = 0
             });
         }
@@ -274,33 +316,122 @@ public class CharacterStats : MonoBehaviour
 
     public void RecalculateDerivedStats()
     {
+        //Debug.Log("=== RecalculateDerivedStats ===");
         derivedLookup.Clear();
 
         foreach (var stat in derivedStats)
             stat.value = 0;
 
         if (ScalingProfile == null)
+        {
+            //Debug.Log("ScalingProfile = NULL");
             return;
+        }
+
+        //Debug.Log($"Rules = {ScalingProfile.rules.Count}");
 
         foreach (var rule in ScalingProfile.rules)
         {
+            //Debug.Log($"Rule: {rule.source}");
             float sourceValue = GetBaseStatValue(rule.source);
+            //+Debug.Log($"Source value = {sourceValue}");
 
             foreach (var output in rule.outputs)
             {
-                DerivedStat derived =
-                    derivedStats.Find(x => x.stat == output.stat);
+                //+Debug.Log($"Output -> {output.stat} = {output.value}");
+                DerivedStat derived = derivedStats.Find(x => x.stat == output.stat);
 
                 if (derived == null)
+                {
                     continue;
+                }
 
                 derived.value += sourceValue * output.value;
+                //+Debug.Log($"Derived {derived.stat} = {derived.value}");
+
                 derivedLookup[derived.stat] = derived.value;
+
+                //+Debug.Log("Derived lookup:");
+
+                foreach (var kv in derivedLookup)
+                    Debug.Log($"{kv.Key} = {kv.Value}");
             }
         }
     }
 
     public float GetStat(StatType stat)
+    {
+        float value = GetBaseStatValue(stat);
+
+        //Debug.Log($"GetStat({stat}) base={value}");
+
+        float talentFlat = 0f;
+        float talentPercent = 0f;
+
+        float equipmentFlat = 0f;
+        float equipmentPercent = 0f;
+
+        float buffPercent = 0f;
+        float oathPercent = 0f;
+
+        foreach (var mod in modifiers)
+        {
+            if (mod.stat != stat)
+                continue;
+
+            Debug.Log($"Modifier: {mod.sourceType} {mod.type} {mod.value}");
+
+            switch (mod.sourceType)
+            {
+                case ModifierSourceType.Talent:
+                    if (mod.type == ModifierType.Flat)
+                        talentFlat += mod.value;
+                    else
+                        talentPercent += mod.value;
+                    break;
+
+                case ModifierSourceType.Equipment:
+                    if (mod.type == ModifierType.Flat)
+                        equipmentFlat += mod.value;
+                    else
+                        equipmentPercent += mod.value;
+                    break;
+
+                case ModifierSourceType.Buff:
+                    if (mod.type == ModifierType.Percent)
+                        buffPercent += mod.value;
+                    else
+                        equipmentFlat += mod.value;
+                    break;
+
+                case ModifierSourceType.Oath:
+                    if (mod.type == ModifierType.Percent)
+                        oathPercent += mod.value;
+                    break;
+            }
+        }
+
+        float talentStage =
+            (value + talentFlat) *
+            (1f + talentPercent);
+
+        float equipmentStage =
+            (talentStage + equipmentFlat) *
+            (1f + equipmentPercent);
+
+        float finalValue =
+            equipmentStage *
+            (1f + buffPercent + oathPercent);
+
+        Debug.Log($"GetStat({stat}) final = {finalValue}");
+
+        Debug.Log(
+    $"GetStat({stat}) final={finalValue}"
+);
+
+        return finalValue;
+    }
+    /*public float GetStat(StatType stat)
     {
         float value = GetBaseStatValue(stat);
 
@@ -368,16 +499,8 @@ public class CharacterStats : MonoBehaviour
             equipmentStage *
             (1f + buffPercent + oathPercent);
 
-        //------
-        if (stat == StatType.MovementSpeed)
-        {
-            Debug.Log(
-                $"MovementSpeed | Base={GetBaseStatValue(stat)} Final={finalValue}"
-            );
-        }
-        //------
         return finalValue;
-    }
+    }*/
 
     public void AddModifier(StatModifier mod)
     {
@@ -560,6 +683,13 @@ public class CharacterStats : MonoBehaviour
         {
             statLookup[stat.stat] = stat.value;
         }
+
+        //--------
+        foreach (var kv in statLookup)
+        {
+            //Debug.Log($"BASE ENTRY: {kv.Key} = {kv.Value}");
+        }
+        //--------
     }
 
     public void SetBaseStat(StatType stat, float value)
@@ -584,13 +714,21 @@ public class CharacterStats : MonoBehaviour
 
     public float GetBaseStatValue(StatType stat)
     {
+       //Debug.Log($"GetBaseStatValue({stat})");
         if (statLookup.TryGetValue(stat, out float value))
+        {
+            //Debug.Log($"Found in BASE = {value}");
             return value;
+        }
 
         if (derivedLookup.TryGetValue(stat, out value))
+        {
+            //Debug.Log($"Found in DERIVED = {value}");
             return value;
+        }
 
-        return 0f;
+        //Debug.Log("Not found anywhere");
+        return 0;
     }
 
     private StatScalingProfile ScalingProfile
@@ -621,17 +759,21 @@ public class CharacterStats : MonoBehaviour
 
     void EnsurePrimaryStatsExist()
     {
-        foreach (StatType stat in Enum.GetValues(typeof(StatType)))
+        if (StatDatabase.Instance == null)
+            return;
+
+        foreach (var definition in StatDatabase.Instance.stats)
         {
-            if (!IsPrimaryStat(stat))
+            if (definition.kind != StatKind.Primary)
                 continue;
 
-            if (stats.Exists(x => x.stat == stat))
+
+            if (stats.Exists(x => x.stat == definition.stat))
                 continue;
 
             stats.Add(new StatEntry
             {
-                stat = stat,
+                stat = definition.stat,
                 value = 0
             });
         }
@@ -639,17 +781,23 @@ public class CharacterStats : MonoBehaviour
 
     void EnsureDerivedStatsExist()
     {
-        foreach (StatType stat in Enum.GetValues(typeof(StatType)))
+        if (StatDatabase.Instance == null)
+            return;
+
+
+        foreach (var definition in StatDatabase.Instance.stats)
         {
-            if (IsPrimaryStat(stat))
+            if (definition.kind != StatKind.Derived)
                 continue;
 
-            if (derivedStats.Exists(x => x.stat == stat))
+
+            if (derivedStats.Exists(x => x.stat == definition.stat))
                 continue;
+
 
             derivedStats.Add(new DerivedStat
             {
-                stat = stat,
+                stat = definition.stat,
                 value = 0
             });
         }

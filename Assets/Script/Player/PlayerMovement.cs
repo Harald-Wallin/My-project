@@ -58,6 +58,7 @@ public class PlayerMovement : MonoBehaviour
         currentMovement = currentMovement.normalized;
 
         movement = currentMovement;
+
         // Kolla om movement ändrades
         if (currentMovement != lastMovement)
         {

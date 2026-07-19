@@ -19,21 +19,13 @@ MonoBehaviour:
       value: 0.45
     - stat: 22
       value: 0.5
-  - source: 1
-    outputs:
-    - stat: 14
-      value: 0.45
-    - stat: 16
-      value: 0.5
   - source: 2
     outputs:
     - stat: 13
       value: 0.2
     - stat: 16
       value: -0.002
-  - source: 16
+  - source: 15
     outputs:
     - stat: 16
-      value: 1
-    - stat: 16
-      value: -0.002
+      value: 0.01
