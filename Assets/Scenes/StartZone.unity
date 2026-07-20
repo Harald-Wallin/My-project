@@ -682,7 +682,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: stats.Array.size
-      value: 23
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: stats.Array.data[1].stat
@@ -698,7 +698,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: stats.Array.data[4].stat
-      value: 4
+      value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: stats.Array.data[5].stat
@@ -781,16 +781,24 @@ PrefabInstance:
       value: 22
       objectReference: {fileID: 0}
     - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
+      propertyPath: stats.Array.data[3].value
+      value: 693
+      objectReference: {fileID: 0}
+    - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: stats.Array.data[5].value
       value: 934
       objectReference: {fileID: 0}
     - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: derivedStats.Array.data[1].value
-      value: 0
+      value: 693
       objectReference: {fileID: 0}
     - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: derivedStats.Array.data[2].value
-      value: 13.5
+      value: 20.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
+      propertyPath: derivedStats.Array.data[3].value
+      value: 15
       objectReference: {fileID: 0}
     - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: derivedStats.Array.data[11].value
@@ -1330,53 +1338,23 @@ MonoBehaviour:
     value: 0
   - stat: 2
     value: 0
+  - stat: 3
+    value: 0
+  - stat: 12
+    value: 0
+  derivedStats:
+  - stat: 15
+    value: 2.5
   - stat: 4
     value: 0
   - stat: 5
     value: 0
-  - stat: 3
-    value: 0
-  derivedStats:
-  - stat: 3
-    value: 0
-  - stat: 6
-    value: 0
-  - stat: 7
-    value: 0
-  - stat: 8
-    value: 0
-  - stat: 9
-    value: 0
-  - stat: 10
-    value: 0
-  - stat: 11
-    value: 0
-  - stat: 12
-    value: 0
-  - stat: 13
-    value: 0
-  - stat: 14
-    value: 0
-  - stat: 15
-    value: 0
-  - stat: 16
-    value: 0
-  - stat: 17
-    value: 0
-  - stat: 18
-    value: 0
-  - stat: 19
-    value: 0
-  - stat: 20
-    value: 0
   - stat: 21
     value: 0
-  - stat: 22
-    value: 0
-  - stat: 23
-    value: 0
-  - stat: 5
-    value: 0
+  - stat: 16
+    value: 0.89
+  - stat: 20
+    value: 5
   _currentHP: 0
   deathReward: {fileID: 0}
   effectPoint: {fileID: 0}
@@ -10883,95 +10861,29 @@ MonoBehaviour:
   displayName: 
   level: 1
   stats:
-  - stat: 16
-    value: 100
   - stat: 0
-    value: 6
+    value: 5
   - stat: 1
-    value: 2
+    value: 0
   - stat: 2
-    value: 5
+    value: 0
   - stat: 3
-    value: 95
-  - stat: 4
-    value: 5
-  - stat: 5
-    value: 5
-  - stat: 6
-    value: 0
-  - stat: 7
-    value: 0
-  - stat: 8
-    value: 0
-  - stat: 9
-    value: 0
-  - stat: 10
-    value: 0
-  - stat: 11
-    value: 0
+    value: 87
   - stat: 12
-    value: 0
-  - stat: 13
-    value: 0
-  - stat: 14
-    value: 0
-  - stat: 15
-    value: 0
-  - stat: 17
-    value: 0
-  - stat: 18
-    value: 0
-  - stat: 19
-    value: 0
-  - stat: 20
-    value: 0
-  - stat: 21
-    value: 0
-  - stat: 22
-    value: 0
-  - stat: 23
     value: 0
   derivedStats:
-  - stat: 5
-    value: 0
-  - stat: 6
-    value: 2.6999998
-  - stat: 7
-    value: 0
-  - stat: 8
-    value: 0
-  - stat: 9
-    value: 0
-  - stat: 10
-    value: 0
-  - stat: 11
-    value: 0
-  - stat: 12
-    value: 0
-  - stat: 13
-    value: 1
-  - stat: 14
-    value: 0
   - stat: 15
-    value: 0
-  - stat: 16
-    value: -0.010000001
-  - stat: 17
-    value: 0
-  - stat: 18
-    value: 0
-  - stat: 19
-    value: 0
-  - stat: 20
-    value: 0
+    value: 2.5
+  - stat: 4
+    value: 87
+  - stat: 5
+    value: 3.4
   - stat: 21
-    value: 0
-  - stat: 22
-    value: 3
-  - stat: 3
-    value: 0
-  - stat: 23
-    value: 0
+    value: 2.5
+  - stat: 16
+    value: 0.89
+  - stat: 20
+    value: 5
   _currentHP: 10
   deathReward: {fileID: 0}
   effectPoint: {fileID: 641019748}
@@ -17980,7 +17892,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: displayName
-      value: Patrol master Bjursig
+      value: Patrolmaster Bjursig
       objectReference: {fileID: 0}
     - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: effectPoint
@@ -17989,6 +17901,34 @@ PrefabInstance:
     - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: movementSpeed
       value: 1.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
+      propertyPath: stats.Array.data[0].value
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
+      propertyPath: stats.Array.data[2].value
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
+      propertyPath: stats.Array.data[3].value
+      value: 253
+      objectReference: {fileID: 0}
+    - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
+      propertyPath: derivedStats.Array.data[0].value
+      value: 2.4952
+      objectReference: {fileID: 0}
+    - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
+      propertyPath: derivedStats.Array.data[1].value
+      value: 253
+      objectReference: {fileID: 0}
+    - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
+      propertyPath: derivedStats.Array.data[2].value
+      value: 6.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 788226862973081087, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
+      propertyPath: derivedStats.Array.data[3].value
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 3001415095630044627, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: owner
@@ -22201,7 +22141,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1775957794}
   m_HandleRect: {fileID: 1775957793}
   m_Direction: 2
-  m_Value: 1
+  m_Value: 0
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -26851,6 +26791,9 @@ MonoBehaviour:
   separationWeight: 1.2
   separationRadius: 1.2
   obstacleMemoryDuration: 2
+  avoidanceLayers:
+    serializedVersion: 2
+    m_Bits: 1152
   wanderRadius: 3
   wanderMoveTime: 2
   wanderPauseTime: 2
@@ -27049,6 +26992,9 @@ MonoBehaviour:
   separationWeight: 1.2
   separationRadius: 1.2
   obstacleMemoryDuration: 2
+  avoidanceLayers:
+    serializedVersion: 2
+    m_Bits: 1152
   wanderRadius: 3
   wanderMoveTime: 2
   wanderPauseTime: 2
@@ -27112,7 +27058,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3185909709834997832, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
       propertyPath: stats.Array.size
-      value: 24
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 3185909709834997832, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
       propertyPath: reputationLossOnHit
@@ -27136,7 +27082,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3185909709834997832, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
       propertyPath: stats.Array.data[4].stat
-      value: 4
+      value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 3185909709834997832, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
       propertyPath: stats.Array.data[5].stat
@@ -27215,8 +27161,16 @@ PrefabInstance:
       value: 23
       objectReference: {fileID: 0}
     - target: {fileID: 3185909709834997832, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
+      propertyPath: stats.Array.data[3].value
+      value: 65
+      objectReference: {fileID: 0}
+    - target: {fileID: 3185909709834997832, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
       propertyPath: baseStatEntries.Array.size
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3185909709834997832, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
+      propertyPath: derivedStats.Array.data[1].value
+      value: 65
       objectReference: {fileID: 0}
     - target: {fileID: 3459725347379031730, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
       propertyPath: m_Name
@@ -27366,8 +27320,7 @@ PrefabInstance:
       propertyPath: m_IncludeLayers.m_Bits
       value: 4294967295
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 624745517931037195, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
+    m_RemovedComponents: []
     m_RemovedGameObjects:
     - {fileID: 3052110262545409650, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
     m_AddedGameObjects: []
@@ -29919,6 +29872,9 @@ MonoBehaviour:
   separationWeight: 1.2
   separationRadius: 1.2
   obstacleMemoryDuration: 2
+  avoidanceLayers:
+    serializedVersion: 2
+    m_Bits: 1152
   wanderRadius: 3
   wanderMoveTime: 2
   wanderPauseTime: 2
@@ -31364,6 +31320,10 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 9117300791837185345, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
+      propertyPath: level
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 9117300791837185345, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
       propertyPath: maxHP
       value: 76
       objectReference: {fileID: 0}
@@ -31389,7 +31349,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9117300791837185345, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
       propertyPath: stats.Array.size
-      value: 23
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 9117300791837185345, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
       propertyPath: reputationLossOnHit
@@ -31413,7 +31373,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9117300791837185345, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
       propertyPath: stats.Array.data[4].stat
-      value: 4
+      value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 9117300791837185345, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
       propertyPath: stats.Array.data[5].stat
@@ -31434,6 +31394,10 @@ PrefabInstance:
     - target: {fileID: 9117300791837185345, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
       propertyPath: stats.Array.data[9].stat
       value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 9117300791837185345, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
+      propertyPath: stats.Array.data[0].value
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 9117300791837185345, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
       propertyPath: stats.Array.data[10].stat
@@ -31486,6 +31450,22 @@ PrefabInstance:
     - target: {fileID: 9117300791837185345, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
       propertyPath: stats.Array.data[22].stat
       value: 22
+      objectReference: {fileID: 0}
+    - target: {fileID: 9117300791837185345, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
+      propertyPath: stats.Array.data[3].value
+      value: 76
+      objectReference: {fileID: 0}
+    - target: {fileID: 9117300791837185345, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
+      propertyPath: derivedStats.Array.data[1].value
+      value: 76
+      objectReference: {fileID: 0}
+    - target: {fileID: 9117300791837185345, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
+      propertyPath: derivedStats.Array.data[2].value
+      value: 4.08
+      objectReference: {fileID: 0}
+    - target: {fileID: 9117300791837185345, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
+      propertyPath: derivedStats.Array.data[3].value
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -40661,6 +40641,9 @@ MonoBehaviour:
   separationWeight: 1.2
   separationRadius: 1.2
   obstacleMemoryDuration: 2
+  avoidanceLayers:
+    serializedVersion: 2
+    m_Bits: 1152
   wanderRadius: 3
   wanderMoveTime: 2
   wanderPauseTime: 2

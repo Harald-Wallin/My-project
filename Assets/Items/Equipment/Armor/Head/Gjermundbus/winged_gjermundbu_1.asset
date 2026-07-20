@@ -32,9 +32,26 @@ MonoBehaviour:
   equippable: 1
   stackable: 0
   maxStack: 1
+  statModifiers:
+  - stat: 0
+    modifierType: 0
+    value: 50
+  - stat: 3
+    modifierType: 0
+    value: 1000
+  - stat: 15
+    modifierType: 1
+    value: 1
   damageBonus: 0
   armorBonus: 40
+  blockChanceBonus: 0
+  blockValueBonus: 0
   strengthBonus: 42
   healthBonus: 1000
+  useLevelRequirement: 0
+  requiredLevel: 0
+  reputationFaction: {fileID: 0}
+  useReputationRequirement: 0
+  requiredReputation: 0
   buyPrice: 8486
   sellMultiplier: 0.6

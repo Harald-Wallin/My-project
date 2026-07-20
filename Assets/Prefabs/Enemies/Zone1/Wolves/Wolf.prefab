@@ -251,95 +251,27 @@ MonoBehaviour:
   level: 1
   stats:
   - stat: 0
-    value: 5
+    value: 3
   - stat: 1
     value: 4
   - stat: 2
     value: 0
   - stat: 3
-    value: 15
-  - stat: 4
-    value: 0
-  - stat: 5
-    value: 0
-  - stat: 6
-    value: 0
-  - stat: 7
-    value: 0
-  - stat: 8
-    value: 0
-  - stat: 9
-    value: 0
-  - stat: 10
-    value: 0
-  - stat: 11
-    value: 0
+    value: 14
   - stat: 12
-    value: 0
-  - stat: 13
-    value: 0
-  - stat: 14
-    value: 0
-  - stat: 15
-    value: 0
-  - stat: 16
-    value: 2
-  - stat: 17
-    value: 0
-  - stat: 18
-    value: 0
-  - stat: 19
-    value: 0
-  - stat: 20
-    value: 0
-  - stat: 21
-    value: 0
-  - stat: 22
-    value: 0
-  - stat: 23
     value: 0
   derivedStats:
-  - stat: 5
-    value: 0
-  - stat: 6
-    value: 17.25
-  - stat: 7
-    value: 0
-  - stat: 8
-    value: 0
-  - stat: 9
-    value: 0
-  - stat: 10
-    value: 0
-  - stat: 11
-    value: 0
-  - stat: 12
-    value: 0
-  - stat: 13
-    value: 0
-  - stat: 14
-    value: 1.8
   - stat: 15
-    value: 0
-  - stat: 16
-    value: 3.966
-  - stat: 17
-    value: 0
-  - stat: 18
-    value: 0
-  - stat: 19
-    value: 0
-  - stat: 20
-    value: 0
-  - stat: 21
-    value: 0
-  - stat: 22
     value: 2.5
-  - stat: 3
-    value: 0
-  - stat: 23
-    value: 0
-  currentHP: 0
+  - stat: 4
+    value: 14
+  - stat: 5
+    value: 2.04
+  - stat: 21
+    value: 1.5
+  - stat: 16
+    value: 0.89
+  _currentHP: 1
   deathReward: {fileID: 0}
   effectPoint: {fileID: 1917358144810171706}
 --- !u!114 &2834215142199529430
@@ -494,7 +426,10 @@ MonoBehaviour:
   separationWeight: 1.2
   separationRadius: 1.2
   obstacleMemoryDuration: 2
-  wanderRadius: 5
+  avoidanceLayers:
+    serializedVersion: 2
+    m_Bits: 1152
+  wanderRadius: 7
   wanderMoveTime: 2
   wanderPauseTime: 2
   wanderSpeedMultiplier: 0.3

@@ -24,31 +24,32 @@ public class PlayerStats : CharacterStats
     [SerializeField] private float regenInterval = 3f;
 
     private float regenTimer;
-    
 
-    // Hemlig playercondition kodsamling att implementera senare
-    //public bool hasKilledStartZoneWolf = false;
-    //player.hasKilledStartZoneWolf = true;
-    //if (!player.hasKilledStartZoneWolf)
-    //{
-        // Unlock special dialog / quest / item
-    //}
 
-    void ApplyLevelUpStats()
+    private void ApplyLevelUpStats()
     {
-        SetBaseStat(StatType.Strength,GetBaseStatValue(StatType.Strength) + 1);
-
         float oldMaxHP = GetStat(StatType.MaxHP);
 
-        SetBaseStat(StatType.MaxHP,GetBaseStatValue(StatType.MaxHP) + 4);
+        SetBaseStat(StatType.Strength,GetBaseStatValue(StatType.Strength) + 1f);
+
+        SetBaseStat(StatType.Health,GetBaseStatValue(StatType.Health) + 4f);
 
         float newMaxHP = GetStat(StatType.MaxHP);
 
-        float gainedHP= newMaxHP - oldMaxHP;
-        currentHP += Mathf.RoundToInt(gainedHP);
-        currentHP = Mathf.Clamp(currentHP, 0, Mathf.RoundToInt(newMaxHP));
+        float gainedHP = newMaxHP - oldMaxHP;
 
-        TalentManager.Instance.availablePoints++;
+        currentHP += Mathf.RoundToInt(gainedHP);
+
+        currentHP = Mathf.Clamp(
+            currentHP,
+            0,
+            Mathf.RoundToInt(newMaxHP)
+        );
+
+        if (TalentManager.Instance != null)
+        {
+            TalentManager.Instance.availablePoints++;
+        }
 
         TalentNotificationManager.Instance
             ?.NotifyNewTalentPoints();
@@ -57,13 +58,29 @@ public class PlayerStats : CharacterStats
 
         if (confettiPrefab != null)
         {
-            Vector3 spawnPos = (effectPoint != null) ? effectPoint.position : (transform.position + Vector3.up * 1.5f);
-            GameObject vfx = Instantiate(confettiPrefab, spawnPos, Quaternion.identity);
-            Destroy(vfx, confettiDuration);
+            Vector3 spawnPosition =
+                effectPoint != null
+                    ? effectPoint.position
+                    : transform.position + Vector3.up * 1.5f;
+
+            GameObject effect =
+                Instantiate(
+                    confettiPrefab,
+                    spawnPosition,
+                    Quaternion.identity
+                );
+
+            Destroy(
+                effect,
+                confettiDuration
+            );
         }
         else
         {
-            Debug.LogWarning("Confetti prefab inte tilldelad i inspector");
+            Debug.LogWarning(
+                "Confetti prefab är inte tilldelad i PlayerStats.",
+                this
+            );
         }
     }
 

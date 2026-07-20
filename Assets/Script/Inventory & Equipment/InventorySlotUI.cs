@@ -250,52 +250,44 @@ public class InventorySlotUI : MonoBehaviour,
         // =========================
         if (EquipmentSlotUI.DraggedEquipmentSlot != null)
         {
-            EquipmentSlotUI equipSlot = EquipmentSlotUI.DraggedEquipmentSlot;
-            ItemData item = equipSlot.GetEquippedItem();
+            EquipmentSlotUI equipSlot =
+                EquipmentSlotUI.DraggedEquipmentSlot;
+
+            ItemData item =
+                equipSlot.GetEquippedItem();
 
             if (item == null)
                 return;
 
-            InventorySlot targetSlot = Inventory.Instance.slots[slotIndex];
+            InventorySlot targetSlot =
+                Inventory.Instance.slots[slotIndex];
 
-            // =========================
-            // TOM SLOT
-            // =========================
-            if (targetSlot.IsEmpty())
+            if (!targetSlot.IsEmpty())
             {
-                targetSlot.item = item;
-                targetSlot.amount = 1;
+                EquipmentSlotUI.DraggedEquipmentSlot =
+                    null;
 
-                EquipmentManager.Instance.RemoveStats(item);
-                equipSlot.ClearSlot();
-
-                Inventory.Instance.NotifyChanged();
-            }
-            // =========================
-            // SLOT HAR ITEM → SWAP
-            // =========================
-            else
-            {
-                ItemData tempItem = targetSlot.item;
-                int tempAmount = targetSlot.amount;
-
-                // Flytta in equipment item
-                targetSlot.item = item;
-                targetSlot.amount = 1;
-
-                EquipmentManager.Instance.RemoveStats(item);
-                equipSlot.ClearSlot();
-
-                // Lägg tillbaka gamla inventory-item i equipment
-                if (tempItem.equippable)
-                {
-                    EquipmentManager.Instance.TryEquipItem(tempItem, -1);
-                }
-
-                Inventory.Instance.NotifyChanged();
+                RefreshSlot();
+                return;
             }
 
-            EquipmentSlotUI.DraggedEquipmentSlot = null;
+            EquipmentManager manager =
+                EquipmentManager.Instance;
+
+            if (manager == null)
+                return;
+
+            targetSlot.item = item;
+            targetSlot.amount = 1;
+
+            manager.RemoveEquippedItemFromSlot(
+                equipSlot
+            );
+
+            Inventory.Instance.NotifyChanged();
+
+            EquipmentSlotUI.DraggedEquipmentSlot =
+                null;
         }
 
     }

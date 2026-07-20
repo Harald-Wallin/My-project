@@ -87,7 +87,6 @@ GameObject:
   - component: {fileID: 3132902664080656353}
   - component: {fileID: 550738966795680451}
   - component: {fileID: 3185909709834997832}
-  - component: {fileID: 624745517931037195}
   - component: {fileID: 690243871359771641}
   - component: {fileID: -3748099821319228853}
   - component: {fileID: 5334490503844849957}
@@ -306,80 +305,32 @@ MonoBehaviour:
   reputationLossOnHit: 20
   reputationLossOnDeath: 100
   displayName: VendorPrefab
-  maxHP: 50
-  currentHP: 0
-  strength: 0
-  swiftness: 0
-  armor: 0
-  movementSpeed: 2.5
-  attackSpeed: 1
-  weaponDamage: 0
-  hitChance: 0.85
-  evasion: 0.08
-  blockChance: 0
-  blockValue: 0
-  critChance: 0.3
-  critMultiplier: 2
+  level: 1
+  stats:
+  - stat: 0
+    value: 5
+  - stat: 1
+    value: 20
+  - stat: 2
+    value: 0
+  - stat: 3
+    value: 1
+  - stat: 12
+    value: 0
+  derivedStats:
+  - stat: 15
+    value: 2.5
+  - stat: 4
+    value: 1
+  - stat: 5
+    value: 3.4
+  - stat: 21
+    value: 2.5
+  - stat: 16
+    value: 0.89
+  _currentHP: 0
+  deathReward: {fileID: 0}
   effectPoint: {fileID: 7201537362075449188}
---- !u!212 &624745517931037195
-SpriteRenderer:
-  serializedVersion: 2
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3459725347379031730}
-  m_Enabled: 0
-  m_CastShadows: 0
-  m_ReceiveShadows: 0
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 0
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 0
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: f0e7bad1dff1fd047a71ad92fa6cce24, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_FlipX: 0
-  m_FlipY: 0
-  m_DrawMode: 0
-  m_Size: {x: 1, y: 2}
-  m_AdaptiveModeThreshold: 0.5
-  m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
-  m_SpriteSortPoint: 0
 --- !u!114 &690243871359771641
 MonoBehaviour:
   m_ObjectHideFlags: 0

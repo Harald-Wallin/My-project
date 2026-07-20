@@ -8,6 +8,10 @@ public class StatDefinition : ScriptableObject
 
     public string displayName;
 
+    [Header("Display")]
+    public StatDisplayFormat displayFormat =
+    StatDisplayFormat.Number;
+
     [Header("Behavior")]
     public StatKind kind;
 

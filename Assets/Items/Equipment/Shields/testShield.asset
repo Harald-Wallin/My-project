@@ -32,6 +32,13 @@ MonoBehaviour:
   equippable: 1
   stackable: 0
   maxStack: 1
+  statModifiers:
+  - stat: 21
+    modifierType: 0
+    value: 0.1
+  - stat: 20
+    modifierType: 0
+    value: 0.1
   damageBonus: 0
   armorBonus: 10
   blockChanceBonus: 0.8

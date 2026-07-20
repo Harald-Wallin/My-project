@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 7565650016472858170}
   - component: {fileID: 9192460204285460516}
   - component: {fileID: 4847994093137756465}
-  - component: {fileID: 558947386393904139}
   - component: {fileID: 3520048928441293711}
   - component: {fileID: 4275189061858033796}
   - component: {fileID: 17746861532873532}
@@ -27,6 +26,7 @@ GameObject:
   - component: {fileID: 3992364038166421198}
   - component: {fileID: -7689155213173438067}
   - component: {fileID: -6321709135610774627}
+  - component: {fileID: 788226862973081087}
   m_Layer: 8
   m_Name: Bandit2 1
   m_TagString: Enemy
@@ -189,47 +189,6 @@ CapsuleCollider2D:
   m_Offset: {x: 0, y: 0.05}
   m_Size: {x: 0.75, y: 0.3}
   m_Direction: 1
---- !u!114 &558947386393904139
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3459725347379031730}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c01ceffb458c3d047acfeeac3ef4ded7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Enemy
-  faction: {fileID: 11400000, guid: 1b1cbe8a792f25e46a9f10dc7db7a8f4, type: 2}
-  reputationLossOnHit: 20
-  reputationLossOnDeath: 100
-  displayName: Bandit thug
-  maxHP: 67
-  currentHP: 0
-  strength: 4
-  swiftness: 0
-  armor: 2
-  movementSpeed: 2
-  attackSpeed: 0.5
-  weaponDamage: 0
-  hitChance: 0.85
-  evasion: 0.08
-  blockChance: 0
-  blockValue: 0
-  critChance: 0.1
-  critMultiplier: 1.5
-  effectPoint: {fileID: 5155013851662899411}
-  enemyName: Humanoid
-  monsterLevel: 2
-  corpsePrefab: {fileID: 0}
-  lootTables: []
-  levelText: {fileID: 0}
-  floatingExpTextPrefab: {fileID: 8131224175839406369, guid: daad473c21b3e5a438a07220b6e1ac3c, type: 3}
-  spawner: {fileID: 0}
-  reputationRewardFaction: {fileID: 11400000, guid: c5488bdfa9793df41979c93540acac0b, type: 2}
-  reputationRewardAmount: 14
-  isStartZoneWolf: 0
 --- !u!114 &3520048928441293711
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -435,7 +394,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c8655f0806a2ecd479ce7c3fdd96658d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
-  moveSpeed: 2
   stopDistance: 0.8
   avoidanceProbeDistance: 1.2
   avoidanceAngle: 35
@@ -448,6 +406,9 @@ MonoBehaviour:
   separationWeight: 1.2
   separationRadius: 1.2
   obstacleMemoryDuration: 2
+  avoidanceLayers:
+    serializedVersion: 2
+    m_Bits: 1152
   wanderRadius: 3
   wanderMoveTime: 2
   wanderPauseTime: 2
@@ -466,6 +427,48 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterStateController
   combatDuration: 5
+--- !u!114 &788226862973081087
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e26a59024476db64a9324782f5c12c54, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterStats
+  faction: {fileID: 11400000, guid: 1b1cbe8a792f25e46a9f10dc7db7a8f4, type: 2}
+  reputationLossOnHit: 20
+  reputationLossOnDeath: 100
+  displayName: NPC
+  level: 1
+  stats:
+  - stat: 0
+    value: 5
+  - stat: 1
+    value: 20
+  - stat: 2
+    value: 0
+  - stat: 3
+    value: 25
+  - stat: 12
+    value: 0
+  derivedStats:
+  - stat: 15
+    value: 2.5
+  - stat: 4
+    value: 25
+  - stat: 5
+    value: 3.4
+  - stat: 21
+    value: 2.5
+  - stat: 16
+    value: 0.89
+  _currentHP: 0
+  deathReward: {fileID: 0}
+  effectPoint: {fileID: 5155013851662899411}
 --- !u!1 &3778626201625969471
 GameObject:
   m_ObjectHideFlags: 0

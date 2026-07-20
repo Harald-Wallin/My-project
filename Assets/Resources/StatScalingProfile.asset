@@ -15,17 +15,19 @@ MonoBehaviour:
   rules:
   - source: 0
     outputs:
-    - stat: 6
-      value: 0.45
-    - stat: 22
+    - stat: 5
+      value: 0.68
+    - stat: 21
       value: 0.5
   - source: 2
     outputs:
-    - stat: 13
+    - stat: 12
       value: 0.2
-    - stat: 16
-      value: -0.002
-  - source: 15
+    - stat: 15
+      value: -0.0012
+  - source: 14
+    outputs: []
+  - source: 3
     outputs:
-    - stat: 16
-      value: 0.01
+    - stat: 4
+      value: 1

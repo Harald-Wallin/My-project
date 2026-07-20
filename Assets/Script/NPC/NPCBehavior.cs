@@ -58,6 +58,7 @@ public class NPCBehavior : MonoBehaviour
     //private bool wasMovingLastFrame;
 
     private bool wasPatrollingBeforeCombat;
+    private bool restartPatrolOnNextEnter;
 
     public bool IsInCombat => currentState == AIState.Aggro;
     protected AIState currentState = AIState.Idle;
@@ -99,7 +100,7 @@ public class NPCBehavior : MonoBehaviour
 
         if (canPatrol && patrolPath != null && patrolPath.points.Count > 0)
         {
-            EnterPatrolState();
+            EnterPatrolState(true);
         }
         else if (canWander)
         {
@@ -126,7 +127,7 @@ public class NPCBehavior : MonoBehaviour
             patrolPath != null &&
             patrolPath.points.Count > 0)
         {
-            EnterPatrolState();
+            EnterPatrolState(true);
         }
     }
 
@@ -217,8 +218,16 @@ public class NPCBehavior : MonoBehaviour
                 break;
 
             case AIState.Patrolling:
-                movement.BeginPatrol();
-                movement.SetMovementMode(NPCMovement.NPCMovementMode.Patrol);
+                if (restartPatrolOnNextEnter)
+                {
+                    movement.StartPatrol();
+                }
+                else
+                {
+                    movement.ResumePatrol();
+                }
+
+                restartPatrolOnNextEnter = false;
                 break;
 
             case AIState.Aggro:
@@ -356,9 +365,26 @@ public class NPCBehavior : MonoBehaviour
         movement.UpdatePatrol(patrolPath);
         HandleAggroDetection();
     }
-    protected virtual void EnterPatrolState()
+    protected virtual void EnterPatrolState(bool restartPatrol = false)
     {
         SetupPatrol();
+
+        restartPatrolOnNextEnter = restartPatrol;
+
+        if (currentState == AIState.Patrolling)
+        {
+            if (restartPatrol)
+            {
+                movement.StartPatrol();
+            }
+            else
+            {
+                movement.ResumePatrol();
+            }
+
+            restartPatrolOnNextEnter = false;
+            return;
+        }
 
         ChangeState(AIState.Patrolling);
     }
@@ -764,13 +790,12 @@ public class NPCBehavior : MonoBehaviour
         fleeSource = null;
 
         if (wasPatrollingBeforeCombat)
-{
-    wasPatrollingBeforeCombat = false;
+        {
+            wasPatrollingBeforeCombat = false;
 
-    EnterPatrolState();
-
-    return;
-}
+            EnterPatrolState(false);
+            return;
+        }
 
         EnterReturnState();
     }

@@ -54,53 +54,51 @@ public class EquipmentManager : MonoBehaviour
         return null;
     }
 
-    public void TryEquipItem(ItemData item, int fromSlotIndex)
+    public void TryEquipItem(
+    ItemData item,
+    int fromSlotIndex)
     {
-        Debug.Log($"EquipmentManager -> {item.itemName}");
+        if (item == null)
+            return;
+
+        Debug.Log($"EquipmentManager -> {item.itemName}" );
 
         if (!item.MeetsRequirements(playerStats))
         {
             Debug.Log("Requirements not met.");
+
             return;
         }
 
-        if (item == null || !item.equippable)
+        if (!item.equippable)
             return;
 
         EquipmentSlotUI targetSlot = GetSlotForItem(item.itemType);
+
         if (targetSlot == null)
             return;
 
         ItemData existingItem = targetSlot.GetEquippedItem();
 
-        // 🔁 OM SLOT HAR ITEM → SWAP
         if (existingItem != null)
         {
-            //Debug.Log($"EquipmentManager.TryEquipItem: swapping '{existingItem?.itemName}' into inventory slot {fromSlotIndex} and equipping '{item?.itemName}'");
+            RemoveStats(targetSlot);
 
-            // Ta bort stats från gamla
-            RemoveStats(existingItem);
-
-            // Ersätt inventory-slotten direkt
             inventory.slots[fromSlotIndex].item = existingItem;
+
             inventory.slots[fromSlotIndex].amount = 1;
         }
         else
         {
-            //Debug.Log($"EquipmentManager.TryEquipItem: equipping '{item?.itemName}' from inventory slot {fromSlotIndex} (empty target slot)");
-
-            // Om tom → ta bort från inventory
-            inventory.RemoveItemAt(fromSlotIndex, 1);
+            inventory.RemoveItemAt(fromSlotIndex,1);
         }
 
-        // Notify inventory UI about the change so UI updates immediately
         inventory.NotifyChanged();
 
-        // ➕ Stats in för nya
-        ApplyStats(item);
-
-        // Sätt i equipment slot
         targetSlot.SetItem(item);
+
+        ApplyStats(item,targetSlot);
+
         humanoidEquipment.Equip(item);
 
         WardSystem ward = playerStats.GetComponent<WardSystem>();
@@ -109,66 +107,112 @@ public class EquipmentManager : MonoBehaviour
         {
             ward.RefreshShieldState();
         }
+    }
 
-        // Debug: dump inventory slot after operation
-        if (fromSlotIndex >= 0 && fromSlotIndex < inventory.slots.Count)
+
+
+    private void ApplyStats(
+    ItemData item,
+    EquipmentSlotUI sourceSlot)
+    {
+        if (item == null ||
+            sourceSlot == null)
         {
-            var slot = inventory.slots[fromSlotIndex];
-            string name = slot.IsEmpty() ? "(empty)" : slot.item.itemName;
-            //Debug.Log($"EquipmentManager.TryEquipItem: inventory slot {fromSlotIndex} now contains: {name} (amount {slot.amount})");
+            return;
+        }
+
+        if (item.statModifiers == null)
+            return;
+
+        foreach (ItemStatModifier modifier
+                 in item.statModifiers)
+        {
+            if (modifier == null)
+                continue;
+
+            if (Mathf.Approximately(
+                    modifier.value,
+                    0f))
+            {
+                continue;
+            }
+
+            playerStats.AddModifier(
+                new StatModifier(
+                    modifier.stat,
+                    modifier.value,
+                    modifier.modifierType,
+                    sourceSlot,
+                    ModifierSourceType.Equipment
+                )
+            );
         }
     }
 
-
-
-    private void ApplyStats(ItemData item)
+    public void RemoveStats(
+    EquipmentSlotUI sourceSlot)
     {
-        if (item.strengthBonus != 0)
-            playerStats.AddModifier(new StatModifier(StatType.Strength, item.strengthBonus, ModifierType.Flat, item, ModifierSourceType.Equipment));
+        if (sourceSlot == null)
+            return;
 
-        if (item.armorBonus != 0)
-            playerStats.AddModifier(new StatModifier(StatType.Armor, item.armorBonus, ModifierType.Flat, item, ModifierSourceType.Equipment));
-
-        if (item.healthBonus != 0)
-            playerStats.AddModifier(new StatModifier(StatType.MaxHP, item.healthBonus, ModifierType.Flat, item , ModifierSourceType.Equipment));
-
-        if (item.damageBonus != 0)
-            playerStats.AddModifier(new StatModifier(StatType.WeaponDamage, item.damageBonus, ModifierType.Flat, item, ModifierSourceType.Equipment));
-
-        if (item.blockChanceBonus != 0)
-            playerStats.AddModifier(new StatModifier(StatType.BlockChance,item.blockChanceBonus,ModifierType.Flat,item,ModifierSourceType.Equipment));
-
-        if (item.blockValueBonus != 0)
-            playerStats.AddModifier(new StatModifier(StatType.BlockValue,item.blockValueBonus,ModifierType.Flat,item,ModifierSourceType.Equipment));
+        playerStats.RemoveModifiersFromSource(
+            sourceSlot
+        );
     }
 
-    public void RemoveStats(ItemData item)
+    public void RemoveEquippedItemFromSlot(
+    EquipmentSlotUI slot)
     {
-        playerStats.RemoveModifiersFromSource(item);
-    }
+        if (slot == null)
+            return;
 
-    public void Unequip(EquipmentSlotUI slot)
-    {
-        ItemData item = slot.GetEquippedItem();
+        ItemData item =
+            slot.GetEquippedItem();
+
         if (item == null)
             return;
 
-        // ➖ STATS UT
-        RemoveStats(item);
+        RemoveStats(slot);
+
         humanoidEquipment.Unequip(item);
 
-        //visualEquipment.Unequip(item);
         slot.ClearSlot();
 
-        WardSystem ward = playerStats.GetComponent<WardSystem>();
+        WardSystem ward =
+            playerStats.GetComponent<WardSystem>();
+
+        ward?.RefreshShieldState();
+    }
+
+    public void Unequip(
+    EquipmentSlotUI slot)
+    {
+        if (slot == null)
+            return;
+
+        ItemData item = slot.GetEquippedItem();
+
+        if (item == null)
+            return;
+
+        RemoveStats(slot);
+
+        humanoidEquipment.Unequip(item);
+
+        slot.ClearSlot();
+
+        WardSystem ward =
+            playerStats.GetComponent<WardSystem>();
 
         if (ward != null)
         {
             ward.RefreshShieldState();
         }
 
-        // 📦 TILLBAKA TILL INVENTORY
-        inventory.AddItem(item, 1);
+        inventory.AddItem(
+            item,
+            1
+        );
     }
 }
 

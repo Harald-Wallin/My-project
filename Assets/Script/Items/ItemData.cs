@@ -64,13 +64,8 @@ public class ItemData : ScriptableObject, ITooltipProvider
     public bool stackable;
     public int maxStack = 1;
 
-    [Header("Stat Bonuses")]
-    public int damageBonus;
-    public int armorBonus;
-    public float blockChanceBonus;
-    public int blockValueBonus;
-    public int strengthBonus;
-    public int healthBonus;
+    [Header("Stat Modifiers")]
+    public ItemStatModifier[] statModifiers;
 
     [Header("Requirements")]
     public bool useLevelRequirement;
@@ -107,23 +102,29 @@ public class ItemData : ScriptableObject, ITooltipProvider
         data.subtitle = itemType.ToString();
         data.description = description;
 
-        if (damageBonus > 0)
-            data.stats.Add($"Damage: {damageBonus}");
+        if (statModifiers != null)
+        {
+            foreach (ItemStatModifier modifier in statModifiers)
+            {
+                if (modifier == null)
+                    continue;
 
-        if (armorBonus > 0)
-            data.stats.Add($"Armor: {armorBonus}");
+                if (Mathf.Approximately(
+                        modifier.value,
+                        0f))
+                {
+                    continue;
+                }
 
-        if (strengthBonus > 0)
-            data.stats.Add($"+{strengthBonus} Strength");
-
-        if (healthBonus > 0)
-            data.stats.Add($"+{healthBonus} Health");
-
-        if (blockChanceBonus > 0)
-            data.stats.Add($"Block Chance: +{blockChanceBonus * 100f:0}%");
-
-        if (blockValueBonus > 0)
-            data.stats.Add($"Block Value: +{blockValueBonus}");
+                data.stats.Add(
+                    StatFormatting.FormatModifier(
+                        modifier.stat,
+                        modifier.modifierType,
+                        modifier.value
+                    )
+                );
+            }
+        }
 
         data.footer = $"Sellprice: {SellPrice}";
         data.showFooter = true;

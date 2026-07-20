@@ -1,232 +1,192 @@
-using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
 [CustomEditor(typeof(CharacterStats), true)]
 public class CharacterStatsEditor : Editor
 {
-    SerializedProperty statsProperty;
-    SerializedProperty derivedStatsProperty;
+    private bool showPrimary = true;
+    private bool showDerived = true;
 
-    bool showPrimary = true;
-    bool showDerived = true;
-
-    void OnEnable()
+    private void OnEnable()
     {
-        statsProperty = serializedObject.FindProperty("stats");
-        derivedStatsProperty = serializedObject.FindProperty("derivedStats");
-
-        EnsureAllStatsExist();
+        RefreshTargets();
     }
 
     public override void OnInspectorGUI()
     {
         serializedObject.Update();
 
-        DrawDefaultInspectorExceptStats();
+        DrawPropertiesExcluding(
+            serializedObject,
+            "stats",
+            "derivedStats"
+        );
 
         EditorGUILayout.Space(10);
 
-        showPrimary = EditorGUILayout.BeginFoldoutHeaderGroup(showPrimary,"Primary Stats");
+        StatDatabase database =
+            StatDatabase.Instance;
+
+        if (database == null)
+        {
+            EditorGUILayout.HelpBox(
+                "StatDatabase kunde inte hittas i Resources/Stats " +
+                "eller Resources.",
+                MessageType.Error
+            );
+
+            serializedObject.ApplyModifiedProperties();
+            return;
+        }
+
+        showPrimary =
+            EditorGUILayout.BeginFoldoutHeaderGroup(
+                showPrimary,
+                "Primary Stats"
+            );
 
         if (showPrimary)
         {
-            DrawStatsByKind(StatKind.Primary);
+            DrawPrimaryStats(database);
         }
 
         EditorGUILayout.EndFoldoutHeaderGroup();
 
-        showDerived = EditorGUILayout.BeginFoldoutHeaderGroup(showDerived,"Derived Stats");
+        showDerived =
+            EditorGUILayout.BeginFoldoutHeaderGroup(
+                showDerived,
+                "Derived Stats"
+            );
 
         if (showDerived)
         {
-            DrawDerivedStats();
+            DrawDerivedStats(database);
         }
 
         EditorGUILayout.EndFoldoutHeaderGroup();
 
-        if (GUI.changed)
-        {
+        bool changed =
             serializedObject.ApplyModifiedProperties();
 
-            foreach (CharacterStats stats in targets)
-            {
-                stats.RecalculateDerivedStats();
-
-                EditorUtility.SetDirty(stats);
-            }
-
+        if (changed)
+        {
+            RefreshTargets();
             serializedObject.Update();
         }
-
-        serializedObject.ApplyModifiedProperties();
     }
 
-    void DrawStatsByKind(StatKind kind)
+    private void DrawPrimaryStats(
+        StatDatabase database)
     {
-        foreach (var definition in StatDatabase.Instance.stats)
+        SerializedProperty statsProperty =
+            serializedObject.FindProperty("stats");
+
+        foreach (StatDefinition definition in database.Stats)
         {
-            if (definition.kind != kind)
+            if (definition == null)
+                continue;
+
+            if (definition.kind != StatKind.Primary)
                 continue;
 
             if (!definition.visible)
                 continue;
-            DrawStat(definition.stat);
+
+            SerializedProperty entry =
+                FindEntry(
+                    statsProperty,
+                    definition.stat
+                );
+
+            if (entry == null)
+                continue;
+
+            SerializedProperty value =
+                entry.FindPropertyRelative("value");
+
+            using (new EditorGUI.DisabledScope(
+                       !definition.editable))
+            {
+                EditorGUILayout.PropertyField(
+                    value,
+                    new GUIContent(definition.DisplayName)
+                );
+            }
         }
     }
 
-    void DrawPlayerSection()
+    private void DrawDerivedStats(
+        StatDatabase database)
     {
-        EditorGUILayout.Space();
+        SerializedProperty derivedProperty =
+            serializedObject.FindProperty("derivedStats");
 
-        EditorGUILayout.LabelField(
-            "Player",
-            EditorStyles.boldLabel);
-
-        DrawPropertiesExcluding(
-            serializedObject,
-            "m_Script",
-            "stats",
-            "derivedStats"
-        );
-    }
-
-    void DrawDerivedStats()
-    {
-        GUI.enabled = false;
-
-        for (int i = 0; i < derivedStatsProperty.arraySize; i++)
+        using (new EditorGUI.DisabledScope(true))
         {
-            SerializedProperty stat =
-                derivedStatsProperty.GetArrayElementAtIndex(i);
+            foreach (StatDefinition definition in database.Stats)
+            {
+                if (definition == null)
+                    continue;
 
-            EditorGUILayout.BeginHorizontal();
+                if (definition.kind != StatKind.Derived)
+                    continue;
 
-            StatType statType = (StatType)stat.FindPropertyRelative("stat").enumValueIndex;
+                if (!definition.visible)
+                    continue;
 
-            StatDefinition definition =
-                StatDatabase.Instance.GetDefinition(statType);
+                SerializedProperty entry =
+                    FindEntry(
+                        derivedProperty,
+                        definition.stat
+                    );
 
-            string label =
-                definition != null
-                ? definition.displayName
-                : statType.ToString();
+                if (entry == null)
+                    continue;
 
-            EditorGUILayout.LabelField(
-                label,
-                GUILayout.Width(180));
+                SerializedProperty value =
+                    entry.FindPropertyRelative("value");
 
-            EditorGUILayout.FloatField(
-                stat.FindPropertyRelative("value").floatValue);
-
-            EditorGUILayout.EndHorizontal();
-        }
-
-        GUI.enabled = true;
-    }
-
-    void DrawDefaultInspectorExceptStats()
-    {
-        DrawPropertiesExcluding( serializedObject,"stats","derivedStats");
-    }
-
-    void DrawCategory(string title, params StatType[] statTypes)
-    {
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField(title, EditorStyles.boldLabel);
-
-        foreach (var stat in statTypes)
-        {
-            DrawStat(stat);
+                EditorGUILayout.FloatField(
+                    definition.DisplayName,
+                    value.floatValue
+                );
+            }
         }
     }
 
-    void DrawStat(StatType stat)
+    private SerializedProperty FindEntry(
+        SerializedProperty listProperty,
+        StatType stat)
     {
-        SerializedProperty entry = FindEntry(stat);
-
-        if (entry == null)
-            return;
-
-        SerializedProperty value =
-            entry.FindPropertyRelative("value");
-
-        StatDefinition definition =
-            StatDatabase.Instance.GetDefinition(stat);
-
-        string label =
-            definition != null
-            ? definition.displayName
-            : stat.ToString();
-
-        bool editable =
-            definition == null ||
-            definition.editable;
-
-        GUI.enabled = editable;
-
-        EditorGUILayout.PropertyField(
-            value,
-            new GUIContent(label)
-        );
-
-        GUI.enabled = true;
-    }
-
-    SerializedProperty FindEntry(StatType stat)
-    {
-        for (int i = 0; i < statsProperty.arraySize; i++)
+        for (int i = 0;
+             i < listProperty.arraySize;
+             i++)
         {
             SerializedProperty entry =
-                statsProperty.GetArrayElementAtIndex(i);
+                listProperty.GetArrayElementAtIndex(i);
 
-            SerializedProperty statProp =
+            SerializedProperty statProperty =
                 entry.FindPropertyRelative("stat");
 
-            if ((StatType)statProp.enumValueIndex == stat)
+            if ((StatType)statProperty.enumValueIndex == stat)
+            {
                 return entry;
+            }
         }
 
         return null;
     }
 
-    void EnsureAllStatsExist()
+    private void RefreshTargets()
     {
-        serializedObject.Update();
-
-        HashSet<StatType> existing = new();
-
-        for (int i = 0; i < statsProperty.arraySize; i++)
+        foreach (Object inspectedTarget in targets)
         {
-            var entry = statsProperty.GetArrayElementAtIndex(i);
-
-            existing.Add(
-                (StatType)entry
-                .FindPropertyRelative("stat")
-                .enumValueIndex);
-        }
-
-        foreach (var definition in StatDatabase.Instance.stats)
-        {
-            if (definition.kind != StatKind.Primary)
+            if (inspectedTarget is not CharacterStats characterStats)
                 continue;
 
-            if (existing.Contains(definition.stat))
-                continue;
+            characterStats.RefreshStats();
 
-            int index = statsProperty.arraySize;
-
-            statsProperty.InsertArrayElementAtIndex(index);
-
-            SerializedProperty newEntry =
-                statsProperty.GetArrayElementAtIndex(index);
-
-            newEntry.FindPropertyRelative("stat").enumValueIndex =
-                (int)definition.stat;
-
-            newEntry.FindPropertyRelative("value").floatValue = 0;
+            EditorUtility.SetDirty(characterStats);
         }
-
-        serializedObject.ApplyModifiedProperties();
     }
 }

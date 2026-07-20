@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StatDefinition
   stat: 1
   displayName: Swiftness
-  category: 0
+  kind: 0
+  defaultValue: 20
   editable: 1
   visible: 1

@@ -176,8 +176,7 @@ public class EquipmentSlotUI : MonoBehaviour,
                 $"Destroy {equippedItem.itemName}?",
                 () =>
                 {
-                    EquipmentManager.Instance.RemoveStats(equippedItem);
-                    ClearSlot();
+                    EquipmentManager.Instance.RemoveEquippedItemFromSlot(this);
                 }
             );
 

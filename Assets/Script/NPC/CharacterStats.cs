@@ -25,12 +25,13 @@ public class CharacterStats : MonoBehaviour
 
     [Header("Derived Stats")]
     [SerializeField]
-    [Tooltip("Automatically generated stats based on Primary Stats and the Scaling Profile.")]
+    [Tooltip(
+        "Automatically generated stats based on primary stats, " +
+        "stat definitions and the scaling profile."
+    )]
     private List<DerivedStat> derivedStats = new();
 
     private readonly Dictionary<StatType, float> derivedLookup = new();
-
-
 
     [SerializeField]
     private int _currentHP;
@@ -38,27 +39,18 @@ public class CharacterStats : MonoBehaviour
     public int currentHP
     {
         get => _currentHP;
-
-        set
-        {
-            Debug.Log(
-                $"currentHP {_currentHP} -> {value}\n{Environment.StackTrace}"
-            );
-
-            _currentHP = value;
-        }
+        set => _currentHP = value;
     }
-
-
 
     private static StatScalingProfile cachedScalingProfile;
 
-
     [Header("Advanced Stats")]
     public bool IsStunned => stunCount > 0;
-    private int stunCount = 0;
 
-    private List<StatModifier> modifiers = new List<StatModifier>();
+    private int stunCount;
+
+    private readonly List<StatModifier> modifiers = new();
+
     private CharacterStateController stateController;
 
     public event Action OnHealthChanged;
@@ -72,48 +64,110 @@ public class CharacterStats : MonoBehaviour
     [Header("VFX")]
     public Transform effectPoint;
 
-
-
     protected virtual void Awake()
     {
-        InitializeBaseStats();
+        stateController =
+            GetComponent<CharacterStateController>();
 
-        RecalculateDerivedStats();
-        //Debug.Log($"derivedLookup.Count = {derivedLookup.Count}");
+        deathReward =
+            GetComponent<DeathReward>();
 
-        //Debug.Log($"Contains MaxHP = {derivedLookup.ContainsKey(StatType.MaxHP)}");
-
-        if (derivedLookup.TryGetValue(StatType.MaxHP, out var hp)) ;
-        //Debug.Log($"Dictionary MaxHP = {hp}");
-
-        //-----------
-        //Debug.Log($"Before GetMaxHP: derivedLookup contains MaxHP = {derivedLookup.ContainsKey(StatType.MaxHP)}");
-
-        if (derivedLookup.TryGetValue(StatType.MaxHP, out float hp2)) ;
-            //Debug.Log($"Dictionary value = {hp}");
-            
-
-        //Debug.Log($"GetBaseStatValue(MaxHP) = {GetBaseStatValue(StatType.MaxHP)}");
-
-        //Debug.Log($"GetStat(MaxHP) = {GetStat(StatType.MaxHP)}");
-
-        //Debug.Log($"GetMaxHP() = {GetMaxHP()}");
-        //-----------
+        RefreshStats();
 
         currentHP = GetMaxHP();
-        //Debug.Log($"Awake assigned currentHP = {currentHP}");
-
-        stateController = GetComponent<CharacterStateController>();
-        deathReward = GetComponent<DeathReward>();
     }
 
-    bool IsPrimaryStat(StatType stat)
+    /// <summary>
+    /// Synchronizes serialized stat entries with StatDatabase,
+    /// rebuilds the runtime lookup and recalculates derived stats.
+    /// </summary>
+    public void RefreshStats()
     {
-        StatDefinition definition =
-            StatDatabase.Instance.GetDefinition(stat);
+        SynchronizeWithDatabase();
+        InitializeBaseStatLookup();
+        RecalculateDerivedStats();
+    }
 
-        return definition != null &&
-               definition.kind == StatKind.Primary;
+    /// <summary>
+    /// Rebuilds the serialized lists from StatDatabase while
+    /// preserving existing primary-stat values.
+    /// </summary>
+    public void SynchronizeWithDatabase()
+    {
+        StatDatabase database =
+            StatDatabase.Instance;
+
+        if (database == null)
+            return;
+
+        Dictionary<StatType, float> existingPrimaryValues = new();
+
+        for (int i = 0; i < stats.Count; i++)
+        {
+            StatEntry entry = stats[i];
+
+            if (entry == null)
+                continue;
+
+            if (!existingPrimaryValues.ContainsKey(entry.stat))
+            {
+                existingPrimaryValues.Add(
+                    entry.stat,
+                    entry.value
+                );
+            }
+        }
+
+        stats.Clear();
+
+        HashSet<StatType> addedPrimaryStats = new();
+
+        foreach (StatDefinition definition in database.Stats)
+        {
+            if (definition == null)
+                continue;
+
+            if (definition.kind != StatKind.Primary)
+                continue;
+
+            if (!addedPrimaryStats.Add(definition.stat))
+                continue;
+
+            float value =
+                existingPrimaryValues.TryGetValue(
+                    definition.stat,
+                    out float existingValue)
+                    ? existingValue
+                    : definition.defaultValue;
+
+            stats.Add(new StatEntry
+            {
+                stat = definition.stat,
+                value = value
+            });
+        }
+
+        derivedStats.Clear();
+
+        HashSet<StatType> addedDerivedStats = new();
+
+        foreach (StatDefinition definition in database.Stats)
+        {
+            if (definition == null)
+                continue;
+
+            if (definition.kind != StatKind.Derived)
+                continue;
+
+            if (!addedDerivedStats.Add(definition.stat))
+                continue;
+
+            derivedStats.Add(new DerivedStat
+            {
+                stat = definition.stat,
+                value = definition.defaultValue
+            });
+        }
     }
 
     public virtual void ResetHealth()
@@ -132,12 +186,18 @@ public class CharacterStats : MonoBehaviour
         OnHealthChanged?.Invoke();
     }
 
-
-    public int TakeDamage(DamageResult result, CharacterStats attacker)
+    public int TakeDamage(
+        DamageResult result,
+        CharacterStats attacker)
     {
         if (result.isMiss)
         {
-            FloatingTextSpawner.Instance?.SpawnCustomText(transform.position, "Miss", false);
+            FloatingTextSpawner.Instance?.SpawnCustomText(
+                transform.position,
+                "Miss",
+                false
+            );
+
             OnDamagedBy?.Invoke(attacker);
 
             return 0;
@@ -145,7 +205,12 @@ public class CharacterStats : MonoBehaviour
 
         if (result.isEvaded)
         {
-            FloatingTextSpawner.Instance?.SpawnCustomText(transform.position, "Evade", false);
+            FloatingTextSpawner.Instance?.SpawnCustomText(
+                transform.position,
+                "Evade",
+                false
+            );
+
             OnDamagedBy?.Invoke(attacker);
 
             return 0;
@@ -155,16 +220,15 @@ public class CharacterStats : MonoBehaviour
 
         if (result.isBlocked)
         {
-            PlayerStats player = GetComponent<PlayerStats>();
+            PlayerStats player =
+                GetComponent<PlayerStats>();
 
             if (player != null)
             {
-                WardSystem ward = GetComponent<WardSystem>();
+                WardSystem ward =
+                    GetComponent<WardSystem>();
 
-                if (ward != null)
-                {
-                    ward.AddWard(1);
-                }
+                ward?.AddWard(1);
             }
         }
 
@@ -184,23 +248,23 @@ public class CharacterStats : MonoBehaviour
 
         OnDamagedBy?.Invoke(attacker);
 
-        DamageReaction reaction = GetComponentInChildren<DamageReaction>();
+        DamageReaction reaction =
+            GetComponentInChildren<DamageReaction>();
 
-        if (reaction != null && attacker != null)
+        if (reaction != null &&
+            attacker != null)
         {
             reaction.PlayReaction(
                 attacker.transform.position
             );
         }
 
-        // Crime BEFORE death
-        CrimeManager.HandleAttackCrime(attacker, this);
+        CrimeManager.HandleAttackCrime(
+            attacker,
+            this
+        );
 
-        // NPC reaction BEFORE death
-        if (stateController != null)
-        {
-            stateController.EnterCombat();
-        }
+        stateController?.EnterCombat();
 
         OnDamaged(attacker);
 
@@ -212,7 +276,8 @@ public class CharacterStats : MonoBehaviour
                 $" <color=white>({result.blockedAmount} Block)</color>";
         }
 
-        bool attackerIsPlayer = attacker is PlayerStats;
+        bool attackerIsPlayer =
+            attacker is PlayerStats;
 
         FloatingTextSpawner.Instance?.SpawnDamageText(
             transform.position,
@@ -230,35 +295,48 @@ public class CharacterStats : MonoBehaviour
         return finalDamage;
     }
 
-    protected virtual void OnDamaged(CharacterStats attacker)
+    protected virtual void OnDamaged(
+        CharacterStats attacker)
     {
-        // Bas-klass gör inget
     }
 
     public int GetAttackDamage()
     {
-        float baseDamage = GetStat(StatType.BaseMeleeDamage);
+        float baseDamage =
+            GetStat(StatType.BaseMeleeDamage);
 
-        float weaponDamage = GetStat(StatType.WeaponDamage);
+        float weaponDamage =
+            GetStat(StatType.WeaponDamage);
 
         return Mathf.Max(
             1,
-            Mathf.RoundToInt(baseDamage + weaponDamage)
+            Mathf.RoundToInt(
+                baseDamage + weaponDamage
+            )
         );
     }
 
     public int GetMaxHP()
     {
-        return Mathf.RoundToInt(GetStat(StatType.MaxHP));
+        return Mathf.RoundToInt(
+            GetStat(StatType.MaxHP)
+        );
     }
 
     public virtual void Heal(int amount)
     {
-          currentHP  =Mathf.Clamp(currentHP + amount, 0, Mathf.RoundToInt(GetStat(StatType.MaxHP)));
+        currentHP = Mathf.Clamp(
+            currentHP + amount,
+            0,
+            GetMaxHP()
+        );
+
         RaiseHealthChanged();
     }
 
-    public int TakeRawDamage(int damage, CharacterStats attacker)
+    public int TakeRawDamage(
+        int damage,
+        CharacterStats attacker)
     {
         DamageResult result = new DamageResult
         {
@@ -268,13 +346,10 @@ public class CharacterStats : MonoBehaviour
             isEvaded = false
         };
 
-        return TakeDamage(result, attacker);
-    }
-
-    // ---- STAT MODIFIERS ADD ----
-    float GetBaseStat(StatType stat)
-    {
-        return GetBaseStatValue(stat);
+        return TakeDamage(
+            result,
+            attacker
+        );
     }
 
     public void AddStun()
@@ -284,7 +359,8 @@ public class CharacterStats : MonoBehaviour
 
     public void RemoveStun()
     {
-        stunCount = Mathf.Max(0, stunCount - 1);
+        stunCount =
+            Mathf.Max(0, stunCount - 1);
     }
 
     public bool CanAct()
@@ -292,78 +368,100 @@ public class CharacterStats : MonoBehaviour
         return !IsStunned;
     }
 
-    void InitializeDerivedStats()
-    {
-        if (StatDatabase.Instance == null)
-            return;
-
-        foreach (var definition in StatDatabase.Instance.stats)
-        {
-            if (definition.kind != StatKind.Derived)
-                continue;
-
-
-            if (derivedStats.Exists(x => x.stat == definition.stat))
-                continue;
-
-            derivedStats.Add(new DerivedStat
-            {
-                stat = definition.stat,
-                value = 0
-            });
-        }
-    }
-
     public void RecalculateDerivedStats()
     {
-        //Debug.Log("=== RecalculateDerivedStats ===");
         derivedLookup.Clear();
 
-        foreach (var stat in derivedStats)
-            stat.value = 0;
+        StatDatabase database =
+            StatDatabase.Instance;
 
-        if (ScalingProfile == null)
-        {
-            //Debug.Log("ScalingProfile = NULL");
+        if (database == null)
             return;
+
+        Dictionary<StatType, DerivedStat> derivedByType = new();
+
+        for (int i = 0; i < derivedStats.Count; i++)
+        {
+            DerivedStat derived = derivedStats[i];
+
+            if (derived == null)
+                continue;
+
+            StatDefinition definition =
+                database.GetDefinition(derived.stat);
+
+            float defaultValue =
+                definition != null
+                    ? definition.defaultValue
+                    : 0f;
+
+            derived.value = defaultValue;
+
+            derivedByType[derived.stat] = derived;
+            derivedLookup[derived.stat] = defaultValue;
         }
 
-        //Debug.Log($"Rules = {ScalingProfile.rules.Count}");
+        StatScalingProfile profile =
+            ScalingProfile;
 
-        foreach (var rule in ScalingProfile.rules)
+        if (profile == null)
+            return;
+
+        foreach (StatScalingRule rule in profile.rules)
         {
-            //Debug.Log($"Rule: {rule.source}");
-            float sourceValue = GetBaseStatValue(rule.source);
-            //+Debug.Log($"Source value = {sourceValue}");
+            if (rule == null)
+                continue;
 
-            foreach (var output in rule.outputs)
+            StatDefinition sourceDefinition =
+                database.GetDefinition(rule.source);
+
+            if (sourceDefinition == null ||
+                sourceDefinition.kind != StatKind.Primary)
             {
-                //+Debug.Log($"Output -> {output.stat} = {output.value}");
-                DerivedStat derived = derivedStats.Find(x => x.stat == output.stat);
+                continue;
+            }
 
-                if (derived == null)
+            // Uses the fully modified primary-stat value.
+            // Equipment or talents that increase Health can
+            // therefore also increase MaxHP.
+            float sourceValue =
+                GetStat(rule.source);
+
+            foreach (StatScalingOutput output in rule.outputs)
+            {
+                if (output == null)
+                    continue;
+
+                StatDefinition outputDefinition =
+                    database.GetDefinition(output.stat);
+
+                if (outputDefinition == null ||
+                    outputDefinition.kind != StatKind.Derived)
                 {
                     continue;
                 }
 
-                derived.value += sourceValue * output.value;
-                //+Debug.Log($"Derived {derived.stat} = {derived.value}");
+                if (!derivedByType.TryGetValue(
+                        output.stat,
+                        out DerivedStat derived))
+                {
+                    continue;
+                }
 
-                derivedLookup[derived.stat] = derived.value;
+                derived.value +=
+                    sourceValue * output.value;
 
-                //+Debug.Log("Derived lookup:");
-
-                foreach (var kv in derivedLookup)
-                    Debug.Log($"{kv.Key} = {kv.Value}");
+                derivedLookup[output.stat] =
+                    derived.value;
             }
         }
     }
 
-    public float GetStat(StatType stat)
+    public float GetStat(
+    StatType stat)
     {
-        float value = GetBaseStatValue(stat);
-
-        //Debug.Log($"GetStat({stat}) base={value}");
+        float value =
+            GetRawStatValue(stat);
 
         float talentFlat = 0f;
         float talentPercent = 0f;
@@ -371,42 +469,53 @@ public class CharacterStats : MonoBehaviour
         float equipmentFlat = 0f;
         float equipmentPercent = 0f;
 
+        float buffFlat = 0f;
         float buffPercent = 0f;
+
+        float oathFlat = 0f;
         float oathPercent = 0f;
 
-        foreach (var mod in modifiers)
+        foreach (StatModifier modifier
+                 in modifiers)
         {
-            if (mod.stat != stat)
+            if (modifier == null ||
+                modifier.stat != stat)
+            {
                 continue;
+            }
 
-            Debug.Log($"Modifier: {mod.sourceType} {mod.type} {mod.value}");
-
-            switch (mod.sourceType)
+            switch (modifier.sourceType)
             {
                 case ModifierSourceType.Talent:
-                    if (mod.type == ModifierType.Flat)
-                        talentFlat += mod.value;
-                    else
-                        talentPercent += mod.value;
+                    AddModifierValue(
+                        modifier,
+                        ref talentFlat,
+                        ref talentPercent
+                    );
                     break;
 
                 case ModifierSourceType.Equipment:
-                    if (mod.type == ModifierType.Flat)
-                        equipmentFlat += mod.value;
-                    else
-                        equipmentPercent += mod.value;
+                    AddModifierValue(
+                        modifier,
+                        ref equipmentFlat,
+                        ref equipmentPercent
+                    );
                     break;
 
                 case ModifierSourceType.Buff:
-                    if (mod.type == ModifierType.Percent)
-                        buffPercent += mod.value;
-                    else
-                        equipmentFlat += mod.value;
+                    AddModifierValue(
+                        modifier,
+                        ref buffFlat,
+                        ref buffPercent
+                    );
                     break;
 
                 case ModifierSourceType.Oath:
-                    if (mod.type == ModifierType.Percent)
-                        oathPercent += mod.value;
+                    AddModifierValue(
+                        modifier,
+                        ref oathFlat,
+                        ref oathPercent
+                    );
                     break;
             }
         }
@@ -419,131 +528,120 @@ public class CharacterStats : MonoBehaviour
             (talentStage + equipmentFlat) *
             (1f + equipmentPercent);
 
-        float finalValue =
-            equipmentStage *
-            (1f + buffPercent + oathPercent);
+        float buffStage =
+            (equipmentStage + buffFlat) *
+            (1f + buffPercent);
 
-        Debug.Log($"GetStat({stat}) final = {finalValue}");
+        float oathStage =
+            (buffStage + oathFlat) *
+            (1f + oathPercent);
 
-        Debug.Log(
-    $"GetStat({stat}) final={finalValue}"
-);
-
-        return finalValue;
+        return oathStage;
     }
-    /*public float GetStat(StatType stat)
+
+    private static void AddModifierValue(
+        StatModifier modifier,
+        ref float flat,
+        ref float percent)
     {
-        float value = GetBaseStatValue(stat);
-
-        float talentFlat = 0f;
-        float talentPercent = 0f;
-
-        float equipmentFlat = 0f;
-        float equipmentPercent = 0f;
-
-        float buffPercent = 0f;
-        float oathPercent = 0f;
-
-        foreach (var mod in modifiers)
+        if (modifier.type ==
+            ModifierType.Flat)
         {
-            if (mod.stat != stat)
-                continue;
-
-            switch (mod.sourceType)
-            {
-                case ModifierSourceType.Talent:
-
-                    if (mod.type == ModifierType.Flat)
-                        talentFlat += mod.value;
-                    else
-                        talentPercent += mod.value;
-
-                    break;
-
-                case ModifierSourceType.Equipment:
-
-                    if (mod.type == ModifierType.Flat)
-                        equipmentFlat += mod.value;
-                    else
-                        equipmentPercent += mod.value;
-
-                    break;
-
-                case ModifierSourceType.Buff:
-
-                    if (mod.type == ModifierType.Percent)
-                        buffPercent += mod.value;
-                    else
-                        equipmentFlat += mod.value; // tillfälligt stöd för flat buffs
-
-                    break;
-
-                case ModifierSourceType.Oath:
-
-                    if (mod.type == ModifierType.Percent)
-                        oathPercent += mod.value;
-
-                    break;
-            }
+            flat += modifier.value;
         }
+        else
+        {
+            percent += modifier.value;
+        }
+    }
 
-        float talentStage =
-            (value + talentFlat) *
-            (1f + talentPercent);
-
-        float equipmentStage =
-            (talentStage + equipmentFlat) *
-            (1f + equipmentPercent);
-
-        float finalValue =
-            equipmentStage *
-            (1f + buffPercent + oathPercent);
-
-        return finalValue;
-    }*/
-
-    public void AddModifier(StatModifier mod)
+    public void AddModifier(StatModifier modifier)
     {
-        float oldMaxHP = GetStat(StatType.MaxHP);
+        if (modifier == null)
+            return;
 
-        modifiers.Add(mod);
+        float oldMaxHP =
+            GetStat(StatType.MaxHP);
 
-        float newMaxHP = GetStat(StatType.MaxHP);
+        modifiers.Add(modifier);
 
-        //Justera current HP proportionellt om maxHP ändras
-        if (newMaxHP != oldMaxHP && oldMaxHP > 0)
-        {
-            float percent = (float)currentHP / oldMaxHP;
-            currentHP = Mathf.RoundToInt(newMaxHP * percent);
-            RaiseHealthChanged();
-        }
+        RecalculateDerivedStats();
+
+        float newMaxHP =
+            GetStat(StatType.MaxHP);
+
+        PreserveCurrentHealthPercentage(
+            oldMaxHP,
+            newMaxHP
+        );
 
         OnStatsChanged?.Invoke();
     }
 
-    public void RemoveModifiersFromSource(object source)
+    public void RemoveModifiersFromSource(
+        object source)
     {
-        float oldMaxHP = GetStat(StatType.MaxHP);
+        float oldMaxHP =
+            GetStat(StatType.MaxHP);
 
-        modifiers.RemoveAll(m => m.source == source);
+        modifiers.RemoveAll(
+            modifier => modifier.source == source
+        );
 
-        float newMaxHP = GetStat(StatType.MaxHP);
+        RecalculateDerivedStats();
 
-        if (newMaxHP != oldMaxHP && oldMaxHP > 0)
-        {
-            float percent = (float)currentHP / oldMaxHP;
-            currentHP = Mathf.RoundToInt(newMaxHP * percent);
-            RaiseHealthChanged();
-        }
+        float newMaxHP =
+            GetStat(StatType.MaxHP);
+
+        PreserveCurrentHealthPercentage(
+            oldMaxHP,
+            newMaxHP
+        );
 
         OnStatsChanged?.Invoke();
     }
 
-    //-------------------DEATH-------------------
-    protected virtual void Die(CharacterStats killer)
+    private void PreserveCurrentHealthPercentage(
+        float oldMaxHP,
+        float newMaxHP)
+    {
+        if (Mathf.Approximately(
+                oldMaxHP,
+                newMaxHP))
+        {
+            return;
+        }
+
+        if (oldMaxHP <= 0f)
+        {
+            currentHP = Mathf.Clamp(
+                currentHP,
+                0,
+                Mathf.RoundToInt(newMaxHP)
+            );
+
+            RaiseHealthChanged();
+            return;
+        }
+
+        float healthPercentage =
+            currentHP / oldMaxHP;
+
+        currentHP = Mathf.Clamp(
+            Mathf.RoundToInt(
+                newMaxHP * healthPercentage
+            ),
+            0,
+            Mathf.RoundToInt(newMaxHP)
+        );
+
+        RaiseHealthChanged();
+    }
+
+    protected virtual void Die(
+        CharacterStats killer)
     {
         RaiseDied(this);
-        //string killerName = killer != null ? killer.name : "Unknown";
         GiveDeathRewards(killer);
         HandleDeathCleanup();
         Destroy(gameObject);
@@ -553,44 +651,45 @@ public class CharacterStats : MonoBehaviour
     {
         if (!(this is PlayerStats))
         {
-            Collider2D col = GetComponent<Collider2D>();
+            Collider2D col =
+                GetComponent<Collider2D>();
 
             if (col != null)
                 col.enabled = false;
         }
 
-        Rigidbody2D rb = GetComponent<Rigidbody2D>();
+        Rigidbody2D rb =
+            GetComponent<Rigidbody2D>();
 
         if (rb != null)
             rb.linearVelocity = Vector2.zero;
 
-        BuffSystem buffs = GetComponent<BuffSystem>();
+        BuffSystem buffs =
+            GetComponent<BuffSystem>();
 
-        if (buffs != null)
-        {
-            buffs.RemoveDeathRemovableBuffs();
-        }
+        buffs?.RemoveDeathRemovableBuffs();
     }
 
-    //---------------REPUTATION-----------------
-    public bool IsHostileTo(CharacterStats other)
+    public bool IsHostileTo(
+        CharacterStats other)
     {
-        //NPC kan inte hata sig själv <3
-        if (other == this)
-            return false;
-
-        //NPC hatar aldrig sina egna faction-fränder
-        if (faction == other.faction)
-            return false;
-
-        //NPC kan inte hata någon/något som inte finns
         if (other == null)
             return false;
 
-        if (faction == null || other.faction == null)
+        if (other == this)
             return false;
 
-        ReputationState standing = faction.GetStanding(other.faction);
+        if (faction == null ||
+            other.faction == null)
+        {
+            return false;
+        }
+
+        if (faction == other.faction)
+            return false;
+
+        ReputationState standing =
+            faction.GetStanding(other.faction);
 
         if (standing == ReputationState.Hated)
             return true;
@@ -600,13 +699,13 @@ public class CharacterStats : MonoBehaviour
 
         if (player != null)
         {
-            PlayerReputationManager rep =
+            PlayerReputationManager reputation =
                 player.GetComponent<PlayerReputationManager>();
 
-            if (rep != null)
+            if (reputation != null)
             {
                 ReputationState state =
-                    rep.GetReputationState(faction);
+                    reputation.GetReputationState(faction);
 
                 if (state == ReputationState.Hated)
                     return true;
@@ -616,53 +715,58 @@ public class CharacterStats : MonoBehaviour
         return false;
     }
 
-    public bool IsFriendlyTo(CharacterStats other)
+    public bool IsFriendlyTo(
+        CharacterStats other)
     {
         if (other == null)
             return false;
 
-        if (faction == null || other.faction == null)
+        if (faction == null ||
+            other.faction == null)
+        {
             return false;
+        }
 
-        ReputationState standing = faction.GetStanding(other.faction);
+        ReputationState standing =
+            faction.GetStanding(other.faction);
 
         return standing != ReputationState.Hated &&
                standing != ReputationState.Indifferent;
     }
 
-    public bool IsHostileToPlayer(PlayerStats player)
+    public bool IsHostileToPlayer(
+        PlayerStats player)
     {
         if (player == null)
             return false;
 
-        // Permanent hostility
-        PlayerReputationManager rep =
+        PlayerReputationManager reputation =
             player.GetComponent<PlayerReputationManager>();
 
-        if (rep != null && faction != null)
+        if (reputation != null &&
+            faction != null)
         {
             ReputationState state =
-                rep.GetReputationState(faction);
+                reputation.GetReputationState(faction);
 
             if (state == ReputationState.Hated)
                 return true;
         }
 
-        // Temporary hostility
         NPCReactionController reaction =
             GetComponent<NPCReactionController>();
 
-        if (reaction != null && reaction.IsTemporarilyHostile)
-        {
-            return true;
-        }
-
-        return false;
+        return reaction != null &&
+               reaction.IsTemporarilyHostile;
     }
 
-    protected virtual void GiveDeathRewards(CharacterStats killer)
+    protected virtual void GiveDeathRewards(
+        CharacterStats killer)
     {
-        deathReward?.GiveRewards(this, killer);
+        deathReward?.GiveRewards(
+            this,
+            killer
+        );
     }
 
     public void EnterCombat()
@@ -672,39 +776,71 @@ public class CharacterStats : MonoBehaviour
 
     public bool IsInCombat()
     {
-        return stateController != null && stateController.InCombat;
+        return stateController != null &&
+               stateController.InCombat;
     }
 
-    void InitializeBaseStats()
+    private void InitializeBaseStatLookup()
     {
         statLookup.Clear();
 
-        foreach (var stat in stats)
+        foreach (StatEntry entry in stats)
         {
-            statLookup[stat.stat] = stat.value;
-        }
+            if (entry == null)
+                continue;
 
-        //--------
-        foreach (var kv in statLookup)
-        {
-            //Debug.Log($"BASE ENTRY: {kv.Key} = {kv.Value}");
+            statLookup[entry.stat] =
+                entry.value;
         }
-        //--------
     }
 
-    public void SetBaseStat(StatType stat, float value)
+    public void SetBaseStat(
+        StatType stat,
+        float value)
     {
-        StatEntry entry = stats.Find(x => x.stat == stat);
+        StatDatabase database =
+            StatDatabase.Instance;
 
-        if (entry != null)
-            entry.value = value;
-        else
-            stats.Add(new StatEntry
+        StatDefinition definition =
+            database?.GetDefinition(stat);
+
+        if (definition == null)
+        {
+            Debug.LogWarning(
+                $"Kan inte sätta {stat}: ingen StatDefinition finns.",
+                this
+            );
+
+            return;
+        }
+
+        if (definition.kind != StatKind.Primary)
+        {
+            Debug.LogWarning(
+                $"Kan inte sätta {stat} som base stat eftersom " +
+                $"definitionen är {definition.kind}.",
+                this
+            );
+
+            return;
+        }
+
+        StatEntry entry =
+            stats.Find(candidate =>
+                candidate != null &&
+                candidate.stat == stat);
+
+        if (entry == null)
+        {
+            entry = new StatEntry
             {
-                stat = stat,
-                value = value
-            });
+                stat = stat
+            };
 
+            stats.Add(entry);
+        }
+
+        entry.value = value;
         statLookup[stat] = value;
 
         RecalculateDerivedStats();
@@ -712,23 +848,34 @@ public class CharacterStats : MonoBehaviour
         OnStatsChanged?.Invoke();
     }
 
-    public float GetBaseStatValue(StatType stat)
+    /// <summary>
+    /// Returns the stored primary value or the calculated
+    /// derived value before modifiers for that same stat.
+    /// </summary>
+    public float GetBaseStatValue(
+        StatType stat)
     {
-       //Debug.Log($"GetBaseStatValue({stat})");
-        if (statLookup.TryGetValue(stat, out float value))
+        return GetRawStatValue(stat);
+    }
+
+    private float GetRawStatValue(
+        StatType stat)
+    {
+        if (statLookup.TryGetValue(
+                stat,
+                out float baseValue))
         {
-            //Debug.Log($"Found in BASE = {value}");
-            return value;
+            return baseValue;
         }
 
-        if (derivedLookup.TryGetValue(stat, out value))
+        if (derivedLookup.TryGetValue(
+                stat,
+                out float derivedValue))
         {
-            //Debug.Log($"Found in DERIVED = {value}");
-            return value;
+            return derivedValue;
         }
 
-        //Debug.Log("Not found anywhere");
-        return 0;
+        return 0f;
     }
 
     private StatScalingProfile ScalingProfile
@@ -738,7 +885,26 @@ public class CharacterStats : MonoBehaviour
             if (cachedScalingProfile == null)
             {
                 cachedScalingProfile =
-                    Resources.Load<StatScalingProfile>("StatScalingProfile");
+                    Resources.Load<StatScalingProfile>(
+                        "Stats/StatScalingProfile"
+                    );
+
+                if (cachedScalingProfile == null)
+                {
+                    cachedScalingProfile =
+                        Resources.Load<StatScalingProfile>(
+                            "StatScalingProfile"
+                        );
+                }
+
+                if (cachedScalingProfile == null)
+                {
+                    Debug.LogError(
+                        "StatScalingProfile kunde inte hittas. " +
+                        "Lägg asseten i Resources/Stats eller Resources.",
+                        this
+                    );
+                }
             }
 
             return cachedScalingProfile;
@@ -746,61 +912,9 @@ public class CharacterStats : MonoBehaviour
     }
 
 #if UNITY_EDITOR
-    void OnValidate()
+    private void OnValidate()
     {
-        InitializeBaseStats();
-
-        EnsurePrimaryStatsExist();
-        EnsureDerivedStatsExist();
-
-        RecalculateDerivedStats();
+        RefreshStats();
     }
 #endif
-
-    void EnsurePrimaryStatsExist()
-    {
-        if (StatDatabase.Instance == null)
-            return;
-
-        foreach (var definition in StatDatabase.Instance.stats)
-        {
-            if (definition.kind != StatKind.Primary)
-                continue;
-
-
-            if (stats.Exists(x => x.stat == definition.stat))
-                continue;
-
-            stats.Add(new StatEntry
-            {
-                stat = definition.stat,
-                value = 0
-            });
-        }
-    }
-
-    void EnsureDerivedStatsExist()
-    {
-        if (StatDatabase.Instance == null)
-            return;
-
-
-        foreach (var definition in StatDatabase.Instance.stats)
-        {
-            if (definition.kind != StatKind.Derived)
-                continue;
-
-
-            if (derivedStats.Exists(x => x.stat == definition.stat))
-                continue;
-
-
-            derivedStats.Add(new DerivedStat
-            {
-                stat = definition.stat,
-                value = 0
-            });
-        }
-    }
 }
-

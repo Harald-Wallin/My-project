@@ -16,7 +16,7 @@ public class NPCMovement : MonoBehaviour
     [Tooltip("How close to the target the NPC stops before it stops moving.")]
         [SerializeField] private float stopDistance = 0.8f;
     [Tooltip("How far ahead the NPC looks for obstacles.")]
-        [SerializeField] private float avoidanceProbeDistance = 1.2f;
+        [SerializeField] private float avoidanceProbeDistance = 1.5f;
     [Tooltip("The angle used when the NPC searches for alternative paths around an obstacle.")]
         [SerializeField] private float avoidanceAngle = 35f;
     [Tooltip("How long the NPC remembers a previously chosen avoidance direction.")]
@@ -36,7 +36,8 @@ public class NPCMovement : MonoBehaviour
     [Tooltip("Radius within which other NPCs affect separation.")]
         [SerializeField] private float separationRadius = 1.2f;
     [Tooltip("How long a detected obstacle continues to affect steering.")]
-        [SerializeField] private float obstacleMemoryDuration = 2f;
+        [SerializeField] private float obstacleMemoryDuration = 0.8f;
+    [SerializeField] private LayerMask avoidanceLayers;
 
     public float DefaultStopDistance => stopDistance;
     private Vector2 rememberedAvoidanceDirection;
@@ -161,7 +162,7 @@ public class NPCMovement : MonoBehaviour
 
         Vector2 direction = GetSteeringDirection(toTarget.normalized);
 
-        Vector2 desiredMove = direction * moveSpeed * speedMultiplier * moveSpeed * Time.fixedDeltaTime;
+        Vector2 desiredMove = direction * moveSpeed * speedMultiplier * Time.fixedDeltaTime;
 
         ContactFilter2D filter = new ContactFilter2D();
         filter.useLayerMask = true;
@@ -252,15 +253,23 @@ public class NPCMovement : MonoBehaviour
         return false;
     }
 
-    public void BeginPatrol()
+    public void StartPatrol()
     {
-        waitingAtPatrolNode = false;
+        SetMovementMode(NPCMovementMode.Patrol);
 
+        waitingAtPatrolNode = false;
         patrolWaitTimer = 0f;
 
         patrolForward = true;
-
         patrolIndex = 0;
+    }
+
+    public void ResumePatrol()
+    {
+        SetMovementMode(NPCMovementMode.Patrol);
+
+        waitingAtPatrolNode = false;
+        patrolWaitTimer = 0f;
     }
 
     public void EndPatrol()
@@ -272,11 +281,16 @@ public class NPCMovement : MonoBehaviour
 
     public void BeginWander()
     {
+        SetMovementMode(NPCMovementMode.Wander);
+
         isWandering = true;
         isPausing = false;
 
-        Vector2 randomDirection = Random.insideUnitCircle.normalized;
-        float randomDistance = Random.Range(0.5f, wanderRadius);
+        Vector2 randomDirection =
+            Random.insideUnitCircle.normalized;
+
+        float randomDistance =
+            Random.Range(0.5f, wanderRadius);
 
         wanderTarget =
             (Vector2)SpawnPosition +
@@ -514,57 +528,105 @@ public class NPCMovement : MonoBehaviour
 
     Vector2 CalculateObstacleAvoidance(Vector2 desiredDirection)
     {
+        if (desiredDirection.sqrMagnitude < 0.001f)
+            return Vector2.zero;
+
+        desiredDirection.Normalize();
+
+        Vector2 leftProbeDirection =
+            RotateDirection(
+                desiredDirection,
+                avoidanceAngle
+            );
+
+        Vector2 rightProbeDirection =
+            RotateDirection(
+                desiredDirection,
+                -avoidanceAngle
+            );
+
+        Vector2 avoidanceForce = Vector2.zero;
+
+        avoidanceForce += CalculateProbeForce(
+            desiredDirection,
+            avoidanceProbeDistance,
+            1.5f
+        );
+
+        avoidanceForce += CalculateProbeForce(
+            leftProbeDirection,
+            avoidanceProbeDistance * 0.85f,
+            1f
+        );
+
+        avoidanceForce += CalculateProbeForce(
+            rightProbeDirection,
+            avoidanceProbeDistance * 0.85f,
+            1f
+        );
+
+        if (avoidanceForce.sqrMagnitude < 0.001f)
+            return Vector2.zero;
+
+        Vector2 normalizedForce =
+            avoidanceForce.normalized;
+
+        RememberObstacleDirection(normalizedForce);
+
+        return normalizedForce;
+    }
+
+    Vector2 CalculateProbeForce(Vector2 probeDirection,float probeDistance,float probeWeight)
+    {
         RaycastHit2D hit =
             Physics2D.Raycast(
                 rb.position,
-                desiredDirection,
-                1.2f,
-                LayerMask.GetMask("World")
+                probeDirection,
+                probeDistance,
+                avoidanceLayers
             );
 
         if (!hit)
             return Vector2.zero;
 
-        Vector2 left =
-            new Vector2(
-                -desiredDirection.y,
-                 desiredDirection.x
+        if (hit.rigidbody == rb)
+            return Vector2.zero;
+
+        float proximity =
+            1f - Mathf.Clamp01(
+                hit.distance / probeDistance
             );
 
-        Vector2 right =
-            new Vector2(
-                 desiredDirection.y,
-                -desiredDirection.x
+        float strength =
+            Mathf.Lerp(
+                0.25f,
+                1f,
+                proximity
             );
 
-        float leftClear =
-            Physics2D.Raycast(
-                rb.position,
-                left,
-                1.5f,
-                LayerMask.GetMask("World")
-            )
-            ? 0f
-            : 1f;
+        Vector2 awayFromObstacle =
+            hit.normal;
 
-        float rightClear =
-            Physics2D.Raycast(
-                rb.position,
-                right,
-                1.5f,
-                LayerMask.GetMask("World")
-            )
-            ? 0f
-            : 1f;
+        return awayFromObstacle *
+               strength *
+               probeWeight;
+    }
 
-        if (leftClear > rightClear)
-        {
-            RememberObstacleDirection(left);
-            return left;
-        }
+    Vector2 RotateDirection(Vector2 direction,float angleDegrees)
+    {
+        float radians =
+            angleDegrees * Mathf.Deg2Rad;
 
-        RememberObstacleDirection(right);
-        return right;
+        float cos = Mathf.Cos(radians);
+        float sin = Mathf.Sin(radians);
+
+        return new Vector2(
+            direction.x * cos -
+            direction.y * sin,
+
+            direction.x * sin +
+            direction.y * cos
+        ).normalized;
     }
 
     void RememberObstacleDirection(Vector2 direction)

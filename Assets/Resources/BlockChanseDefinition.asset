@@ -10,10 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 748bcbb5a027553409951c9e52b6a2e0, type: 3}
-  m_Name: MovementSpeed
+  m_Name: BlockChanseDefinition
   m_EditorClassIdentifier: Assembly-CSharp::StatDefinition
-  stat: 17
-  displayName: Movement Speed
-  category: 0
-  editable: 1
+  stat: 20
+  displayName: Block Chanse
+  displayFormat: 1
+  kind: 1
+  defaultValue: 0
+  editable: 0
   visible: 1

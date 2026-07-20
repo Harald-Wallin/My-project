@@ -37,18 +37,21 @@ public class TalentData : ScriptableObject
         // ✅ CURRENT (bara om > 0)
         if (currentPoints > 0)
         {
-
-            foreach (var effect in effects)
+            foreach (AbilityEffect effect in effects)
             {
                 if (effect is StatModifierEffect stat)
                 {
-                    float value = stat.value * currentPoints;
+                    float value =
+                        stat.value *
+                        currentPoints;
 
-                    string text = stat.type == ModifierType.Flat
-                        ? $"+{value:0} {stat.stat}"
-                        : $"+{value * 100f:0}% {stat.stat}";
-
-                    data.stats.Add(text);
+                    data.stats.Add(
+                        StatFormatting.FormatModifier(
+                            stat.stat,
+                            stat.type,
+                            value
+                        )
+                    );
                 }
             }
         }
@@ -95,9 +98,11 @@ public class TalentData : ScriptableObject
             if (currentPoints > 0)
                 data.stats.Add("");
 
-            data.stats.Add("<color=yellow>Next Rank:</color>");
+            data.stats.Add(
+                "<color=yellow>Next Rank:</color>"
+            );
 
-            foreach (var effect in effects)
+            foreach (AbilityEffect effect in effects)
             {
                 if (effect is StatModifierEffect stat)
                 {
@@ -105,15 +110,15 @@ public class TalentData : ScriptableObject
                         stat.value *
                         (currentPoints + 1);
 
-                    string text =
-                        stat.type == ModifierType.Flat
-                        ? $"+{value:0} {stat.stat}"
-                        : $"+{value * 100f:0}% {stat.stat}";
-
-                    data.stats.Add(text);
+                    data.stats.Add(
+                        StatFormatting.FormatModifier(
+                            stat.stat,
+                            stat.type,
+                            value
+                        )
+                    );
                 }
             }
-
         }
 
         if (requirements != null && requirements.Length > 0)
