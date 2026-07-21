@@ -13,18 +13,53 @@ MonoBehaviour:
   m_Name: Battle Shout
   m_EditorClassIdentifier: Assembly-CSharp::AbilityData
   abilityName: Battle Shout
-  description: An envigorating shout
+  description: You shout, envigorating everyone around you
   icon: {fileID: 21300000, guid: fee7eb2f5d1c7a64597bf638938274bd, type: 3}
-  types: 0
+  types: 2
   tags: 0a000000
-  cooldown: 120
-  globalCooldown: 1
+  useActionSettings: 1
+  targetingSettings:
+    targetingMode: 5
+    allowedRelations: 11
+    range: 5
+    minimumRange: 0
+    radius: 5
+    coneAngle: 90
+    lineWidth: 0.5
+    selectionMode: 0
+    maximumTargets: 0
+    requiresAffectedTarget: 0
+    targetLayers:
+      serializedVersion: 2
+      m_Bits: 64
+    lineOfSight:
+      policy: 0
+      blockingLayers:
+        serializedVersion: 2
+        m_Bits: 0
+      originOffset: 0.05
+  timingSettings:
+    timingType: 0
+    castDuration: 0
+    channelDuration: 0
+    channelTickInterval: 1
+    maximumChargeDuration: 1
+    recoveryDuration: 0
+  executionSettings:
+    activationMode: 1
+    cooldown: 0
+    triggersGlobalCooldown: 1
+    globalCooldownOverride: 0
+    canBeCancelled: 1
+    canBeInterrupted: 1
+  cooldown: 10
+  globalCooldown: 0
   castTime: 0
   wardCost: 0
   alwaysHits: 1
   canCrit: 0
   canMiss: 0
-  isSelfCast: 1
+  isSelfCast: 0
   requiresHitCheck: 0
   entersCombatState: 0
   effects:

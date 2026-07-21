@@ -129,6 +129,7 @@ GameObject:
   - component: {fileID: 8452496395842813275}
   - component: {fileID: 4693989535447528578}
   - component: {fileID: 6584142422350811442}
+  - component: {fileID: 1327340354901553847}
   m_Layer: 9
   m_Name: Wolf
   m_TagString: Enemy
@@ -271,6 +272,8 @@ MonoBehaviour:
     value: 1.5
   - stat: 16
     value: 0.89
+  - stat: 20
+    value: 0
   _currentHP: 1
   deathReward: {fileID: 0}
   effectPoint: {fileID: 1917358144810171706}
@@ -459,6 +462,20 @@ MonoBehaviour:
   maxLootRolls: 3
   floatingExpTextPrefab: {fileID: 8131224175839406369, guid: daad473c21b3e5a438a07220b6e1ac3c, type: 3}
   unlockStartZoneWolf: 0
+--- !u!114 &1327340354901553847
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae0a99754db64dd43b455efc2b7ec8e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TargetHighlight
+  visualRoot: {fileID: 0}
+  includeInactiveRenderers: 1
 --- !u!1 &5964683598601086679
 GameObject:
   m_ObjectHideFlags: 0

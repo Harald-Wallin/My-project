@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -10,6 +11,9 @@ public class PlayerBaseAttackCollection : MonoBehaviour
     [SerializeField]
     private BaseAttackData equippedAttack;
 
+    public event Action<BaseAttackData>
+        OnEquippedAttackChanged;
+
     public List<BaseAttackData> GetLearnedAttacks()
     {
         return learnedAttacks;
@@ -20,12 +24,21 @@ public class PlayerBaseAttackCollection : MonoBehaviour
         return equippedAttack;
     }
 
-    public void EquipAttack(BaseAttackData attack)
+    public void EquipAttack(
+        BaseAttackData attack)
     {
+        if (equippedAttack == attack)
+            return;
+
         equippedAttack = attack;
+
+        OnEquippedAttackChanged?.Invoke(
+            equippedAttack
+        );
     }
 
-    public void LearnAttack(BaseAttackData attack)
+    public void LearnAttack(
+        BaseAttackData attack)
     {
         if (attack == null)
             return;
@@ -35,16 +48,19 @@ public class PlayerBaseAttackCollection : MonoBehaviour
 
         learnedAttacks.Add(attack);
 
-        AnnouncementSpawner.Instance?.QueueAnnouncement(
-            AnnouncementSpawner.Instance.Database.abilityLearned,
-            AnnouncementFormatter.BuildAbilityLearnedAnnouncement(
-                attack.abilityName
-            )
-        );
+        AnnouncementSpawner.Instance
+            ?.QueueAnnouncement(
+                AnnouncementSpawner
+                    .Instance
+                    .Database
+                    .abilityLearned,
+                AnnouncementFormatter
+                    .BuildAbilityLearnedAnnouncement(
+                        attack.abilityName
+                    )
+            );
 
         SpellbookNotificationManager.Instance
             ?.NotifyNewEntry();
     }
-
-
 }

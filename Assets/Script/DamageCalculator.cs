@@ -64,8 +64,6 @@ public static class DamageCalculator
 
         if (Random.value < blockChance)
         {
-            //Debug.Log("BLOCK OCCURRED");
-
             blocked = true;
 
             blockedAmount = Mathf.RoundToInt(defender.GetStat(StatType.BlockValue));

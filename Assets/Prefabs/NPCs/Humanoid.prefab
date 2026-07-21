@@ -26,6 +26,7 @@ GameObject:
   - component: {fileID: -4741224723462481346}
   - component: {fileID: -1018831399304009737}
   - component: {fileID: -2672624628164567342}
+  - component: {fileID: 1815511517647049697}
   m_Layer: 8
   m_Name: Humanoid
   m_TagString: Enemy
@@ -205,20 +206,31 @@ MonoBehaviour:
   reputationLossOnDeath: 0
   displayName: NPC
   level: 1
-  maxHP: 0
-  currentHP: 0
-  strength: 0
-  swiftness: 0
-  armor: 0
-  movementSpeed: 2.5
-  attackSpeed: 1
-  weaponDamage: 0
-  hitChance: 0.85
-  evasion: 0.08
-  blockChance: 0
-  blockValue: 0
-  critChance: 0.3
-  critMultiplier: 2
+  stats:
+  - stat: 0
+    value: 5
+  - stat: 1
+    value: 20
+  - stat: 2
+    value: 0
+  - stat: 3
+    value: 1
+  - stat: 12
+    value: 0
+  derivedStats:
+  - stat: 15
+    value: 2.5
+  - stat: 4
+    value: 1
+  - stat: 5
+    value: 3.4
+  - stat: 21
+    value: 2.5
+  - stat: 16
+    value: 0.89
+  - stat: 20
+    value: 0
+  _currentHP: 0
   deathReward: {fileID: 0}
   effectPoint: {fileID: 0}
 --- !u!114 &3520048928441293711
@@ -353,7 +365,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c8655f0806a2ecd479ce7c3fdd96658d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
-  moveSpeed: 1.5
   stopDistance: 0.8
   avoidanceProbeDistance: 1.2
   avoidanceAngle: 35
@@ -366,6 +377,9 @@ MonoBehaviour:
   separationWeight: 1.2
   separationRadius: 1.2
   obstacleMemoryDuration: 2
+  avoidanceLayers:
+    serializedVersion: 2
+    m_Bits: 0
   wanderRadius: 3
   wanderMoveTime: 2
   wanderPauseTime: 2
@@ -439,6 +453,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterStateController
   combatDuration: 5
+--- !u!114 &1815511517647049697
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae0a99754db64dd43b455efc2b7ec8e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TargetHighlight
+  visualRoot: {fileID: 0}
+  includeInactiveRenderers: 1
 --- !u!1 &3778626201625969471
 GameObject:
   m_ObjectHideFlags: 0

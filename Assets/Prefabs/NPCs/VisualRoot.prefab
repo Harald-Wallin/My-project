@@ -466,6 +466,7 @@ GameObject:
   - component: {fileID: 2461264929376405900}
   - component: {fileID: 1079150381214020797}
   - component: {fileID: 1025391827144042253}
+  - component: {fileID: 3541829911589503321}
   m_Layer: 0
   m_Name: VisualRoot
   m_TagString: Untagged
@@ -522,7 +523,7 @@ MonoBehaviour:
   hair: {fileID: 6424438062269470412}
   beard: {fileID: 4853394759224202473}
   frameRate: 6
-  initialFacing: 0
+  initialFacing: {x: 0, y: -1}
   headAnimations:
     idle:
       down:
@@ -762,6 +763,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DamageReaction
   pushDistance: 0.08
   pushDuration: 0.05
+--- !u!114 &3541829911589503321
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3594232167526997346}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae0a99754db64dd43b455efc2b7ec8e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TargetHighlight
+  visualRoot: {fileID: 2461264929376405900}
+  includeInactiveRenderers: 1
 --- !u!1 &3649356480898778113
 GameObject:
   m_ObjectHideFlags: 0

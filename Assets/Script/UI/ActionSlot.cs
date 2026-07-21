@@ -14,64 +14,117 @@ public class ActionSlot : MonoBehaviour, IDropHandler, IPointerEnterHandler, IPo
     [SerializeField] private Image flashImage;
 
     private AbilityController abilityController;
+    private PlayerActionInput playerActionInput;
     private PlayerAbilityCollection collection;
     public AbilityData ability;
     private int slotIndex;
     private bool isDragging = false;
 
-    public void Initialize(AbilityController controller, AbilityData ability, int index)
+    public void Initialize(
+    AbilityController controller,
+    AbilityData ability,
+    int index)
     {
-        collection = controller.GetComponent<PlayerAbilityCollection>();
+        collection =
+            controller.GetComponent<
+                PlayerAbilityCollection>();
+
+        playerActionInput =
+            controller.GetComponent<
+                PlayerActionInput>();
 
         this.abilityController = controller;
         this.ability = ability;
         this.slotIndex = index;
 
-        hotkeyText.text = (index + 1).ToString();
+        hotkeyText.text =
+            (index + 1).ToString();
 
         if (ability != null)
         {
             icon.sprite = ability.icon;
             icon.enabled = true;
+            icon.color = Color.white;
 
-            var drag = icon.GetComponent<DraggableAbility>();
+            var drag =
+                icon.GetComponent<
+                    DraggableAbility>();
+
             if (drag != null)
                 drag.ability = ability;
         }
         else
         {
-            icon.color = new Color(1, 1, 1, 0.2f);
+            icon.sprite = null;
+            icon.enabled = true;
+            icon.color =
+                new Color(
+                    1f,
+                    1f,
+                    1f,
+                    0.2f
+                );
 
-            var drag = icon.GetComponent<DraggableAbility>();
+            var drag =
+                icon.GetComponent<
+                    DraggableAbility>();
+
             if (drag != null)
                 drag.ability = null;
         }
     }
 
-    public void OnPointerClick(PointerEventData eventData)
+    private bool TryActivateAbility()
     {
-        if (eventData.button != PointerEventData.InputButton.Left)
-            return;
+        if (ability == null)
+            return false;
 
-        PlayClickFeedback(); // 🔥 ALLTID
-
-        if (abilityController != null && ability != null)
+        if (ability.UsesActionSettings &&
+            playerActionInput != null)
         {
-            abilityController.TryUseAbility(ability);
+            return playerActionInput
+                .TryStartAbility(
+                    ability
+                );
         }
+
+        if (abilityController == null)
+            return false;
+
+        return abilityController
+            .TryUseAbility(
+                ability
+            );
+    }
+
+    public void OnPointerClick(
+    PointerEventData eventData)
+    {
+        if (eventData.button !=
+            PointerEventData.InputButton.Left)
+        {
+            return;
+        }
+
+        PlayClickFeedback();
+
+        TryActivateAbility();
     }
 
     void Update()
     {
-        if (abilityController == null || ability == null)
+        if (abilityController == null ||
+            ability == null)
+        {
             return;
+        }
 
-        if (Input.GetKeyDown(KeyCode.Alpha1 + slotIndex))
+        if (Input.GetKeyDown(
+                KeyCode.Alpha1 + slotIndex))
         {
             PlayClickFeedback();
 
-            if (ability != null)
-                abilityController.TryUseAbility(ability);
+            TryActivateAbility();
         }
 
         UpdateCooldownUI();

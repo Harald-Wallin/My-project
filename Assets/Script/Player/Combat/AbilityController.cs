@@ -13,10 +13,13 @@ public class AbilityController : MonoBehaviour
     [SerializeField]
     private AbilityData[] equippedAbilities;
 
+    private CharacterActionController actionController;
+
     void Awake()
     {
         stats = GetComponent<CharacterStats>();
         collection = GetComponent<PlayerAbilityCollection>();
+        actionController = GetComponent<CharacterActionController>();
     }
 
     void Update()
@@ -42,6 +45,26 @@ public class AbilityController : MonoBehaviour
     {
         if (ability == null)
             return false;
+
+        if (ability.UsesActionSettings)
+        {
+            if (actionController == null)
+            {
+                Debug.LogError(
+                    $"{name} försökte använda den migrerade abilityn " +
+                    $"'{ability.abilityName}', men saknar " +
+                    $"{nameof(CharacterActionController)}.",
+                    this
+                );
+
+                return false;
+            }
+
+            return actionController.TryStartAction(
+                ability,
+                explicitTarget
+            );
+        }
 
         if (!stats.CanAct())
             return false;
@@ -145,25 +168,61 @@ public class AbilityController : MonoBehaviour
         return null;
     }
 
-    public float GetCooldownRemaining(AbilityData ability)
+    public float GetCooldownRemaining(
+    AbilityData ability)
     {
+        if (ability == null)
+            return 0f;
+
+        if (ability.UsesActionSettings)
+        {
+            return actionController != null
+                ? actionController
+                    .GetCooldownRemaining(ability)
+                : 0f;
+        }
+
         float abilityCD = 0f;
 
-        if (cooldownTimers.TryGetValue(ability, out float time))
+        if (cooldownTimers.TryGetValue(
+                ability,
+                out float time))
         {
-            abilityCD = Mathf.Max(0f, time);
+            abilityCD =
+                Mathf.Max(
+                    0f,
+                    time
+                );
         }
 
         if (abilityCD > 0f)
             return abilityCD;
 
-        return Mathf.Max(0f, globalCooldownTimer);
+        return Mathf.Max(
+            0f,
+            globalCooldownTimer
+        );
     }
 
-    public float GetMaxCooldown(AbilityData ability)
+    public float GetMaxCooldown(
+    AbilityData ability)
     {
-        if (cooldownTimers.ContainsKey(ability))
+        if (ability == null)
+            return 0f;
+
+        if (ability.UsesActionSettings)
+        {
+            return actionController != null
+                ? actionController
+                    .GetMaxCooldown(ability)
+                : 0f;
+        }
+
+        if (cooldownTimers.ContainsKey(
+                ability))
+        {
             return ability.cooldown;
+        }
 
         return ability.globalCooldown;
     }

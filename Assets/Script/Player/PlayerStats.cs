@@ -54,7 +54,9 @@ public class PlayerStats : CharacterStats
         TalentNotificationManager.Instance
             ?.NotifyNewTalentPoints();
 
+        
         RaiseHealthChanged();
+        GetMaxHP();
 
         if (confettiPrefab != null)
         {
@@ -178,6 +180,7 @@ public class PlayerStats : CharacterStats
 
         currentHP = GetMaxHP();
         RaiseHealthChanged();
+        ResetHealth();
     }
 
     public void RaiseHealthChangedExternally()

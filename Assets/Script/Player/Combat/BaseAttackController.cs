@@ -14,6 +14,7 @@ public class BaseAttackController : MonoBehaviour
     private float cooldownTimer;
 
     public bool IsReady => cooldownTimer <= 0f;
+    public bool IsOnCooldown => cooldownTimer > 0f;
 
     public BaseAttackData CurrentAttack =>
     collection != null
@@ -245,6 +246,41 @@ public class BaseAttackController : MonoBehaviour
         }
 
         return Vector2.right;
+    }
+
+    /// <summary>
+    /// 0 när attacken precis har använts.
+    /// 1 när attacken är helt redo.
+    /// </summary>
+    public float GetReadinessNormalized()
+    {
+        if (IsReady)
+            return 1f;
+
+        float attackSpeed =
+            stats != null
+                ? stats.GetStat(
+                    StatType.AttackSpeed
+                )
+                : 0f;
+
+        if (attackSpeed <= 0f)
+            attackSpeed = 1f;
+
+        float cooldownDuration =
+            1f / attackSpeed;
+
+        if (cooldownDuration <= 0f)
+            return 1f;
+
+        float remainingNormalized =
+            Mathf.Clamp01(
+                cooldownTimer /
+                cooldownDuration
+            );
+
+        return 1f -
+               remainingNormalized;
     }
 
     void UpdateIndicator()

@@ -463,6 +463,8 @@ MonoBehaviour:
     value: 2.5
   - stat: 16
     value: 0.89
+  - stat: 20
+    value: 0
   _currentHP: 0
   deathReward: {fileID: 0}
   effectPoint: {fileID: 5155013851662899411}

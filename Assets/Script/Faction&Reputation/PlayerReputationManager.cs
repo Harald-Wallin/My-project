@@ -219,20 +219,17 @@ public class PlayerReputationManager : MonoBehaviour
         OnReputationChanged?.Invoke(data);
     }
 
-    public bool IsMurderEnabled(Faction faction)
+    public bool IsMurderEnabled(
+    Faction faction)
     {
+        if (faction == null)
+            return false;
 
-        if (faction==null) return false;
+        FactionReputationData data =
+            GetReputation(faction);
 
-        var data = GetReputation(faction);
-
-        if(data == null)
-        {
-            DiscoverFaction(faction);
-            data =
-                GetReputation(faction);
-        }
-        return data != null && data.murderEnabled;
+        return data != null &&
+               data.murderEnabled;
     }
 
     public void SetMurderEnabled(Faction faction, bool value)

@@ -17,13 +17,50 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: f4ce3af5ae408f94c9087617c874e8c0, type: 3}
   types: 0
   tags: 0100000018000000
+  useActionSettings: 1
+  targetingSettings:
+    targetingMode: 4
+    allowedRelations: 4
+    range: 2
+    minimumRange: 0
+    radius: 1
+    coneAngle: 90
+    lineWidth: 0.3
+    selectionMode: 0
+    maximumTargets: 1
+    requiresAffectedTarget: 0
+    targetLayers:
+      serializedVersion: 2
+      m_Bits: 64
+    lineOfSight:
+      policy: 0
+      blockingLayers:
+        serializedVersion: 2
+        m_Bits: 0
+      originOffset: 0.05
+  timingSettings:
+    timingType: 0
+    castDuration: 0
+    channelDuration: 0
+    channelTickInterval: 1
+    maximumChargeDuration: 1
+    recoveryDuration: 0
+  executionSettings:
+    activationMode: 1
+    cooldown: 5
+    triggersGlobalCooldown: 1
+    globalCooldownOverride: 0
+    canBeCancelled: 1
+    canBeInterrupted: 1
   cooldown: 5
-  globalCooldown: 1
+  globalCooldown: 0
   castTime: 0
+  wardCost: 0
   alwaysHits: 0
   canCrit: 1
   canMiss: 1
   isSelfCast: 0
   requiresHitCheck: 1
+  entersCombatState: 1
   effects:
   - {fileID: 11400000, guid: 701239db2e049894cbae6cdc17413f7a, type: 2}
