@@ -27,6 +27,7 @@ GameObject:
   - component: {fileID: -7689155213173438067}
   - component: {fileID: -6321709135610774627}
   - component: {fileID: 788226862973081087}
+  - component: {fileID: 2430686843897917415}
   m_Layer: 8
   m_Name: Bandit2 1
   m_TagString: Enemy
@@ -335,8 +336,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerBaseAttackCollection
   learnedAttacks:
-  - {fileID: 11400000, guid: ef961514809aaa741a1d92d2f70b0c6b, type: 2}
-  equippedAttack: {fileID: 11400000, guid: ef961514809aaa741a1d92d2f70b0c6b, type: 2}
+  - {fileID: 11400000, guid: 83d5314be1a2a9a4697b658f29a26d08, type: 2}
+  equippedAttack: {fileID: 11400000, guid: 83d5314be1a2a9a4697b658f29a26d08, type: 2}
 --- !u!114 &5911326519326787468
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -466,9 +467,25 @@ MonoBehaviour:
     value: 2.5
   - stat: 16
     value: 0.89
+  - stat: 20
+    value: 0
   _currentHP: 0
   deathReward: {fileID: 0}
   effectPoint: {fileID: 5155013851662899411}
+--- !u!114 &2430686843897917415
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4461167aa926de244b9f2bb82a335ea1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterActionController
+  defaultGlobalCooldown: 0.8
+  targetingBufferSize: 128
 --- !u!1 &3778626201625969471
 GameObject:
   m_ObjectHideFlags: 0

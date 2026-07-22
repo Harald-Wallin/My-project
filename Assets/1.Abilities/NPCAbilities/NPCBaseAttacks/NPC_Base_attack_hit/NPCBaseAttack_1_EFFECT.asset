@@ -9,17 +9,21 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d7a465ac88b24574aa1ed1284e95cb42, type: 3}
-  m_Name: BaseAttackHitEffect
-  m_EditorClassIdentifier: Assembly-CSharp::ScaledDamageEffect
-  icon: {fileID: 21300000, guid: 1e20947b21886f441b4d7035e2395819, type: 3}
+  m_Script: {fileID: 11500000, guid: 9cabe64db8ae939419903135cd8352ae, type: 3}
+  m_Name: NPCBaseAttack_1_EFFECT
+  m_EditorClassIdentifier: Assembly-CSharp::DamageEffect
+  icon: {fileID: 0}
   executionTiming: 0
   targetMode: 0
   requiresCharacterTarget: 1
   stackable: 0
   maxStacks: 1
   refreshDurationOnStack: 0
-  removeOnDeath: 0
-  strengthMultiplier: 0.6
-  weaponDamageMultiplier: 0
-  flatDamage: 0
+  removeOnDeath: 1
+  flatDamage: 1
+  scaling:
+  - stat: 0
+    multiplier: 0.5
+  dealsRawDamage: 0
+  scalesWithCharge: 0
+  minimumChargeMultiplier: 0.25

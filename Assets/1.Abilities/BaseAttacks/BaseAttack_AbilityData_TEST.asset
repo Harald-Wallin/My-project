@@ -10,31 +10,31 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 819478855cc46d4488d511a805e4a839, type: 3}
-  m_Name: NPC-Stun2sec
+  m_Name: BaseAttack_AbilityData_TEST
   m_EditorClassIdentifier: Assembly-CSharp::AbilityData
-  abilityName: NPCStun2sec
-  description: 
-  icon: {fileID: 21300000, guid: f1bc065709a614d41b8f49b92578973f, type: 3}
+  abilityName: BaseAttack AbilityData
+  description: Baseattack with AbilityData
+  icon: {fileID: 21300000, guid: 1e20947b21886f441b4d7035e2395819, type: 3}
   types: 0
-  usageType: 0
-  tags: 0100000015000000
+  usageType: 1
+  tags: 0100000000000000
   useActionSettings: 1
   targetingSettings:
-    targetingMode: 1
+    targetingMode: 3
     allowedRelations: 4
-    range: 2
+    range: 1.8
     minimumRange: 0
     radius: 1
-    coneAngle: 90
+    coneAngle: 110
     lineWidth: 0.5
     selectionMode: 0
-    maximumTargets: 0
-    requiresAffectedTarget: 1
+    maximumTargets: 3
+    requiresAffectedTarget: 0
     targetLayers:
       serializedVersion: 2
       m_Bits: 64
     lineOfSight:
-      policy: 1
+      policy: 3
       blockingLayers:
         serializedVersion: 2
         m_Bits: 1024
@@ -48,21 +48,21 @@ MonoBehaviour:
     recoveryDuration: 0
   executionSettings:
     activationMode: 0
-    cooldown: 5
-    triggersGlobalCooldown: 1
+    cooldown: 0
+    triggersGlobalCooldown: 0
     globalCooldownOverride: 0
     canBeCancelled: 1
     resolvesTargetHitImmediately: 1
     canBeInterrupted: 1
-  cooldown: 10
+  cooldown: 5
   globalCooldown: 0.8
   castTime: 0
   wardCost: 0
   alwaysHits: 0
-  canCrit: 0
+  canCrit: 1
   canMiss: 1
   isSelfCast: 0
-  requiresHitCheck: 1
+  requiresHitCheck: 0
   entersCombatState: 1
   effects:
-  - {fileID: 11400000, guid: f31f13791c87491408ff5f989d278652, type: 2}
+  - {fileID: 11400000, guid: 94d298cbd11154e41a30b0141c609c27, type: 2}
