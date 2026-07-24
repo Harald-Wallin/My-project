@@ -37,9 +37,6 @@ public class NPCReactionController : MonoBehaviour
     public bool IsHostile =>
     IsReputationHostile() || IsTemporarilyHostile;
 
-    //public bool IsAlerted =>
-    //    IsHostile;
-
     private NPCBehavior ai;
 
     private CharacterStats selfStats;
@@ -328,6 +325,21 @@ public class NPCReactionController : MonoBehaviour
             FactionAwarenessSystem.Instance
                 .RegisterAlertedNPC(this);
         }
+    }
+
+    public void ResetEncounterState()
+    {
+        lastThreatSource = null;
+        currentlyDetectingPlayer = false;
+
+        alertTimer = 0f;
+
+        ClearAwarenessMemory();
+
+        FactionAwarenessSystem.Instance
+            ?.UnregisterAlertedNPC(
+                this
+            );
     }
 
 

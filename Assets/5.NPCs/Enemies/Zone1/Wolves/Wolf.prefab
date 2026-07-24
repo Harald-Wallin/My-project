@@ -131,6 +131,7 @@ GameObject:
   - component: {fileID: 6584142422350811442}
   - component: {fileID: 1327340354901553847}
   - component: {fileID: 2430686843897917415}
+  - component: {fileID: 6351350600522376679}
   m_Layer: 9
   m_Name: Wolf
   m_TagString: Enemy
@@ -250,6 +251,7 @@ MonoBehaviour:
   reputationLossOnHit: 0
   reputationLossOnDeath: 0
   displayName: 'Starving Wolf '
+  role: 0
   level: 1
   stats:
   - stat: 0
@@ -491,6 +493,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CharacterActionController
   defaultGlobalCooldown: 0.8
   targetingBufferSize: 128
+--- !u!114 &6351350600522376679
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d805f88a3a97ac74b9bee83bf9a5067d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CreatureIdentity
+  definition: {fileID: 11400000, guid: fce0968aa55d6aa4a8cfed87ad1c6fd6, type: 2}
 --- !u!1 &5964683598601086679
 GameObject:
   m_ObjectHideFlags: 0
@@ -693,6 +708,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7129992897701414318, guid: 7fae102c0907cb54680287d363a1299e, type: 3}
+      propertyPath: target
+      value: 
+      objectReference: {fileID: 788226862973081087}
     - target: {fileID: 7917476200973921693, guid: 7fae102c0907cb54680287d363a1299e, type: 3}
       propertyPath: m_Name
       value: Nameplate

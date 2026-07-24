@@ -14,6 +14,13 @@ public sealed class AbilityEffectExecutionContext
     public CharacterStats Caster =>
         Action.Caster;
 
+    public DamageSourceContext DamageSource =>
+    new DamageSourceContext(
+        Caster,
+        Caster,
+        Ability
+    );
+
     public GameObject TargetObject { get; }
 
     public CharacterStats Target { get; }

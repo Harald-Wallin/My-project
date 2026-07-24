@@ -14,7 +14,8 @@ public class ItemTooltip : MonoBehaviour
         BottomLeft,
         BottomRight,
         TopLeft,
-        FixedBottomLeft
+        FixedBottomLeft,
+        FixedBottomRightScreen
     }
 
     [Header("UI")]
@@ -81,6 +82,98 @@ public class ItemTooltip : MonoBehaviour
         ApplyData(data);
 
         SetPosition(target, mode);
+    }
+
+    public void ShowFixedBottomRight(
+    ITooltipProvider provider,
+    CharacterStats viewer)
+    {
+        if (provider == null)
+            return;
+
+        currentProvider =
+            provider;
+
+        currentTarget =
+            null;
+
+        currentCaster =
+            viewer;
+
+        currentAnchorMode =
+            TooltipAnchorMode
+                .FixedBottomRightScreen;
+
+        TooltipData data =
+            provider.GetTooltipData(
+                viewer
+            );
+
+        ApplyData(
+            data
+        );
+
+        SetFixedBottomRightPosition();
+    }
+
+    private void SetFixedBottomRightPosition()
+    {
+        Canvas canvas =
+            GetComponentInParent<Canvas>();
+
+        if (canvas == null)
+            return;
+
+        RectTransform canvasRect =
+            canvas.transform as RectTransform;
+
+        if (canvasRect == null)
+            return;
+
+        Canvas.ForceUpdateCanvases();
+
+        LayoutRebuilder
+            .ForceRebuildLayoutImmediate(
+                rectTransform
+            );
+
+        const float horizontalMargin = 24f;
+        const float verticalMargin = 24f;
+
+        /*
+         * Positioneringen beräknas i canvasens lokala
+         * koordinatsystem och fungerar oberoende av tooltipens pivot.
+         */
+
+        Rect canvasBounds =
+            canvasRect.rect;
+
+        Vector2 tooltipSize =
+            rectTransform.rect.size;
+
+        Vector2 pivot =
+            rectTransform.pivot;
+
+        float rightEdge =
+            canvasBounds.xMax -
+            horizontalMargin;
+
+        float bottomEdge =
+            canvasBounds.yMin +
+            verticalMargin;
+
+        rectTransform.anchoredPosition =
+            new Vector2(
+                rightEdge -
+                (1f - pivot.x) *
+                tooltipSize.x,
+
+                bottomEdge +
+                pivot.y *
+                tooltipSize.y
+            );
+
+        ClampToScreen();
     }
 
     public void ShowTalent(TalentData data, int currentPoints, RectTransform target)
@@ -196,9 +289,18 @@ public class ItemTooltip : MonoBehaviour
 
         canvasGroup.alpha = 1f;
 
-        if (currentTarget != null)
+        //
+        if (currentAnchorMode ==TooltipAnchorMode
+        .FixedBottomRightScreen)
         {
-            SetPosition(currentTarget, currentAnchorMode);
+            SetFixedBottomRightPosition();
+        }
+        else if (currentTarget != null)
+        {
+            SetPosition(
+                currentTarget,
+                currentAnchorMode
+            );
         }
     }
 

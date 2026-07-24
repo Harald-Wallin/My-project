@@ -1,189 +1,238 @@
-using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
+using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
-public class BuffSlotUI : MonoBehaviour,
+public class BuffSlotUI :
+    MonoBehaviour,
     IPointerEnterHandler,
     IPointerExitHandler
 {
     [Header("UI")]
-    [SerializeField] private Image icon;
 
-    [Header("Player Buff UI")]
-    [SerializeField] private TMP_Text stackText;
-    [SerializeField] private TMP_Text timerText;
+    [SerializeField]
+    private Image icon;
+
+    [SerializeField]
+    private TMP_Text stackText;
+
+    [SerializeField]
+    private TMP_Text timerText;
+
+    [Header("Timer")]
+
+    [SerializeField]
+    [Min(0f)]
+    private float showTimerBelow = 10f;
+
+    [Header("Expiration Pulse")]
+
+    [SerializeField]
+    [Min(0f)]
+    private float pulseBelow = 3f;
+
+    [SerializeField]
+    [Min(0f)]
+    private float pulseSpeed = 7f;
+
+    [SerializeField]
+    [Range(0f, 0.25f)]
+    private float pulseStrength = 0.06f;
 
     private ActiveBuff buff;
     private BuffSystem ownerBuffSystem;
 
-    public void Setup(ActiveBuff buff, BuffSystem owner)
+    public ActiveBuff Buff =>
+        buff;
+
+    public void Setup(
+        ActiveBuff activeBuff,
+        BuffSystem owner)
     {
-        //Debug.Log($"BuffSlot Setup: {buff.Name} on {gameObject.name}");
+        buff =
+            activeBuff;
 
-        this.buff = buff;
-        ownerBuffSystem = owner;
+        ownerBuffSystem =
+            owner;
 
-        icon.sprite = buff.Icon;
+        if (icon != null)
+        {
+            icon.sprite =
+                buff?.Icon;
+        }
 
         RefreshUI();
     }
 
-    void Update()
+    private void Update()
+    {
+        if (buff == null)
+        {
+            Destroy(
+                gameObject
+            );
+
+            return;
+        }
+
+        if (ownerBuffSystem != null &&
+            !ownerBuffSystem.HasBuff(buff))
+        {
+            Destroy(
+                gameObject
+            );
+
+            return;
+        }
+
+        if (buff.IsFinished)
+        {
+            Destroy(
+                gameObject
+            );
+
+            return;
+        }
+
+        RefreshUI();
+        HandlePulseEffect();
+    }
+
+    private void RefreshUI()
     {
         if (buff == null)
             return;
 
-        if (ownerBuffSystem != null &&
-        !ownerBuffSystem.HasBuff(buff))
-        {
-            Destroy(gameObject);
-            return;
-        }
-
-        // 🔥 remove slot when buff expires
-        if (buff.IsFinished)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
-        RefreshUI();
-
-        HandlePulseEffect();
+        RefreshTimer();
+        RefreshStacks();
     }
 
-    void RefreshUI()
+    private void RefreshTimer()
     {
-        // =========================
-        // TIMER TEXT
-        // =========================
+        if (timerText == null)
+            return;
 
-        if (timerText != null)
+        bool permanent =
+            float.IsInfinity(
+                buff.RemainingTime
+            );
+
+        bool showTimer =
+            !permanent &&
+            buff.RemainingTime <=
+            showTimerBelow;
+
+        timerText.gameObject.SetActive(
+            showTimer
+        );
+
+        if (showTimer)
         {
-            timerText.text = FormatDuration(buff.RemainingTime);
-        }
-
-        // =========================
-        // STACK TEXT
-        // =========================
-
-        if (stackText != null)
-        {
-            if (buff.stacks > 1)
-            {
-                stackText.gameObject.SetActive(true);
-                stackText.text = buff.stacks.ToString();
-            }
-            else
-            {
-                stackText.gameObject.SetActive(false);
-            }
+            timerText.text =
+                FormatDuration(
+                    buff.RemainingTime
+                );
         }
     }
 
-    void HandlePulseEffect()
+    private void RefreshStacks()
     {
-        // 🔥 Don't pulse permanent buffs
-        if (float.IsInfinity(buff.duration))
-        {
-            icon.transform.localScale = Vector3.one;
+        if (stackText == null)
             return;
-        }
 
-        // 🔥 pulse final 3 seconds
-        if (buff.RemainingTime <= 3f)
+        bool showStacks =
+            buff.stacks > 1;
+
+        stackText.gameObject.SetActive(
+            showStacks
+        );
+
+        if (showStacks)
         {
-            float pulse =
-                Mathf.Sin(Time.time * 8f) * 0.15f + 1f;
+            stackText.text =
+                buff.stacks.ToString();
+        }
+    }
 
+    private void HandlePulseEffect()
+    {
+        if (icon == null)
+            return;
+
+        if (float.IsInfinity(
+                buff.duration) ||
+            buff.RemainingTime >
+                pulseBelow)
+        {
             icon.transform.localScale =
-                Vector3.one * pulse;
+                Vector3.one;
+
+            return;
         }
-        else
-        {
-            icon.transform.localScale = Vector3.one;
-        }
+
+        float normalizedPulse =
+            Mathf.Sin(
+                Time.unscaledTime *
+                pulseSpeed
+            );
+
+        float scale =
+            1f +
+            normalizedPulse *
+            pulseStrength;
+
+        icon.transform.localScale =
+            Vector3.one *
+            scale;
     }
 
-    string FormatDuration(float seconds)
+    private static string FormatDuration(
+        float seconds)
     {
-        // 🔥 permanent effects
-        if (float.IsInfinity(seconds))
-        {
-            return "∞";
-        }
-
-        // 2h+
-        if (seconds >= 7200f)
-        {
-            int hours =
-                Mathf.FloorToInt(seconds / 3600f);
-
-            return $"{hours}h";
-        }
-
-        // 1h+
-        if (seconds >= 3600f)
-        {
-            int hours =
-                Mathf.FloorToInt(seconds / 3600f);
-
-            int minutes =
-                Mathf.FloorToInt((seconds % 3600f) / 60f);
-
-            return $"{hours}h {minutes}m";
-        }
-
-        // 1m+
-        if (seconds >= 60f)
-        {
-            int minutes =
-                Mathf.FloorToInt(seconds / 60f);
-
-            return $"{minutes}m";
-        }
-
-        // seconds
-        return $"{Mathf.CeilToInt(seconds)}s";
+        return
+            $"{Mathf.CeilToInt(seconds)}";
     }
 
     public float GetRemainingTime()
     {
-        if (buff == null)
-            return 0f;
-
-        return buff.RemainingTime;
+        return buff != null
+            ? buff.RemainingTime
+            : 0f;
     }
 
-    public void OnPointerEnter(PointerEventData eventData)
+    public void OnPointerEnter(
+        PointerEventData eventData)
     {
-        if (buff == null)
+        if (buff == null ||
+            ItemTooltip.Instance == null)
+        {
             return;
+        }
 
-        var provider = new BuffTooltipProvider(buff);
-
-       /* ItemTooltip.Instance.Show(
-        new BuffTooltipProvider(buff),
-        icon.rectTransform,
-        PlayerReference.Player,
-        ItemTooltip.TooltipAnchorMode.BottomRight
-        ); */
-
-        //Denna nya instance placerar tooltip korrekt men verkar istället 
-        //göra så att debuffs inte visas alls på spelaren (De appliceras verkar det som,
-        //men syns inte i UI't)
         ItemTooltip.Instance.Show(
-        new BuffTooltipProvider(buff),
-        icon.rectTransform,
-        PlayerReference.Player,
-        ItemTooltip.TooltipAnchorMode.FixedBottomLeft
+            new BuffTooltipProvider(
+                buff
+            ),
+            icon.rectTransform,
+            PlayerReference.Player,
+            ItemTooltip
+                .TooltipAnchorMode
+                .FixedBottomLeft
         );
-
     }
 
-    public void OnPointerExit(PointerEventData eventData)
+    public void OnPointerExit(
+        PointerEventData eventData)
     {
-        ItemTooltip.Instance.Hide();
+        ItemTooltip.Instance?.Hide();
+    }
+
+    private void OnDisable()
+    {
+        if (icon != null)
+        {
+            icon.transform.localScale =
+                Vector3.one;
+        }
     }
 }

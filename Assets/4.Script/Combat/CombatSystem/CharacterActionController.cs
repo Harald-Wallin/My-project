@@ -885,6 +885,37 @@ public sealed class CharacterActionController :
         );
     }
 
+    public void ResetRuntimeState()
+    {
+        ActionContext cancelledContext =
+            currentContext;
+
+        if (currentContext != null)
+        {
+            if (currentContext.Phase !=
+                ActionPhase.Idle)
+            {
+                SetPhase(
+                    ActionPhase.Idle
+                );
+            }
+
+            ClearCurrentAction();
+
+            OnActionCancelled?.Invoke(
+                cancelledContext
+            );
+        }
+
+        cooldownTimers.Clear();
+
+        globalCooldownTimer = 0f;
+        phaseTimer = 0f;
+        phaseDuration = 0f;
+
+        LastExecutionContext = null;
+    }
+
     // =========================================================
     // COOLDOWNS
     // =========================================================

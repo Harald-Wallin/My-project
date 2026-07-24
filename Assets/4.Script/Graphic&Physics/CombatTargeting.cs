@@ -3,17 +3,34 @@ using UnityEngine;
 public static class CombatTargeting
 {
     public static bool CanAttack(
-    CharacterStats attacker,
-    CharacterStats target
-)
+        CharacterStats attacker,
+        CharacterStats target)
     {
-
-        if (attacker == null || target == null)
+        if (attacker == null ||
+            target == null)
         {
             return false;
         }
 
         if (attacker == target)
+        {
+            return false;
+        }
+
+        NPCBehavior attackerAI =
+            attacker.GetComponent<NPCBehavior>();
+
+        if (attackerAI != null &&
+            attackerAI.IsEncounterResetting)
+        {
+            return false;
+        }
+
+        NPCBehavior targetAI =
+            target.GetComponent<NPCBehavior>();
+
+        if (targetAI != null &&
+            targetAI.IsEncounterResetting)
         {
             return false;
         }
@@ -27,46 +44,50 @@ public static class CombatTargeting
 
         if (player != null)
         {
-            return CanPlayerAttack(player, target);
+            return CanPlayerAttack(
+                player,
+                target
+            );
         }
 
         // =========================
         // NPC RULES
         // =========================
 
-        NPCBehavior ai =
-            attacker.GetComponent<NPCBehavior>();
-
-        if (ai != null)
+        if (attackerAI != null &&
+            attackerAI.CurrentTarget == target)
         {
-            if (ai.CurrentTarget == target)
-            {
-                return true;
-            }
+            return true;
         }
 
-        return attacker.IsHostileTo(target);
+        return attacker.IsHostileTo(
+            target
+        );
     }
 
-    static bool CanPlayerAttack(
+    private static bool CanPlayerAttack(
         PlayerStats player,
-        CharacterStats target
-    )
+        CharacterStats target)
     {
         if (target.faction == null)
             return true;
 
-        // HOSTILE = alltid OK
-        if (player.IsHostileTo(target))
+        if (player.IsHostileTo(
+                target))
+        {
             return true;
+        }
 
-        // MURDER MODE
-        PlayerReputationManager rep =
-            player.GetComponent<PlayerReputationManager>();
+        PlayerReputationManager reputation =
+            player.GetComponent<
+                PlayerReputationManager
+            >();
 
-        if (rep == null)
+        if (reputation == null)
             return false;
 
-        return rep.IsMurderEnabled(target.faction);
+        return reputation.IsMurderEnabled(
+            target.faction
+        );
     }
 }

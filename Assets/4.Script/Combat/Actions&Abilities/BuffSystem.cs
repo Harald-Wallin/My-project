@@ -18,6 +18,9 @@ public sealed class BuffSystem :
     public event Action<ActiveBuff, BuffSystem>
         OnBuffRemoved;
 
+    public event Action<ActiveBuff, BuffSystem>
+    OnBuffChanged;
+
     private void Awake()
     {
         stats =
@@ -93,6 +96,104 @@ public sealed class BuffSystem :
     }
 
     public bool ApplyEffect(
+    AbilityEffect effect,
+    DamageSourceContext source,
+    float? overrideDuration = null)
+    {
+        if (effect == null ||
+            stats == null)
+        {
+            return false;
+        }
+
+        ActiveBuff existing =
+            GetBuff(effect);
+
+        if (existing != null)
+        {
+            HandleExistingBuff(
+                existing,
+                effect,
+                overrideDuration
+            );
+
+            OnBuffChanged?.Invoke(
+                existing,
+                this
+            );
+
+            return true;
+        }
+
+        ActiveBuff buff =
+            effect.CreateActiveBuff(
+                source,
+                stats
+            );
+
+        if (buff == null)
+        {
+            Debug.LogWarning(
+                $"Effekten '{effect.name}' returnerade ingen " +
+                $"ActiveBuff från CreateActiveBuff().",
+                effect
+            );
+
+            return false;
+        }
+
+        if (overrideDuration.HasValue)
+        {
+            buff.SetDuration(
+                overrideDuration.Value
+            );
+        }
+
+        if (buff.duration <= 0f)
+        {
+            Debug.LogWarning(
+                $"Buffen '{effect.name}' har duration 0 och " +
+                $"kommer avslutas omedelbart.",
+                effect
+            );
+        }
+
+        activeBuffs.Add(
+            buff
+        );
+
+        buff.OnApplied(
+            stats
+        );
+
+        OnBuffAdded?.Invoke(
+            buff,
+            this
+        );
+
+        return true;
+    }
+
+    public void RemoveEncounterResetBuffs()
+    {
+        for (int i = activeBuffs.Count - 1;
+             i >= 0;
+             i--)
+        {
+            ActiveBuff buff =
+                activeBuffs[i];
+
+            if (buff == null ||
+                !buff.RemoveOnEncounterReset)
+            {
+                continue;
+            }
+
+            RemoveBuffAt(i);
+        }
+    }
+
+    public bool ApplyEffect(
         AbilityEffect effect,
         CharacterStats source = null,
         float? overrideDuration = null)
@@ -112,6 +213,11 @@ public sealed class BuffSystem :
                 existing,
                 effect,
                 overrideDuration
+            );
+
+            OnBuffChanged?.Invoke(
+                existing,
+                this
             );
 
             return true;
@@ -160,13 +266,6 @@ public sealed class BuffSystem :
             buff,
             this
         );
-
-        NameplateUI nameplate =
-            GetComponentInChildren<
-                NameplateUI
-            >();
-
-        nameplate?.AddBuff(buff);
 
         return true;
     }

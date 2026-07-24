@@ -1,186 +1,717 @@
-﻿using TMPro;
-using Unity.VisualScripting.Antlr3.Runtime.Misc;
+﻿using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class NameplateUI : MonoBehaviour
+/// <summary>
+/// Presentation controller för en karaktärs nameplate.
+///
+/// NameplateUI äger inte gameplaydata. Den läser CharacterStats,
+/// CharacterStateController och BuffSystem och presenterar deras
+/// aktuella tillstånd.
+/// </summary>
+public sealed class NameplateUI :
+    MonoBehaviour
 {
-    [Header("Refs")]
-    public CharacterStats target;
-    public Image healthFill;
-    public TMP_Text hpText;
-    public TMP_Text nameText;
-    public TMP_Text levelText;
+    private static readonly Dictionary<
+        CharacterStats,
+        NameplateUI> Registry =
+            new();
+
+    [Header("Target")]
+
+    [SerializeField]
+    private CharacterStats target;
+
+    [Header("Identity")]
+
+    [SerializeField]
+    private TMP_Text nameText;
+
+    [SerializeField]
+    private TMP_Text levelText;
+
+    [SerializeField]
+    private TMP_Text roleText;
+
+    [SerializeField]
+    private TMP_Text factionText;
+
+    [Header("Health")]
+
+    [SerializeField]
+    private GameObject healthBarRoot;
+
+    [SerializeField]
+    private Image healthFill;
+
+    [SerializeField]
+    private TMP_Text hpText;
+
+    [Header("Buffs")]
+
+    [SerializeField]
+    private GameObject buffRowRoot;
+
+    [SerializeField]
+    private NameplateBuffDisplay buffDisplay;
+
+    [Header("Future Styling")]
+
+    [SerializeField]
+    [Tooltip(
+        "Valfri rot för framtida ramar, bossmarkörer och " +
+        "andra dekorationer."
+    )]
+    private GameObject decorationRoot;
+
+    [Header("Refresh")]
+
+    [SerializeField]
+    [Min(0.05f)]
+    private float passiveRefreshInterval =
+        0.25f;
 
     private PlayerStats player;
-    private PlayerReputationManager repManager;
+    private PlayerReputationManager
+        reputationManager;
 
-    [Header("Buff UI")]
-    [SerializeField] private Transform buffContainer;
-    [SerializeField] private GameObject buffSlotPrefab;
+    private CharacterStateController
+        stateController;
 
-    void Awake()
+    private BuffSystem buffSystem;
+
+    private NameplatePresentationState
+        currentState;
+
+    private bool isHovered;
+    private bool isCorpse;
+    private bool subscribed;
+
+    private float passiveRefreshTimer;
+
+    public CharacterStats Target =>
+        target;
+
+    public NameplatePresentationState
+        CurrentState =>
+            currentState;
+
+    private void Awake()
     {
-        if (target == null)
-            target = GetComponentInParent<CharacterStats>();
-
-        player = PlayerReference.Player;
-        repManager = FindFirstObjectByType<PlayerReputationManager>();
+        ResolveReferences();
     }
 
-    void Start()
+    private void Start()
     {
-        if (target == null) return;
+        player =
+            PlayerReference.Player;
 
-        nameText.text = target.displayName; // temporärt
+        reputationManager =
+            FindFirstObjectByType<
+                PlayerReputationManager
+            >();
 
-        // TEST BUFFS
-        //AddTestBuff(null, 10f);
-        //AddTestBuff(null, 5f);
-
-        UpdateHealth();
-        UpdateLevelText();
+        BindBuffDisplay();
+        RefreshAll();
     }
 
-    void Update()
+    private void OnEnable()
     {
-        if (target == null) return;
-
-        UpdateHealth();
-        UpdateLevelText();
+        ResolveReferences();
+        Register();
+        Subscribe();
     }
 
-    void UpdateHealth()
+    private void OnDisable()
     {
-        int maxHp = target.GetMaxHP();
+        Unsubscribe();
+        Unregister();
+    }
 
-        if (maxHp <= 0)
+    private void Update()
+    {
+        passiveRefreshTimer -=
+            Time.deltaTime;
+
+        if (passiveRefreshTimer > 0f)
             return;
 
-        float percent = (float)target.currentHP / maxHp;
+        passiveRefreshTimer =
+            passiveRefreshInterval;
 
-        percent = Mathf.Clamp01(percent);
-
-        healthFill.rectTransform.localScale = new Vector3(percent, 1f, 1f);
-
-        // Color health fill according to reputation with target's faction
-        Color fillColor = Color.white;
-
-        NPCReactionController reaction = target.GetComponent<NPCReactionController>();
-
-        bool hostile = target.IsHostileToPlayer(player);
-
-        bool temporarilyHostile =
-            reaction != null &&
-            reaction.IsTemporarilyHostile;
-
-        if (hostile || temporarilyHostile)
-        {
-            fillColor =
-                ReputationColorUtility.GetColor(1);
-        }
-        else
-        {
-            if (repManager != null && target.faction != null)
-            {
-                var rep =
-                    repManager.GetReputation(target.faction);
-
-                int level =
-                    rep != null
-                    ? rep.level
-                    : 3;
-
-                fillColor =
-                    ReputationColorUtility.GetColor(level);
-            }
-        }
-
-        if (healthFill != null)
-            healthFill.color = fillColor;
-
-        if (hpText != null)
-            hpText.text = $"{target.currentHP} / {maxHp}";
+        /*
+         * Faction reputation och temporary hostility saknar
+         * ännu egna events. En billig periodisk refresh fångar
+         * därför dessa förändringar utan att uppdatera varje frame.
+         */
+        RefreshState();
+        RefreshHealthColor();
     }
 
-    void UpdateLevelText()
+    public static bool TryGet(
+        CharacterStats character,
+        out NameplateUI nameplate)
     {
-        if (levelText == null || player == null)
+        if (character == null)
+        {
+            nameplate = null;
+            return false;
+        }
+
+        return Registry.TryGetValue(
+            character,
+            out nameplate
+        );
+    }
+
+    public void SetHovered(
+        bool hovered)
+    {
+        if (isHovered == hovered)
             return;
 
-        int levelDiff = GetLevel(target) - player.level;
+        isHovered =
+            hovered;
 
-        levelText.text = GetLevel(target).ToString();
-        levelText.color = GetDifficultyColor(levelDiff);
+        RefreshState();
     }
 
-    int GetLevel(CharacterStats stats)
+    private bool ShouldShowFactionOnHover()
     {
-        if (stats == null)
-            return 1;
+        if (target == null ||
+            target.faction == null)
+        {
+            return false;
+        }
 
-        return stats.level;
-    }
+        if (!target.faction.showInReputationWindow)
+            return false;
 
-    Color GetDifficultyColor(int diff)
-    {
-        if (diff >= 5)
-            return Hex("#D51512"); // röd
-        else if (diff >= 3)
-            return Hex("#D55912"); // orange
-        else if (diff >= -2)
-            return Hex("#F5F207"); // gul
-        else if (diff >= -5)
-            return Hex("#4D9927"); // grön
-        else
-            return Hex("#9E9E9E"); // grå
-    }
-
-    Color Hex(string hex)
-    {
-        ColorUtility.TryParseHtmlString(hex, out Color color);
-        return color;
+        return !string.IsNullOrWhiteSpace(
+            target.FactionName
+        );
     }
 
     public void SetCorpseMode()
     {
-        if (hpText != null)
-            hpText.text = "Corpse";
+        isCorpse = true;
 
-        if (healthFill != null)
-            healthFill.rectTransform.localScale =
-                new Vector3(0f, 1f, 1f);
-
-        enabled = false;
+        ApplyState(
+            NameplatePresentationState
+                .Corpse
+        );
     }
 
-    public void AddBuff(ActiveBuff buff)
+    private void ResolveReferences()
     {
-        if (buffContainer == null || buffSlotPrefab == null)
+        if (target == null)
+        {
+            target =
+                GetComponentInParent<
+                    CharacterStats
+                >();
+        }
+
+        if (target == null)
             return;
 
-        GameObject slot = Instantiate(buffSlotPrefab, buffContainer);
+        stateController =
+            target.GetComponent<
+                CharacterStateController
+            >();
 
-        BuffSlotUI buffUI = slot.GetComponent<BuffSlotUI>();
-        if (buffUI != null)
-        {
-            BuffSystem buffSystem = target.GetComponent<BuffSystem>();
-            buffUI.Setup(buff, buffSystem);
-        }
-
-        SortBuffs();
+        buffSystem =
+            target.GetComponent<
+                BuffSystem
+            >();
     }
 
-    void SortBuffs()
+    private void BindBuffDisplay()
     {
-        var slots = buffContainer.GetComponentsInChildren<BuffSlotUI>();
-
-        System.Array.Sort(slots, (a, b) =>
-            a.GetRemainingTime().CompareTo(b.GetRemainingTime()));
-
-        for (int i = 0; i < slots.Length; i++)
+        if (buffDisplay != null)
         {
-            slots[i].transform.SetSiblingIndex(i);
+            buffDisplay.Bind(
+                buffSystem
+            );
         }
+    }
+
+    private void Register()
+    {
+        if (target == null)
+            return;
+
+        Registry[target] =
+            this;
+    }
+
+    private void Unregister()
+    {
+        if (target == null)
+            return;
+
+        if (Registry.TryGetValue(
+                target,
+                out NameplateUI registered) &&
+            registered == this)
+        {
+            Registry.Remove(
+                target
+            );
+        }
+    }
+
+    private void Subscribe()
+    {
+        if (subscribed ||
+            target == null)
+        {
+            return;
+        }
+
+        target.OnHealthChanged +=
+            HandleHealthChanged;
+
+        target.OnStatsChanged +=
+            HandleStatsChanged;
+
+        target.OnDied +=
+            HandleDied;
+
+        if (stateController != null)
+        {
+            stateController
+                .OnCombatStateChanged +=
+                HandleCombatStateChanged;
+        }
+
+        subscribed = true;
+    }
+
+    private void Unsubscribe()
+    {
+        if (!subscribed ||
+            target == null)
+        {
+            return;
+        }
+
+        target.OnHealthChanged -=
+            HandleHealthChanged;
+
+        target.OnStatsChanged -=
+            HandleStatsChanged;
+
+        target.OnDied -=
+            HandleDied;
+
+        if (stateController != null)
+        {
+            stateController
+                .OnCombatStateChanged -=
+                HandleCombatStateChanged;
+        }
+
+        subscribed = false;
+    }
+
+    private void HandleHealthChanged()
+    {
+        RefreshHealth();
+        RefreshState();
+    }
+
+    private void HandleStatsChanged()
+    {
+        RefreshIdentity();
+        RefreshHealth();
+    }
+
+    private void HandleDied(
+        CharacterStats deadCharacter)
+    {
+        SetCorpseMode();
+    }
+
+    private void HandleCombatStateChanged(
+        bool inCombat)
+    {
+        RefreshState();
+    }
+
+    private void RefreshAll()
+    {
+        if (target == null)
+            return;
+
+        RefreshIdentity();
+        RefreshHealth();
+        RefreshState();
+    }
+
+    private void RefreshIdentity()
+    {
+        if (target == null)
+            return;
+
+        if (nameText != null)
+        {
+            nameText.text =
+                target.DisplayName;
+        }
+
+        if (levelText != null)
+        {
+            levelText.text =
+                target.level.ToString();
+
+            if (player != null)
+            {
+                int levelDifference =
+                    target.level -
+                    player.level;
+
+                levelText.color =
+                    GetDifficultyColor(
+                        levelDifference
+                    );
+            }
+        }
+
+        if (roleText != null)
+        {
+            roleText.text =
+                target.RoleName;
+        }
+
+        if (factionText != null)
+        {
+            factionText.text =
+                target.FactionName;
+        }
+    }
+
+    private void RefreshHealth()
+    {
+        if (target == null)
+            return;
+
+        int maximumHealth =
+            Mathf.Max(
+                1,
+                target.GetMaxHP()
+            );
+
+        float normalizedHealth =
+            Mathf.Clamp01(
+                target.currentHP /
+                (float)maximumHealth
+            );
+
+        if (healthFill != null)
+        {
+            healthFill.rectTransform
+                .localScale =
+                new Vector3(
+                    normalizedHealth,
+                    1f,
+                    1f
+                );
+        }
+
+        if (hpText != null &&
+            !isCorpse)
+        {
+            hpText.text =
+                $"{target.currentHP} / " +
+                $"{maximumHealth}";
+        }
+
+        RefreshHealthColor();
+    }
+
+    private void RefreshHealthColor()
+    {
+        if (target == null ||
+            healthFill == null)
+        {
+            return;
+        }
+
+        Color fillColor =
+            Color.white;
+
+        NPCReactionController reaction =
+            target.GetComponent<
+                NPCReactionController
+            >();
+
+        bool hostile =
+            player != null &&
+            target.IsHostileToPlayer(
+                player
+            );
+
+        bool temporarilyHostile =
+            reaction != null &&
+            reaction
+                .IsTemporarilyHostile;
+
+        if (hostile ||
+            temporarilyHostile)
+        {
+            fillColor =
+                ReputationColorUtility
+                    .GetColor(1);
+        }
+        else if (
+            reputationManager != null &&
+            target.faction != null)
+        {
+            var reputation =
+                reputationManager
+                    .GetReputation(
+                        target.faction
+                    );
+
+            int reputationLevel =
+                reputation != null
+                    ? reputation.level
+                    : 3;
+
+            fillColor =
+                ReputationColorUtility
+                    .GetColor(
+                        reputationLevel
+                    );
+        }
+
+        healthFill.color =
+            fillColor;
+    }
+
+    private void RefreshState()
+    {
+        NameplatePresentationState
+            resolvedState =
+                ResolveState();
+
+        ApplyState(
+            resolvedState
+        );
+    }
+
+    private NameplatePresentationState
+        ResolveState()
+    {
+        if (isCorpse ||
+            target == null ||
+            !target.IsAlive)
+        {
+            return
+                NameplatePresentationState
+                    .Corpse;
+        }
+
+        if (stateController != null &&
+            stateController.InCombat)
+        {
+            return
+                NameplatePresentationState
+                    .Combat;
+        }
+
+        if (isHovered)
+        {
+            return
+                NameplatePresentationState
+                    .Hover;
+        }
+
+        return
+            NameplatePresentationState
+                .Default;
+    }
+
+    private void ApplyState(
+    NameplatePresentationState state)
+    {
+        currentState =
+            state;
+
+        switch (state)
+        {
+            case NameplatePresentationState.Default:
+
+                bool hasRole =
+                    target != null &&
+                    target.HasRole;
+
+                /*
+                 * NPC:er med role visar sin titel i idle.
+                 * NPC:er utan role använder samma utrymme till healthbaren.
+                 */
+                SetActive(
+                    roleText,
+                    hasRole
+                );
+
+                SetActive(
+                    healthBarRoot,
+                    !hasRole
+                );
+
+                SetActive(
+                    factionText,
+                    false
+                );
+
+                SetActive(
+                    buffRowRoot,
+                    false
+                );
+                break;
+
+            case NameplatePresentationState.Hover:
+
+                SetActive(
+                    roleText,
+                    false
+                );
+
+                SetActive(
+                    healthBarRoot,
+                    true
+                );
+
+                SetActive(
+                    factionText,
+                    ShouldShowFactionOnHover()
+                );
+
+                SetActive(
+                    buffRowRoot,
+                    false
+                );
+                break;
+
+            case NameplatePresentationState.Combat:
+
+                SetActive(
+                    roleText,
+                    false
+                );
+
+                SetActive(
+                    healthBarRoot,
+                    true
+                );
+
+                SetActive(
+                    factionText,
+                    false
+                );
+
+                SetActive(
+                    buffRowRoot,
+                    true
+                );
+                break;
+
+            case NameplatePresentationState.Corpse:
+
+                SetActive(
+                    roleText,
+                    false
+                );
+
+                SetActive(
+                    healthBarRoot,
+                    true
+                );
+
+                SetActive(
+                    factionText,
+                    false
+                );
+
+                SetActive(
+                    buffRowRoot,
+                    false
+                );
+
+                if (hpText != null)
+                {
+                    hpText.text =
+                        "Corpse";
+                }
+
+                if (healthFill != null)
+                {
+                    healthFill
+                        .rectTransform
+                        .localScale =
+                        new Vector3(
+                            0f,
+                            1f,
+                            1f
+                        );
+                }
+                break;
+        }
+    }
+
+    private static void SetActive(
+        Component component,
+        bool active)
+    {
+        if (component != null)
+        {
+            component.gameObject
+                .SetActive(active);
+        }
+    }
+
+    private static void SetActive(
+        GameObject targetObject,
+        bool active)
+    {
+        if (targetObject != null)
+        {
+            targetObject.SetActive(
+                active
+            );
+        }
+    }
+
+    private static Color
+        GetDifficultyColor(
+            int difference)
+    {
+        if (difference >= 5)
+            return Hex("#D51512");
+
+        if (difference >= 3)
+            return Hex("#D55912");
+
+        if (difference >= -2)
+            return Hex("#F5F207");
+
+        if (difference >= -5)
+            return Hex("#4D9927");
+
+        return Hex("#9E9E9E");
+    }
+
+    private static Color Hex(
+        string hex)
+    {
+        return ColorUtility
+            .TryParseHtmlString(
+                hex,
+                out Color color)
+                ? color
+                : Color.white;
     }
 }

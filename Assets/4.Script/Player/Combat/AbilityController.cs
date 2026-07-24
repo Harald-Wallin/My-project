@@ -133,6 +133,12 @@ public class AbilityController : MonoBehaviour
         return true;
     }
 
+    public void ResetRuntimeState()
+    {
+        cooldownTimers.Clear();
+        globalCooldownTimer = 0f;
+    }
+
     CharacterStats FindTarget()
     {
         Collider2D[] hits =

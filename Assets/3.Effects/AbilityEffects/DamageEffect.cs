@@ -90,7 +90,7 @@ public sealed class DamageEffect :
     }
 
     public override void Execute(
-        AbilityEffectExecutionContext context)
+    AbilityEffectExecutionContext context)
     {
         if (context == null ||
             context.Caster == null ||
@@ -111,10 +111,13 @@ public sealed class DamageEffect :
         if (damage <= 0)
             return;
 
+        DamageSourceContext source =
+            context.DamageSource;
+
         if (dealsRawDamage)
         {
             CombatResolver.DealRawDamage(
-                context.Caster,
+                source,
                 context.Target,
                 damage
             );
@@ -133,7 +136,7 @@ public sealed class DamageEffect :
 
         context.Target.TakeDamage(
             result,
-            context.Caster
+            source
         );
     }
 

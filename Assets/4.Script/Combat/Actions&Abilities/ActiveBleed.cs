@@ -4,16 +4,18 @@ public sealed class ActiveBleed :
     ActiveBuff
 {
     private readonly BleedEffect effect;
-    private readonly CharacterStats source;
+
+    private readonly DamageSourceContext
+        damageSource;
 
     private float tickTimer;
 
     public ActiveBleed(
         BleedEffect effect,
-        CharacterStats source)
+        DamageSourceContext damageSource)
     {
         this.effect = effect;
-        this.source = source;
+        this.damageSource = damageSource;
 
         sourceEffect = effect;
         duration = effect.duration;
@@ -48,7 +50,7 @@ public sealed class ActiveBleed :
             );
 
             CombatResolver.DealRawDamage(
-                source,
+                damageSource,
                 target,
                 effect.damagePerTick
             );

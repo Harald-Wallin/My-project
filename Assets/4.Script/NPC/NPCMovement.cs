@@ -103,6 +103,9 @@ public class NPCMovement : MonoBehaviour
         equipment =
             GetComponent<HumanoidEquipment>();
 
+        lastStuckPosition =
+            rb.position;
+
         SpawnPosition = transform.position;
     }
 
@@ -167,9 +170,7 @@ public class NPCMovement : MonoBehaviour
         ContactFilter2D filter = new ContactFilter2D();
         filter.useLayerMask = true;
         filter.layerMask = LayerMask.GetMask(
-        "World",
-        "NPC",
-        "Player"
+        "World"
         );
 
         filter.useTriggers = false;
@@ -421,27 +422,84 @@ public class NPCMovement : MonoBehaviour
         GenerateTemporaryAvoidanceTarget(finalTarget);
     }
 
-    void GenerateTemporaryAvoidanceTarget(Vector3 finalTarget)
+    private void GenerateTemporaryAvoidanceTarget(
+    Vector3 finalTarget)
     {
         Vector2 toTarget =
-            ((Vector2)finalTarget - rb.position).normalized;
+            (Vector2)finalTarget -
+            rb.position;
+
+        if (toTarget.sqrMagnitude <
+            0.0001f)
+        {
+            hasTemporaryAvoidanceTarget =
+                false;
+
+            return;
+        }
+
+        toTarget.Normalize();
 
         Vector2 left =
-            new Vector2(-toTarget.y, toTarget.x);
+            new Vector2(
+                -toTarget.y,
+                toTarget.x
+            );
 
         Vector2 right =
-            new Vector2(toTarget.y, -toTarget.x);
+            new Vector2(
+                toTarget.y,
+                -toTarget.x
+            );
+
+        float leftClearance =
+            GetDirectionClearance(
+                left
+            );
+
+        float rightClearance =
+            GetDirectionClearance(
+                right
+            );
 
         Vector2 chosenSide =
-            Random.value > 0.5f
-            ? left
-            : right;
+            leftClearance >= rightClearance
+                ? left
+                : right;
 
         temporaryAvoidanceTarget =
-            transform.position +
-            (Vector3)(chosenSide * avoidanceTargetDistance);
+            rb.position +
+            chosenSide *
+            avoidanceTargetDistance +
+            toTarget *
+            (avoidanceTargetDistance * 0.35f);
 
-        hasTemporaryAvoidanceTarget = true;
+        hasTemporaryAvoidanceTarget =
+            true;
+    }
+
+    private float GetDirectionClearance(
+    Vector2 direction)
+    {
+        RaycastHit2D hit =
+            Physics2D.Raycast(
+                rb.position,
+                direction,
+                avoidanceTargetDistance,
+                avoidanceLayers
+            );
+
+        if (!hit)
+        {
+            return avoidanceTargetDistance;
+        }
+
+        if (hit.rigidbody == rb)
+        {
+            return avoidanceTargetDistance;
+        }
+
+        return hit.distance;
     }
 
     Vector2 GetSteeringDirection(Vector2 targetDirection)
@@ -470,13 +528,13 @@ public class NPCMovement : MonoBehaviour
                 // Vill komma fram aggressivt.
                 currentTargetWeight *= 2.0f;
                 currentObstacleWeight *= 0.6f;
-                currentSeparationWeight *= 0.2f;
+                currentSeparationWeight *= 0.65f;
                 break;
 
             case NPCMovementMode.Patrol:
 
                 currentObstacleWeight *= 1.0f;
-                currentSeparationWeight *= 1.0f;
+                currentSeparationWeight *= 1.35f;
                 break;
 
             case NPCMovementMode.Wander:
@@ -640,38 +698,90 @@ public class NPCMovement : MonoBehaviour
         hasObstacleMemory = true;
     }
 
-    Vector2 CalculateSeparationForce()
+    private Vector2 CalculateSeparationForce()
     {
         Collider2D[] hits =
             Physics2D.OverlapCircleAll(
-                transform.position,
+                rb.position,
                 separationRadius,
                 LayerMask.GetMask(
                     "NPC",
-                    "HostileMob"
+                    "HostileMob",
+                    "Player"
                 )
             );
 
-        Vector2 force = Vector2.zero;
+        Vector2 totalForce =
+            Vector2.zero;
 
-        foreach (var hit in hits)
+        foreach (Collider2D hit in hits)
         {
-            if (hit.attachedRigidbody == rb)
+            if (hit == null)
                 continue;
+
+            Rigidbody2D otherBody =
+                hit.attachedRigidbody;
+
+            if (otherBody == rb)
+                continue;
+
+            CharacterStats otherCharacter =
+                hit.GetComponentInParent<
+                    CharacterStats
+                >();
+
+            if (otherCharacter == stats)
+                continue;
+
+            Vector2 closestPoint =
+                hit.ClosestPoint(
+                    rb.position
+                );
 
             Vector2 away =
                 rb.position -
-                (Vector2)hit.transform.position;
+                closestPoint;
 
-            float distance = away.magnitude;
+            float distance =
+                away.magnitude;
+
+            /*
+             * Om NPC:n står exakt ovanpå colliderpunkten använder vi
+             * skillnaden mellan transformpositionerna som reserv.
+             */
+            if (distance < 0.01f)
+            {
+                away =
+                    rb.position -
+                    (Vector2)hit.transform.position;
+
+                distance =
+                    away.magnitude;
+            }
 
             if (distance < 0.01f)
                 continue;
 
-            force += away.normalized / distance;
+            float normalizedProximity =
+                1f -
+                Mathf.Clamp01(
+                    distance /
+                    separationRadius
+                );
+
+            float strength =
+                normalizedProximity *
+                normalizedProximity;
+
+            totalForce +=
+                away.normalized *
+                strength;
         }
 
-        return force;
+        return Vector2.ClampMagnitude(
+            totalForce,
+            1f
+        );
     }
 
     public void UpdateAggroMovement(CharacterStats target, float attackRange)
@@ -705,12 +815,18 @@ public class NPCMovement : MonoBehaviour
 
         if (waitingAtPatrolNode)
         {
-            patrolWaitTimer -= Time.fixedDeltaTime;
+            Stop();
+
+            patrolWaitTimer -=
+                Time.fixedDeltaTime;
 
             if (patrolWaitTimer <= 0f)
             {
                 waitingAtPatrolNode = false;
-                AdvancePatrolPoint(patrolPath);
+
+                AdvancePatrolPoint(
+                    patrolPath
+                );
             }
 
             return;
@@ -729,6 +845,7 @@ public class NPCMovement : MonoBehaviour
 
         if (distance <= DefaultStopDistance)
         {
+            Stop();
             waitingAtPatrolNode = true;
             patrolWaitTimer = point.waitTime;
         }
@@ -773,11 +890,36 @@ public class NPCMovement : MonoBehaviour
 
     public void Stop()
     {
-        rb.linearVelocity = Vector2.zero;
+        rb.linearVelocity =
+            Vector2.zero;
 
-        hasTemporaryAvoidanceTarget = false;
-        hasObstacleMemory = false;
+        hasTemporaryAvoidanceTarget =
+            false;
 
-        visualController?.SetMoving(false);
+        temporaryAvoidanceTarget =
+            Vector3.zero;
+
+        hasObstacleMemory =
+            false;
+
+        rememberedAvoidanceDirection =
+            Vector2.zero;
+
+        obstacleMemoryTimer =
+            0f;
+
+        stuckTimer =
+            0f;
+
+        lastStuckPosition =
+            rb.position;
+
+        visualController
+            ?.SetMoving(
+                false
+            );
+
+        wasMovingLastFrame =
+            false;
     }
 }

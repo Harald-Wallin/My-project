@@ -63,6 +63,6 @@ MonoBehaviour:
   canMiss: 1
   isSelfCast: 0
   requiresHitCheck: 0
-  entersCombatState: 1
+  entersCombatState: 0
   effects:
   - {fileID: 11400000, guid: 94d298cbd11154e41a30b0141c609c27, type: 2}

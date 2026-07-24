@@ -10,12 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 819478855cc46d4488d511a805e4a839, type: 3}
-  m_Name: Rend
+  m_Name: Player_Rend
   m_EditorClassIdentifier: Assembly-CSharp::AbilityData
   abilityName: Rend
-  description: Rends the enemy, causing heavy bleeding.
+  description: Gauging a nasty wound on your enemy
   icon: {fileID: 21300000, guid: b3e7989bcd8d8e440beb81a3027af269, type: 3}
   types: 0
+  usageType: 0
   tags: 0100000007000000
   useActionSettings: 1
   targetingSettings:
@@ -31,7 +32,7 @@ MonoBehaviour:
     requiresAffectedTarget: 1
     targetLayers:
       serializedVersion: 2
-      m_Bits: 768
+      m_Bits: 64
     lineOfSight:
       policy: 0
       blockingLayers:
@@ -46,21 +47,22 @@ MonoBehaviour:
     maximumChargeDuration: 1
     recoveryDuration: 0
   executionSettings:
-    activationMode: 0
-    cooldown: 0
+    activationMode: 1
+    cooldown: 3
     triggersGlobalCooldown: 1
     globalCooldownOverride: 0
     canBeCancelled: 1
+    resolvesTargetHitImmediately: 1
     canBeInterrupted: 1
-  cooldown: 10
-  globalCooldown: 0
+  cooldown: 0
+  globalCooldown: 0.8
   castTime: 0
   wardCost: 0
   alwaysHits: 0
   canCrit: 1
   canMiss: 1
   isSelfCast: 0
-  requiresHitCheck: 1
+  requiresHitCheck: 0
   entersCombatState: 1
   effects:
-  - {fileID: 11400000, guid: 8b6222fea6fe76f4ca6afa6d9ff223ab, type: 2}
+  - {fileID: 11400000, guid: 071627109c463464b9e55b37d816b76e, type: 2}

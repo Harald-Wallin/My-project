@@ -12,10 +12,51 @@ public class CharacterStats : MonoBehaviour
     public int reputationLossOnDeath = 100;
 
     [Header("Identity")]
+
+    [SerializeField]
     public string displayName = "NPC";
 
+    [SerializeField]
+    private CharacterRole role =
+        CharacterRole.None;
+
     [Header("Level")]
+
+    [Min(1)]
     public int level = 1;
+
+    public string DisplayName =>
+        string.IsNullOrWhiteSpace(displayName)
+            ? gameObject.name
+            : displayName;
+
+    public CharacterRole Role =>
+        role;
+    public bool HasRole =>
+    role != CharacterRole.None;
+
+    public string RoleName =>
+        role.GetDisplayName();
+
+    /// <summary>
+    /// Om karaktärens faction är avsedd att vara synlig för
+    /// spelaren i UI.
+    /// </summary>
+    public bool HasVisibleFaction =>
+        faction != null &&
+        faction.showInReputationWindow &&
+        !string.IsNullOrWhiteSpace(
+            faction.factionName
+        );
+
+    /// <summary>
+    /// Returnerar factionens namn endast när factionen är publik.
+    /// Meta-factions och andra dolda factions returnerar tom text.
+    /// </summary>
+    public string FactionName =>
+        HasVisibleFaction
+            ? faction.factionName
+            : string.Empty;
 
     [Header("Base Stats")]
     [SerializeField]
@@ -54,6 +95,15 @@ public class CharacterStats : MonoBehaviour
 
     private CharacterStateController stateController;
 
+    private DamageContributionTracker damageContributionTracker;
+
+    private DamageSourceContext pendingFatalDamageSource;
+
+    private bool deathProcessed;
+
+    public DamageContributionTracker DamageContributions =>
+        damageContributionTracker;
+
     public event Action OnHealthChanged;
     public event Action OnStatsChanged;
     public event Action<CharacterStats> OnDamagedBy;
@@ -69,6 +119,17 @@ public class CharacterStats : MonoBehaviour
     {
         stateController =
             GetComponent<CharacterStateController>();
+
+        damageContributionTracker =
+    GetComponent<DamageContributionTracker>();
+
+        if (damageContributionTracker == null)
+        {
+            damageContributionTracker =
+                gameObject.AddComponent<
+                    DamageContributionTracker
+                >();
+        }
 
         deathReward =
             GetComponent<DeathReward>();
@@ -188,9 +249,32 @@ public class CharacterStats : MonoBehaviour
     }
 
     public int TakeDamage(
-        DamageResult result,
-        CharacterStats attacker)
+    DamageResult result,
+    CharacterStats attacker)
     {
+        return TakeDamage(
+            result,
+            DamageSourceContext.FromDirectSource(
+                attacker
+            )
+        );
+    }
+
+    public int TakeDamage(
+        DamageResult result,
+        DamageSourceContext source)
+    {
+        if (!IsAlive)
+            return 0;
+
+        CharacterStats directAttacker =
+            source.DirectSource;
+
+        CharacterStats responsibleAttacker =
+            source.CreditOwner != null
+                ? source.CreditOwner
+                : directAttacker;
+
         if (result.isMiss)
         {
             FloatingTextSpawner.Instance?.SpawnCustomText(
@@ -199,7 +283,9 @@ public class CharacterStats : MonoBehaviour
                 false
             );
 
-            OnDamagedBy?.Invoke(attacker);
+            OnDamagedBy?.Invoke(
+                directAttacker
+            );
 
             return 0;
         }
@@ -212,17 +298,18 @@ public class CharacterStats : MonoBehaviour
                 false
             );
 
-            OnDamagedBy?.Invoke(attacker);
+            OnDamagedBy?.Invoke(
+                directAttacker
+            );
 
             return 0;
         }
 
-        int finalDamage = result.damage;
-
-        finalDamage =  Mathf.Max(
-        0,
-        finalDamage
-    );
+        int finalDamage =
+            Mathf.Max(
+                0,
+                result.damage
+            );
 
         if (result.isBlocked)
         {
@@ -242,10 +329,10 @@ public class CharacterStats : MonoBehaviour
         {
             stateController?.NotifyCombatActivity();
 
-            if (attacker != null)
+            if (directAttacker != null)
             {
                 CharacterStateController attackerState =
-                    attacker.GetComponent<
+                    directAttacker.GetComponent<
                         CharacterStateController
                     >();
 
@@ -253,7 +340,7 @@ public class CharacterStats : MonoBehaviour
             }
 
             OnDamagedBy?.Invoke(
-                attacker
+                directAttacker
             );
 
             string blockedText =
@@ -262,7 +349,7 @@ public class CharacterStats : MonoBehaviour
                     : "0";
 
             bool zeroDamageAttackerIsPlayer =
-                attacker is PlayerStats;
+                responsibleAttacker is PlayerStats;
 
             FloatingTextSpawner.Instance
                 ?.SpawnDamageText(
@@ -275,43 +362,69 @@ public class CharacterStats : MonoBehaviour
             return 0;
         }
 
-        currentHP -= finalDamage;
+        int healthBefore =
+            currentHP;
+
+        currentHP =
+            Mathf.Max(
+                0,
+                currentHP - finalDamage
+            );
+
+        int appliedDamage =
+            healthBefore -
+            currentHP;
+
+        if (appliedDamage <= 0)
+            return 0;
+
+        damageContributionTracker?.RegisterDamage(
+            source,
+            appliedDamage
+        );
 
         RaiseHealthChanged();
 
         stateController?.NotifyCombatActivity();
 
-        if (attacker != null)
+        if (directAttacker != null)
         {
             CharacterStateController attackerState =
-                attacker.GetComponent<CharacterStateController>();
+                directAttacker.GetComponent<
+                    CharacterStateController
+                >();
 
             attackerState?.NotifyCombatActivity();
         }
 
-        OnDamagedBy?.Invoke(attacker);
+        OnDamagedBy?.Invoke(
+            directAttacker
+        );
 
         DamageReaction reaction =
             GetComponentInChildren<DamageReaction>();
 
         if (reaction != null &&
-            attacker != null)
+            directAttacker != null)
         {
             reaction.PlayReaction(
-                attacker.transform.position
+                directAttacker.transform.position
             );
         }
 
         CrimeManager.HandleAttackCrime(
-            attacker,
+            responsibleAttacker,
             this
         );
 
         stateController?.EnterCombat();
 
-        OnDamaged(attacker);
+        OnDamaged(
+            directAttacker
+        );
 
-        string damageText = $"-{finalDamage}";
+        string damageText =
+            $"-{appliedDamage}";
 
         if (result.isBlocked)
         {
@@ -320,7 +433,7 @@ public class CharacterStats : MonoBehaviour
         }
 
         bool attackerIsPlayer =
-            attacker is PlayerStats;
+            responsibleAttacker is PlayerStats;
 
         FloatingTextSpawner.Instance?.SpawnDamageText(
             transform.position,
@@ -331,11 +444,15 @@ public class CharacterStats : MonoBehaviour
 
         if (currentHP <= 0)
         {
-            currentHP = 0;
-            Die(attacker);
+            pendingFatalDamageSource =
+                source;
+
+            Die(
+                directAttacker
+            );
         }
 
-        return finalDamage;
+        return appliedDamage;
     }
 
     protected virtual void OnDamaged(
@@ -395,21 +512,54 @@ public class CharacterStats : MonoBehaviour
     }
 
     public int TakeRawDamage(
-        int damage,
-        CharacterStats attacker)
+    int damage,
+    CharacterStats attacker)
     {
-        DamageResult result = new DamageResult
-        {
-            damage = damage,
-            isCrit = false,
-            isMiss = false,
-            isEvaded = false
-        };
+        return TakeRawDamage(
+            damage,
+            DamageSourceContext.FromDirectSource(
+                attacker
+            )
+        );
+    }
+
+    public int TakeRawDamage(
+        int damage,
+        DamageSourceContext source)
+    {
+        DamageResult result =
+            new DamageResult
+            {
+                damage = damage,
+                isCrit = false,
+                isMiss = false,
+                isEvaded = false
+            };
 
         return TakeDamage(
             result,
-            attacker
+            source
         );
+    }
+
+    public virtual void ResetEncounterState()
+    {
+        if (!IsAlive)
+            return;
+
+        stunCount = 0;
+        deathProcessed = false;
+
+        damageContributionTracker
+            ?.ResetContributions();
+
+        currentHP =
+            GetMaxHP();
+
+        stateController
+            ?.ForceLeaveCombat();
+
+        RaiseHealthChanged();
     }
 
     public void AddStun()
@@ -699,12 +849,61 @@ public class CharacterStats : MonoBehaviour
     }
 
     protected virtual void Die(
-        CharacterStats killer)
+    CharacterStats killer)
     {
-        RaiseDied(this);
-        GiveDeathRewards(killer);
+        if (deathProcessed)
+            return;
+
+        deathProcessed = true;
+
+        DamageSourceContext finalBlow =
+            pendingFatalDamageSource.HasAnySource
+                ? pendingFatalDamageSource
+                : DamageSourceContext
+                    .FromDirectSource(
+                        killer
+                    );
+
+        DamageContributionSnapshot snapshot =
+            damageContributionTracker != null
+                ? damageContributionTracker
+                    .CreateSnapshot()
+                : new DamageContributionSnapshot(
+                    null,
+                    0
+                );
+
+        CreatureIdentity identity =
+            GetComponent<CreatureIdentity>();
+
+        CharacterDefeatedResult defeatedResult =
+            new CharacterDefeatedResult(
+                this,
+                identity != null
+                    ? identity.Definition
+                    : null,
+                finalBlow,
+                snapshot
+            );
+
+        RaiseDied(
+            this
+        );
+
+        CharacterCombatEvents
+            .RaiseCharacterDefeated(
+                defeatedResult
+            );
+
+        GiveDeathRewards(
+            defeatedResult
+        );
+
         HandleDeathCleanup();
-        Destroy(gameObject);
+
+        Destroy(
+            gameObject
+        );
     }
 
     protected virtual void HandleDeathCleanup()
@@ -821,11 +1020,10 @@ public class CharacterStats : MonoBehaviour
     }
 
     protected virtual void GiveDeathRewards(
-        CharacterStats killer)
+    CharacterDefeatedResult result)
     {
         deathReward?.GiveRewards(
-            this,
-            killer
+            result
         );
     }
 

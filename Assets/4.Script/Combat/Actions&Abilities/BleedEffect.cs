@@ -25,13 +25,21 @@ public sealed class BleedEffect :
         }
 
         BuffSystem buffs =
-            context.Target.GetComponent<
-                BuffSystem
-            >();
+            context.Target.GetComponent<BuffSystem>();
 
         buffs?.ApplyEffect(
             this,
-            context.Caster
+            context.DamageSource
+        );
+    }
+
+    public override ActiveBuff CreateActiveBuff(
+        DamageSourceContext source,
+        CharacterStats target)
+    {
+        return new ActiveBleed(
+            this,
+            source
         );
     }
 
@@ -41,7 +49,9 @@ public sealed class BleedEffect :
     {
         return new ActiveBleed(
             this,
-            source
+            DamageSourceContext.FromDirectSource(
+                source
+            )
         );
     }
 

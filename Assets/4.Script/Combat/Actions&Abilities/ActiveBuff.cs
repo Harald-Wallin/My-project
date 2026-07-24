@@ -35,6 +35,10 @@ public abstract class ActiveBuff
         sourceEffect == null ||
         sourceEffect.removeOnDeath;
 
+    public bool RemoveOnEncounterReset =>
+    sourceEffect == null ||
+    sourceEffect.removeOnEncounterReset;
+
     public Sprite Icon =>
         sourceEffect != null
             ? sourceEffect.icon

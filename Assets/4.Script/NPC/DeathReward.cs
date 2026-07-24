@@ -24,6 +24,12 @@ public class ReputationReward
     public int minLootRolls = 0;
     public int maxLootRolls = 3;
 
+    [Header("Credit")]
+
+    [SerializeField]
+    [Range(0f, 1f)]
+    private float minimumPlayerDamageShare = 0.5f;
+
     [Header("Visuals")]
     public GameObject floatingExpTextPrefab;
 
@@ -38,7 +44,129 @@ public class ReputationReward
         return experience;
     }
 
+    public void GiveRewards(
+    CharacterDefeatedResult result)
+    {
+        if (result == null ||
+            result.Victim == null)
+        {
+            return;
+        }
 
+        PlayerStats player =
+            PlayerReference.Player;
+
+        if (player == null)
+            return;
+
+        if (!result.HasMinimumDamageShare(
+                player,
+                minimumPlayerDamageShare))
+        {
+            return;
+        }
+
+        GiveRewardsInternal(
+            result.Victim,
+            player
+        );
+    }
+
+    public void GiveRewards(
+    CharacterStats victim,
+    CharacterStats killer)
+    {
+        PlayerStats player =
+            killer as PlayerStats;
+
+        if (player == null)
+            return;
+
+        GiveRewardsInternal(
+            victim,
+            player
+        );
+    }
+
+    private void GiveRewardsInternal(
+    CharacterStats victim,
+    PlayerStats player)
+    {
+        if (victim == null ||
+            player == null)
+        {
+            return;
+        }
+
+        int exp =
+            GetExperience(
+                victim.level,
+                player.level
+            );
+
+        if (exp > 0)
+        {
+            player.GainExp(
+                exp
+            );
+
+            if (floatingExpTextPrefab != null)
+            {
+                GameObject text =
+                    Instantiate(
+                        floatingExpTextPrefab,
+                        victim.transform.position +
+                        Vector3.up * 1.5f,
+                        Quaternion.identity
+                    );
+
+                TMPro.TMP_Text tmp =
+                    text.GetComponentInChildren<
+                        TMPro.TMP_Text
+                    >();
+
+                if (tmp != null)
+                {
+                    tmp.text =
+                        exp + " EXP";
+                }
+            }
+        }
+
+        PlayerReputationManager reputation =
+            player.GetComponent<
+                PlayerReputationManager
+            >();
+
+        if (reputation != null)
+        {
+            foreach (ReputationReward reward
+                     in reputationRewards)
+            {
+                if (reward.faction == null ||
+                    reward.reputation == 0)
+                {
+                    continue;
+                }
+
+                reputation.AddReputation(
+                    reward.faction,
+                    reward.reputation
+                );
+            }
+        }
+
+        if (player.murderMode &&
+            !victim.IsHostileToPlayer(player) &&
+            victim.faction != null &&
+            reputation != null)
+        {
+            reputation.AddReputation(
+                victim.faction,
+                -victim.reputationLossOnDeath
+            );
+        }
+    }
 
     public void GenerateLoot(LootContainer container)
     {
@@ -97,68 +225,5 @@ public class ReputationReward
         }
 
         return corpse;
-    }
-
-    public void GiveRewards(CharacterStats victim, CharacterStats killer)
-    {
-        PlayerStats player = killer as PlayerStats;
-
-        if (player == null)
-            return;
-
-        // Experience
-        int exp = GetExperience(victim.level, player.level);
-
-        if (exp > 0)
-        {
-            player.GainExp(exp);
-
-            if (floatingExpTextPrefab != null)
-            {
-                GameObject text =
-                    Instantiate(
-                        floatingExpTextPrefab,
-                        victim.transform.position + Vector3.up * 1.5f,
-                        Quaternion.identity);
-
-                TMPro.TMP_Text tmp =
-                    text.GetComponentInChildren<TMPro.TMP_Text>();
-
-                if (tmp != null)
-                    tmp.text = exp + " EXP";
-            }
-        }
-
-        //Reputation
-        PlayerReputationManager rep = player.GetComponent<PlayerReputationManager>();
-
-        if (rep != null)
-        {
-            foreach (var reward in reputationRewards)
-            {
-                if (reward.faction == null)
-                    continue;
-
-                if (reward.reputation == 0)
-                    continue;
-
-                rep.AddReputation(reward.faction,reward.reputation);
-            }
-        }
-
-        // Murder penalty
-        if (player.murderMode &&
-            !victim.IsHostileToPlayer(player) &&
-            victim.faction != null)
-        {
-            //PlayerReputationManager rep = player.GetComponent<PlayerReputationManager>();
-
-            if (rep != null)
-            {
-                rep.AddReputation(
-                    victim.faction,
-                    -victim.reputationLossOnDeath);
-            }
-        }
     }
 }

@@ -2,15 +2,28 @@ using UnityEngine;
 
 public static class CombatResolver
 {
-    /// <summary>
-    /// Legacy/full damageväg som både slår hit och beräknar
-    /// damage.
-    /// </summary>
     public static int DealDamage(
         CharacterStats attacker,
         CharacterStats target,
         int baseDamage)
     {
+        return DealDamage(
+            DamageSourceContext.FromDirectSource(
+                attacker
+            ),
+            target,
+            baseDamage
+        );
+    }
+
+    public static int DealDamage(
+        DamageSourceContext source,
+        CharacterStats target,
+        int baseDamage)
+    {
+        CharacterStats attacker =
+            source.DirectSource;
+
         if (attacker == null ||
             target == null)
         {
@@ -32,7 +45,7 @@ public static class CombatResolver
 
         return target.TakeDamage(
             result,
-            attacker
+            source
         );
     }
 
@@ -41,12 +54,26 @@ public static class CombatResolver
         CharacterStats target,
         int damage)
     {
+        return DealRawDamage(
+            DamageSourceContext.FromDirectSource(
+                attacker
+            ),
+            target,
+            damage
+        );
+    }
+
+    public static int DealRawDamage(
+        DamageSourceContext source,
+        CharacterStats target,
+        int damage)
+    {
         if (target == null)
             return 0;
 
         return target.TakeRawDamage(
             damage,
-            attacker
+            source
         );
     }
 
@@ -114,11 +141,6 @@ public static class CombatResolver
             evasion;
     }
 
-    /// <summary>
-    /// Damageberäkning för den nya effect-pipelinen.
-    ///
-    /// Hit och dodge måste redan ha avgjorts.
-    /// </summary>
     public static DamageResult
         ResolveDamageAfterSuccessfulHit(
             CharacterStats attacker,
@@ -151,9 +173,6 @@ public static class CombatResolver
             );
     }
 
-    /// <summary>
-    /// Legacy-metod. Gör fortfarande både hit/dodge och damage.
-    /// </summary>
     public static DamageResult ResolveEffectDamage(
         CharacterStats attacker,
         CharacterStats target,
@@ -202,9 +221,6 @@ public static class CombatResolver
         );
     }
 
-    /// <summary>
-    /// Legacy-metod för äldre damagekod.
-    /// </summary>
     public static DamageResult ResolveAbilityHit(
         CharacterStats attacker,
         CharacterStats target,

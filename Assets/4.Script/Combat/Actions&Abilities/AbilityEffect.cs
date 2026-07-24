@@ -2,11 +2,6 @@ using UnityEngine;
 
 /// <summary>
 /// Basklass för alla modulära ability-effekter.
-///
-/// Effekten beskriver både:
-/// - när den ska exekveras
-/// - vilket target den ska använda
-/// - hur den skapar sin runtime-effekt
 /// </summary>
 public abstract class AbilityEffect :
     ScriptableObject
@@ -43,6 +38,12 @@ public abstract class AbilityEffect :
 
     public bool removeOnDeath = true;
 
+    [Tooltip(
+        "Om en runtime-buff skapad av effekten ska tas bort " +
+        "när en NPC gör full encounter-reset, exempelvis vid leash."
+    )]
+    public bool removeOnEncounterReset = true;
+
     public AbilityEffectExecutionTiming ExecutionTiming =>
         executionTiming;
 
@@ -52,9 +53,6 @@ public abstract class AbilityEffect :
     public bool RequiresCharacterTarget =>
         requiresCharacterTarget;
 
-    /// <summary>
-    /// Ny context-baserad execution-ingång.
-    /// </summary>
     public virtual void Execute(
         AbilityEffectExecutionContext context)
     {
@@ -73,9 +71,6 @@ public abstract class AbilityEffect :
         );
     }
 
-    /// <summary>
-    /// Legacy-ingång för ännu inte migrerade effekter.
-    /// </summary>
     public virtual void Apply(
         CharacterStats caster,
         CharacterStats target)
@@ -83,13 +78,27 @@ public abstract class AbilityEffect :
     }
 
     /// <summary>
-    /// Factory för runtime-buffar.
+    /// Legacy-factory.
     /// </summary>
     public virtual ActiveBuff CreateActiveBuff(
         CharacterStats source,
         CharacterStats target)
     {
         return null;
+    }
+
+    /// <summary>
+    /// Context-baserad factory som bevarar direct source,
+    /// credit owner och ability genom deferred effects.
+    /// </summary>
+    public virtual ActiveBuff CreateActiveBuff(
+        DamageSourceContext source,
+        CharacterStats target)
+    {
+        return CreateActiveBuff(
+            source.DirectSource,
+            target
+        );
     }
 
     public virtual string GetTooltipText(

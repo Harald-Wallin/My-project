@@ -60,16 +60,27 @@ public class NPCBehavior : MonoBehaviour
 
     private bool wasPatrollingBeforeCombat;
     private bool restartPatrolOnNextEnter;
+    private Vector3 combatAnchorPosition;
+private Vector3 encounterReturnPosition;
+
+private bool hasCombatAnchor;
 
     public bool IsInCombat => currentState == AIState.Aggro;
     protected AIState currentState = AIState.Idle;
     public AIState CurrentState => currentState;
     public CharacterStats selfStats;
 
-    //public Vector2 CurrentFacingDirection { get; private set; } = Vector2.down;
+    private BuffSystem buffSystem;
+    private NPCReactionController reactionController;
+
+    private bool encounterResetInProgress;
+
+    public bool IsEncounterResetting =>
+        encounterResetInProgress ||
+        currentState == AIState.Returning;
 
     [Header("Re-aggro")]
-    [SerializeField] private float reaggroCooldown = 3f;
+    [SerializeField] private float reaggroCooldown = 0f;
     private float lastReturnTime = -999f;
 
     void Awake()
@@ -89,8 +100,20 @@ public class NPCBehavior : MonoBehaviour
         selfStats =
             GetComponent<CharacterStats>();
 
+        buffSystem =
+            GetComponent<BuffSystem>();
+
+        reactionController =
+            GetComponent<NPCReactionController>();
+
         spawnPosition =
             transform.position;
+
+        combatAnchorPosition =
+            spawnPosition;
+
+        encounterReturnPosition =
+            spawnPosition;
 
         if (selfStats != null)
         {
@@ -160,9 +183,7 @@ public class NPCBehavior : MonoBehaviour
 
         UpdateTimers();
 
-        float distanceFromSpawn = Vector2.Distance( transform.position, spawnPosition);
-
-        HandleLeash(distanceFromSpawn);
+        HandleLeash();
         UpdateCurrentState();
     }
 
@@ -402,15 +423,9 @@ public class NPCBehavior : MonoBehaviour
 
     void UpdateAggroState()
     {
-        if (currentTargetStats == null)
+        if (currentTargetStats == null || currentTargetStats.currentHP <= 0)
         {
-            ReturnToSpawn();
-            return;
-        }
-
-        if (currentTargetStats.currentHP <= 0)
-        {
-            ReturnToSpawn();
+            BeginEncounterResetAndReturn();
             return;
         }
 
@@ -518,71 +533,123 @@ public class NPCBehavior : MonoBehaviour
         );
     }
 
-    void SetupAggro(CharacterStats target)
+    void SetupAggro(
+    CharacterStats target)
     {
+        encounterResetInProgress = false;
+
         currentTargetStats = target;
 
         player = target.transform;
 
         isAggro = true;
-
         isReturning = false;
 
-        abilityLockTimer = abilityDelayAfterAggro;
+        abilityLockTimer =
+            abilityDelayAfterAggro;
     }
 
-    protected virtual void EnterAggroState(CharacterStats target)
+    protected virtual void EnterAggroState(
+    CharacterStats target)
     {
         if (target == null)
-        {
             return;
-        }
+
+        if (IsEncounterResetting)
+            return;
 
         if (currentState == AIState.Aggro)
         {
-            currentTargetStats = target;
+            currentTargetStats =
+                target;
+
             return;
         }
 
-        //Sparar eventuell patrullstatus
-        wasPatrollingBeforeCombat = currentState == AIState.Patrolling;
+        wasPatrollingBeforeCombat =
+            currentState ==
+            AIState.Patrolling;
 
-        ChangeState(AIState.Aggro);
+        /*
+         * Patrullerande NPC:er leashar från den plats där
+         * striden började, inte från sin ursprungliga spawnpunkt.
+         */
+        combatAnchorPosition =
+            wasPatrollingBeforeCombat
+                ? transform.position
+                : spawnPosition;
 
-        SetupAggro(target);
+        encounterReturnPosition =
+            combatAnchorPosition;
 
-        PlayerStats ps = target as PlayerStats;
+        hasCombatAnchor = true;
 
-        if (ps != null)
+        ChangeState(
+            AIState.Aggro
+        );
+
+        SetupAggro(
+            target
+        );
+
+        PlayerStats playerTarget =
+            target as PlayerStats;
+
+        if (playerTarget != null)
         {
-            SubscribeToPlayerDeath(ps);
+            SubscribeToPlayerDeath(
+                playerTarget
+            );
         }
     }
 
-    void UpdateReturnState()
+    private void UpdateReturnState()
     {
-        movement.UpdateReturnMovement(spawnPosition);
+        movement.UpdateReturnMovement(
+            encounterReturnPosition
+        );
 
         float distance =
             Vector2.Distance(
                 transform.position,
-                spawnPosition);
+                encounterReturnPosition
+            );
 
-        if (distance <= movement.DefaultStopDistance)
+        if (distance >
+            movement.DefaultStopDistance)
         {
-            if (canPatrol)
-            {
-                EnterPatrolState();
-            }
-            else if (canWander)
-            {
-                EnterWanderState();
-            }
-            else
-            {
-                EnterIdleState();
-            }
+            return;
         }
+
+        movement.Stop();
+
+        encounterResetInProgress = false;
+        hasCombatAnchor = false;
+
+        bool shouldResumePatrol =
+            wasPatrollingBeforeCombat &&
+            canPatrol &&
+            patrolPath != null &&
+            patrolPath.points.Count > 0;
+
+        wasPatrollingBeforeCombat = false;
+
+        if (shouldResumePatrol)
+        {
+            EnterPatrolState(
+                false
+            );
+
+            return;
+        }
+
+        if (canWander)
+        {
+            EnterWanderState();
+            return;
+        }
+
+        EnterIdleState();
     }
 
     protected virtual void EnterReturnState()
@@ -609,22 +676,121 @@ public class NPCBehavior : MonoBehaviour
         ChangeState(AIState.Holding);
     }
 
-    void HandleLeash(float distanceFromSpawn)
+    private void HandleLeash()
     {
-        if (canPatrol)
+        if (currentState != AIState.Aggro)
             return;
 
-        if (currentState == AIState.Fleeing)
+        if (IsEncounterResetting)
             return;
 
-        if (!isReturning &&
-            isAggro &&
-            distanceFromSpawn > maxDistanceFromSpawn)
+        Vector3 leashOrigin =
+            hasCombatAnchor
+                ? combatAnchorPosition
+                : spawnPosition;
+
+        float distanceFromLeashOrigin =
+            Vector2.Distance(
+                transform.position,
+                leashOrigin
+            );
+
+        if (distanceFromLeashOrigin <=
+            maxDistanceFromSpawn)
         {
-            EnterReturnState();
-
-            selfStats?.ResetHealth();
+            return;
         }
+
+        BeginEncounterResetAndReturn();
+    }
+
+    private void BeginEncounterResetAndReturn()
+    {
+        if (encounterResetInProgress)
+            return;
+
+        bool wasInEncounter =
+            currentState == AIState.Aggro ||
+            currentState == AIState.Fleeing ||
+            currentState == AIState.Holding;
+
+        if (!wasInEncounter)
+            return;
+
+        encounterResetInProgress = true;
+
+        bool shouldResumePatrol =
+            wasPatrollingBeforeCombat &&
+            canPatrol &&
+            patrolPath != null &&
+            patrolPath.points.Count > 0;
+
+        actionController
+            ?.ResetRuntimeState();
+
+        abilityController
+            ?.ResetRuntimeState();
+
+        buffSystem
+            ?.RemoveEncounterResetBuffs();
+
+        selfStats
+            ?.ResetEncounterState();
+
+        reactionController
+            ?.ResetEncounterState();
+
+        movement?.Stop();
+
+        fleeSource = null;
+        currentTargetStats = null;
+
+        if (subscribedPlayer != null)
+        {
+            subscribedPlayer.OnDied -=
+                HandleTargetDied;
+
+            subscribedPlayer = null;
+        }
+
+        /*
+         * Hindrar NPC:n från att omedelbart kedje-aggra ett nytt mål
+         * på nästa FixedUpdate.
+         */
+        aggroDisableTimer =
+            Mathf.Max(
+                aggroDisableTimer,
+                reaggroCooldown
+            );
+
+        lastReturnTime =
+            Time.time;
+
+        isAggro = false;
+        isReturning = false;
+
+        encounterResetInProgress = false;
+        hasCombatAnchor = false;
+
+        if (shouldResumePatrol)
+        {
+            wasPatrollingBeforeCombat = false;
+
+            EnterPatrolState(
+                false
+            );
+
+            return;
+        }
+
+        wasPatrollingBeforeCombat = false;
+
+        encounterResetInProgress = true;
+
+        encounterReturnPosition =
+            spawnPosition;
+
+        EnterReturnState();
     }
 
     void HandleAggroDetection()
@@ -1145,15 +1311,26 @@ public class NPCBehavior : MonoBehaviour
 
     public void ReturnToSpawn()
     {
-        fleeSource = null;
-
-        if (wasPatrollingBeforeCombat)
+        if (currentState == AIState.Aggro ||
+            currentState == AIState.Fleeing ||
+            currentState == AIState.Holding)
         {
-            wasPatrollingBeforeCombat = false;
-
-            EnterPatrolState(false);
+            BeginEncounterResetAndReturn();
             return;
         }
+
+        if (currentState == AIState.Returning)
+            return;
+
+        wasPatrollingBeforeCombat = false;
+        hasCombatAnchor = false;
+
+        encounterReturnPosition =
+            spawnPosition;
+
+        encounterResetInProgress = true;
+
+        movement?.Stop();
 
         EnterReturnState();
     }
@@ -1189,11 +1366,10 @@ public class NPCBehavior : MonoBehaviour
         subscribedPlayer.OnDied += HandleTargetDied;
     }
 
-    void HandleTargetDied(CharacterStats deadTarget)
+    private void HandleTargetDied(
+    CharacterStats deadTarget)
     {
-        aggroDisableTimer = 2f;
-
-        ReturnToSpawn();
+        BeginEncounterResetAndReturn();
     }
 
     void HandleDeath(CharacterStats deadCharacter)
