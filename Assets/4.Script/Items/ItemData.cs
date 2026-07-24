@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public enum ItemRarity
@@ -9,6 +10,7 @@ public enum ItemRarity
     Extraordinary,
     FromTheSagas
 }
+
 public enum ItemType
 {
     None,
@@ -26,26 +28,44 @@ public enum ItemType
     Trash,
     Offhand,
     Shield
-
 }
 
-[CreateAssetMenu(menuName = "Items/Item")]
-public class ItemData : ScriptableObject, ITooltipProvider
+[CreateAssetMenu(
+    menuName = "Items/Item"
+)]
+public class ItemData :
+    ScriptableObject,
+    ITooltipProvider
 {
+    [Header("Identity")]
+
+    [SerializeField]
+    [Tooltip(
+        "Permanent ID för favours och save/load. " +
+        "Ändra inte efter release."
+    )]
+    private string id;
+
     [Header("Basic Info")]
+
     public string itemName;
+
     public Sprite worldSprite;
 
     [Header("Rarity")]
-    public ItemRarity rarity = ItemRarity.Common;
+
+    public ItemRarity rarity =
+        ItemRarity.Common;
 
     [Header("Directional Sprites")]
+
     public Sprite frontSprite;
     public Sprite backSprite;
     public Sprite leftSprite;
     public Sprite rightSprite;
 
     [Header("Appearance")]
+
     public bool hideHair;
     public bool hideBeard;
     public bool hideHead;
@@ -56,18 +76,25 @@ public class ItemData : ScriptableObject, ITooltipProvider
 
     [TextArea(2, 3)]
     public string description;
+
     public Sprite icon;
+
     public ItemType itemType;
 
     [Header("Flags")]
+
     public bool equippable;
     public bool stackable;
+
+    [Min(1)]
     public int maxStack = 1;
 
     [Header("Stat Modifiers")]
+
     public ItemStatModifier[] statModifiers;
 
     [Header("Requirements")]
+
     public bool useLevelRequirement;
     public int requiredLevel;
     public Faction reputationFaction;
@@ -76,35 +103,71 @@ public class ItemData : ScriptableObject, ITooltipProvider
     public ReputationState requiredReputation;
 
     [Header("Economy")]
-    [SerializeField] private int buyPrice = 10;
-    [Range(0f, 1f)]
-    [SerializeField] private float sellMultiplier = 0.6f;
-    public int BuyPrice => buyPrice;
-    public int SellPrice => Mathf.RoundToInt(buyPrice * sellMultiplier);
 
-    [System.Serializable]
+    [SerializeField]
+    private int buyPrice = 10;
+
+    [Range(0f, 1f)]
+    [SerializeField]
+    private float sellMultiplier = 0.6f;
+
+    public string Id =>
+        id;
+
+    public string DisplayName =>
+        string.IsNullOrWhiteSpace(
+            itemName
+        )
+            ? name
+            : itemName;
+
+    public int BuyPrice =>
+        buyPrice;
+
+    public int SellPrice =>
+        Mathf.RoundToInt(
+            buyPrice *
+            sellMultiplier
+        );
+
+    [Serializable]
     public class VendorItem
     {
         public ItemData item;
         public int price;
-        public bool unique;            // Max 1 i inventory/equip/bank
-        public float cooldownSeconds;  // 0 = oändligt
-        [HideInInspector] public float lastSoldTime;
-        public string warningDialog;   // Optional confirmation
+        public bool unique;
+        public float cooldownSeconds;
+
+        [HideInInspector]
+        public float lastSoldTime;
+
+        public string warningDialog;
     }
 
-    public TooltipData GetTooltipData(CharacterStats caster)
+    public TooltipData GetTooltipData(
+        CharacterStats caster)
     {
-        TooltipData data = new TooltipData();
+        TooltipData data =
+            new TooltipData();
 
-        data.title = itemName;
-        data.titleColor = ItemRarityColors.GetColor(rarity);
-        data.subtitle = itemType.ToString();
-        data.description = description;
+        data.title =
+            DisplayName;
+
+        data.titleColor =
+            ItemRarityColors.GetColor(
+                rarity
+            );
+
+        data.subtitle =
+            itemType.ToString();
+
+        data.description =
+            description;
 
         if (statModifiers != null)
         {
-            foreach (ItemStatModifier modifier in statModifiers)
+            foreach (ItemStatModifier modifier
+                     in statModifiers)
             {
                 if (modifier == null)
                     continue;
@@ -126,108 +189,167 @@ public class ItemData : ScriptableObject, ITooltipProvider
             }
         }
 
-        data.footer = $"Sellprice: {SellPrice}";
-        data.showFooter = true;
+        data.footer =
+            $"Sellprice: {SellPrice}";
 
-        PlayerStats player = PlayerReference.Player;
-        AddRequirementLines(data, player);
+        data.showFooter =
+            true;
+
+        PlayerStats player =
+            PlayerReference.Player;
+
+        AddRequirementLines(
+            data,
+            player
+        );
 
         return data;
     }
 
-    public bool MeetsRequirements(PlayerStats player)
+    public bool MeetsRequirements(
+        PlayerStats player)
     {
         if (player == null)
             return false;
 
-        // LEVEL
-        if (useLevelRequirement)
+        if (useLevelRequirement &&
+            player.level < requiredLevel)
         {
-            if (player.level < requiredLevel)
-                return false;
+            return false;
         }
 
-        // REPUTATION
         if (useReputationRequirement)
         {
             if (reputationFaction == null)
                 return false;
 
             PlayerReputationManager rep =
-                player.GetComponent<PlayerReputationManager>();
+                player.GetComponent<
+                    PlayerReputationManager
+                >();
 
             if (rep == null)
                 return false;
 
             ReputationState state =
-                rep.GetReputationState(reputationFaction);
+                rep.GetReputationState(
+                    reputationFaction
+                );
 
-            if (state < requiredReputation)
+            if (state <
+                requiredReputation)
+            {
                 return false;
+            }
         }
 
         return true;
     }
 
-    public void AddRequirementLines(TooltipData data,PlayerStats player)
+    public void AddRequirementLines(
+        TooltipData data,
+        PlayerStats player)
     {
-        if (player == null)
+        if (data == null ||
+            player == null)
+        {
             return;
+        }
 
-        // LEVEL
         if (useLevelRequirement)
         {
-            bool meets = player.level >= requiredLevel;
+            bool meets =
+                player.level >=
+                requiredLevel;
 
-            string color = meets ? "white" : "#FF5555";
+            string color =
+                meets
+                    ? "white"
+                    : "#FF5555";
 
             data.requirements.Add(
                 $"<color={color}>Requires Level {requiredLevel}</color>"
             );
         }
 
-        // REPUTATION
-        if (useReputationRequirement && reputationFaction != null)
+        if (useReputationRequirement &&
+            reputationFaction != null)
         {
             PlayerReputationManager rep =
-                player.GetComponent<PlayerReputationManager>();
+                player.GetComponent<
+                    PlayerReputationManager
+                >();
 
             if (rep != null)
             {
                 ReputationState state =
-                    rep.GetReputationState(reputationFaction);
+                    rep.GetReputationState(
+                        reputationFaction
+                    );
 
-                bool meets = state >= requiredReputation;
+                bool meets =
+                    state >=
+                    requiredReputation;
 
-                string color = meets ? "white" : "#FF5555";
+                string color =
+                    meets
+                        ? "white"
+                        : "#FF5555";
 
                 data.requirements.Add(
-                    $"<color={color}>Requires {requiredReputation} with {reputationFaction.factionName}</color>"
+                    $"<color={color}>Requires {requiredReputation} " +
+                    $"with {reputationFaction.factionName}</color>"
                 );
             }
         }
     }
 
 #if UNITY_EDITOR
-    [UnityEditor.CustomEditor(typeof(ItemData))]
-    public class ItemDataEditor : UnityEditor.Editor
+    [UnityEditor.CustomEditor(
+        typeof(ItemData)
+    )]
+    public class ItemDataEditor :
+        UnityEditor.Editor
     {
         public override void OnInspectorGUI()
         {
             DrawDefaultInspector();
 
-            ItemData item = (ItemData)target;
+            ItemData item =
+                (ItemData)target;
 
-            UnityEditor.EditorGUILayout.Space();
-            UnityEditor.EditorGUILayout.LabelField(
-                "Calculated Sell Price",
-                item.SellPrice.ToString()
+            UnityEditor.EditorGUILayout
+                .Space();
+
+            UnityEditor.EditorGUILayout
+                .LabelField(
+                    "Calculated Sell Price",
+                    item.SellPrice.ToString()
+                );
+        }
+    }
+
+    protected virtual void OnValidate()
+    {
+        id =
+            id?.Trim();
+
+        maxStack =
+            stackable
+                ? Mathf.Max(
+                    1,
+                    maxStack
+                )
+                : 1;
+
+        if (string.IsNullOrWhiteSpace(
+                id))
+        {
+            Debug.LogWarning(
+                $"ItemData '{name}' saknar permanent ID.",
+                this
             );
         }
     }
 #endif
 }
-
-
-
-

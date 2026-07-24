@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a845d5b2ad00dc548a9a92dd453395f0, type: 3}
+  m_Name: Slay_Wolves_TESTFAVOUR
+  m_EditorClassIdentifier: Assembly-CSharp::FavourData
+  id: fav_slay_the_wolves
+  displayName: Slay the Wolves
+  description: 
+  category: 1
+  activationPolicy: 0
+  completionPolicy: 1
+  requirements: []
+  objectives:
+  - {fileID: 11400000, guid: ffb7d664812194443b17052d57f8ee30, type: 2}
+  dialogueSet: {fileID: 0}
+  rewards: []
+  failureSettings:
+    policy: 0
+    retryCooldownSeconds: 0
+  repeatSettings:
+    repeatable: 0
+    repeatCooldownSeconds: 0
+  followUps: []

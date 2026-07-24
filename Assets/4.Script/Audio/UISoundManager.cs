@@ -14,7 +14,7 @@ public class UISoundManager : MonoBehaviour
 
     public void Play(AudioClip clip)
     {
-        Debug.Log("UISoundManager.Play called");
+        //Debug.Log("UISoundManager.Play called");
 
         if (clip == null)
             return;
