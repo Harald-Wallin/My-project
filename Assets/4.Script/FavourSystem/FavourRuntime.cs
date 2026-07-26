@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 public sealed class FavourRuntime
 {
@@ -8,17 +9,74 @@ public sealed class FavourRuntime
         objectives =
             new();
 
+    private readonly List<FavourItemCost>
+        rawCompletionCosts =
+            new();
+
+    private readonly List<FavourItemCost>
+        mergedCompletionCosts =
+            new();
+
+    private readonly List<InventoryItemAmount>
+        inventoryRemovals =
+            new();
+
+    private readonly List<InventoryItemAmount>
+        rawInventoryRewards =
+            new();
+
+    private readonly List<InventoryItemAmount>
+        mergedInventoryRewards =
+            new();
+
+    private readonly List<HashSet<int>>
+        selectedRewardOptions =
+            new();
+
+    private readonly List<
+    FavourRewardChoiceRuntime>
+    rewardChoices =
+        new();
+
+    public bool AreObjectivesComplete =>
+    AreAllObjectivesComplete();
+
+    public bool CanAccept =>
+        State == FavourState.Available &&
+        AreRequirementsMet() &&
+        objectives.Count > 0;
+
+    public bool CanTurnIn =>
+        State == FavourState.ReadyToTurnIn &&
+        AreAllObjectivesComplete() &&
+        AreRequirementsMet() &&
+        ValidateRewardSelections();
+
+    public bool CanChangeRewardSelections =>
+        State == FavourState.Active ||
+        State == FavourState.ReadyToTurnIn;
+
+    public bool RequiresReturnToGiver =>
+        CompletionPolicy ==
+        FavourCompletionPolicy.ReturnToGiver;
+
+    public bool ShouldShowReturnToGiverObjective =>
+        RequiresReturnToGiver &&
+        State != FavourState.Completed &&
+        State != FavourState.Failed &&
+        State != FavourState.Cooldown;
+
+    private bool isFinalizingCompletion;
+
     public FavourRuntime(
         FavourData data,
         PlayerFavourManager manager)
     {
-        Data =
-            data;
-
-        Manager =
-            manager;
+        Data = data;
+        Manager = manager;
 
         BuildObjectives();
+        BuildRewardChoiceState();
 
         State =
             FavourState.Unavailable;
@@ -45,11 +103,21 @@ public sealed class FavourRuntime
         Objectives =>
             objectives;
 
+    public bool AreRewardChoicesComplete =>
+        ValidateRewardSelections();
+
     public event Action<FavourRuntime>
         StateChanged;
 
     public event Action<FavourRuntime>
         ProgressChanged;
+
+    public event Action<FavourRuntime>
+    RewardSelectionChanged;
+
+    // =========================================================
+    // BUILD
+    // =========================================================
 
     private void BuildObjectives()
     {
@@ -81,6 +149,47 @@ public sealed class FavourRuntime
         }
     }
 
+    private void BuildRewardChoiceState()
+    {
+        selectedRewardOptions.Clear();
+        rewardChoices.Clear();
+
+        IReadOnlyList<
+            FavourRewardChoiceGroup>
+            groups =
+                Data?.RewardChoiceGroups;
+
+        if (groups == null)
+            return;
+
+        for (int groupIndex = 0;
+             groupIndex < groups.Count;
+             groupIndex++)
+        {
+            selectedRewardOptions.Add(
+                new HashSet<int>()
+            );
+
+            FavourRewardChoiceGroup group =
+                groups[groupIndex];
+
+            if (group == null)
+                continue;
+
+            rewardChoices.Add(
+                new FavourRewardChoiceRuntime(
+                    this,
+                    group,
+                    groupIndex
+                )
+            );
+        }
+    }
+
+    // =========================================================
+    // AVAILABILITY / REQUIREMENTS
+    // =========================================================
+
     public void RefreshAvailability()
     {
         if (State !=
@@ -100,18 +209,184 @@ public sealed class FavourRuntime
 
     public bool AreRequirementsMet()
     {
-        if (Data?.Requirements == null)
+        if (Data == null ||
+            Manager == null)
+        {
+            return false;
+        }
+
+        if (!IsLevelRequirementMet())
+            return false;
+
+        if (!IsCurrencyRequirementMet())
+            return false;
+
+        if (!AreReputationRequirementsMet())
+            return false;
+
+        if (!AreItemRequirementsMet())
+            return false;
+
+        if (!AreCompletedFavourRequirementsMet())
+            return false;
+
+        return true;
+    }
+
+    private bool IsLevelRequirementMet()
+    {
+        if (Data.MinimumLevel <= 0)
             return true;
 
-        foreach (FavourRequirementData
+        PlayerStats player =
+            Manager.Player;
+
+        return player != null &&
+               player.Level >=
+               Data.MinimumLevel;
+    }
+
+    private bool IsCurrencyRequirementMet()
+    {
+        if (Data.MinimumCurrency <= 0)
+            return true;
+
+        PlayerCurrency currency =
+            Manager.PlayerCurrency;
+
+        return currency != null &&
+               currency.HasCoins(
+                   Data.MinimumCurrency
+               );
+    }
+
+    private bool AreReputationRequirementsMet()
+    {
+        IReadOnlyList<
+            FavourReputationRequirement>
+            requirements =
+                Data.ReputationRequirements;
+
+        if (requirements == null ||
+            requirements.Count == 0)
+        {
+            return true;
+        }
+
+        PlayerReputationManager reputationManager =
+            Manager.PlayerReputation;
+
+        if (reputationManager == null)
+            return false;
+
+        foreach (FavourReputationRequirement
                  requirement
-                 in Data.Requirements)
+                 in requirements)
         {
             if (requirement == null)
                 continue;
 
-            if (!requirement.IsMet(
-                    Manager))
+            if (requirement.Faction == null)
+                return false;
+
+            FactionReputationData reputation =
+                reputationManager.GetReputation(
+                    requirement.Faction
+                );
+
+            bool discovered =
+                reputation != null &&
+                reputation.discovered;
+
+            if (requirement.RequireDiscovered &&
+                !discovered)
+            {
+                return false;
+            }
+
+            int currentLevel =
+                reputation != null
+                    ? Mathf.Max(
+                        1,
+                        reputation.level
+                    )
+                    : 0;
+
+            bool met;
+
+            switch (requirement.Comparison)
+            {
+                case FavourReputationComparison
+                    .AtLeast:
+
+                    met =
+                        currentLevel >=
+                        requirement.RequiredLevel;
+
+                    break;
+
+                case FavourReputationComparison
+                    .AtMost:
+
+                    met =
+                        currentLevel <=
+                        requirement.RequiredLevel;
+
+                    break;
+
+                case FavourReputationComparison
+                    .Exactly:
+
+                    met =
+                        currentLevel ==
+                        requirement.RequiredLevel;
+
+                    break;
+
+                default:
+                    met = false;
+                    break;
+            }
+
+            if (!met)
+                return false;
+        }
+
+        return true;
+    }
+
+    private bool AreItemRequirementsMet()
+    {
+        IReadOnlyList<
+            FavourItemRequirement>
+            requirements =
+                Data.ItemRequirements;
+
+        if (requirements == null ||
+            requirements.Count == 0)
+        {
+            return true;
+        }
+
+        Inventory inventory =
+            ResolveInventory();
+
+        if (inventory == null)
+            return false;
+
+        foreach (FavourItemRequirement
+                 requirement
+                 in requirements)
+        {
+            if (requirement == null)
+                continue;
+
+            if (requirement.Item == null)
+                return false;
+
+            if (inventory.GetItemCount(
+                    requirement.Item) <
+                requirement.Amount)
             {
                 return false;
             }
@@ -119,6 +394,55 @@ public sealed class FavourRuntime
 
         return true;
     }
+
+    private bool AreCompletedFavourRequirementsMet()
+    {
+        IReadOnlyList<FavourData>
+            requiredFavours =
+                Data.RequiredCompletedFavours;
+
+        if (requiredFavours != null)
+        {
+            foreach (FavourData required
+                     in requiredFavours)
+            {
+                if (required == null)
+                    continue;
+
+                if (!Manager.IsCompleted(
+                        required))
+                {
+                    return false;
+                }
+            }
+        }
+
+        IReadOnlyList<FavourData>
+            forbiddenFavours =
+                Data.ForbiddenCompletedFavours;
+
+        if (forbiddenFavours != null)
+        {
+            foreach (FavourData forbidden
+                     in forbiddenFavours)
+            {
+                if (forbidden == null)
+                    continue;
+
+                if (Manager.IsCompleted(
+                        forbidden))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    // =========================================================
+    // ACTIVATION / COMPLETION
+    // =========================================================
 
     public bool TryActivate()
     {
@@ -152,10 +476,6 @@ public sealed class FavourRuntime
             return false;
         }
 
-        /*
-         * Kontrollerar den aktuella sanningen en sista gång.
-         * Detta är viktigt för CollectObjective.
-         */
         if (!AreAllObjectivesComplete())
         {
             SetState(
@@ -167,10 +487,180 @@ public sealed class FavourRuntime
             return false;
         }
 
-        Complete();
+        return TryFinalizeCompletion();
+    }
+
+    private void EvaluateCompletion()
+    {
+        if (State != FavourState.Active &&
+            State != FavourState.ReadyToTurnIn)
+        {
+            return;
+        }
+
+        bool allComplete =
+            AreAllObjectivesComplete();
+
+        if (!allComplete)
+        {
+            if (State ==
+                FavourState.ReadyToTurnIn)
+            {
+                SetState(
+                    FavourState.Active
+                );
+            }
+
+            return;
+        }
+
+        /*
+         * Automatic favours kan endast slutföras automatiskt
+         * när samtliga eventuella reward-val redan har gjorts.
+         */
+        if (Data.CompletionPolicy ==
+                FavourCompletionPolicy.Automatic &&
+            ValidateRewardSelections())
+        {
+            if (TryFinalizeCompletion())
+                return;
+        }
+
+        SetState(
+            FavourState.ReadyToTurnIn
+        );
+    }
+
+    private bool AreAllObjectivesComplete()
+    {
+        if (objectives.Count == 0)
+            return false;
+
+        foreach (FavourObjectiveRuntime
+                 objective
+                 in objectives)
+        {
+            if (objective == null ||
+                !objective.IsComplete)
+            {
+                return false;
+            }
+        }
 
         return true;
     }
+
+    private bool TryFinalizeCompletion()
+    {
+        if (State ==
+            FavourState.Completed)
+        {
+            return false;
+        }
+
+        if (!AreAllObjectivesComplete())
+            return false;
+
+        /*
+         * Requirements kontrolleras igen vid turn-in.
+         * Spelaren kan exempelvis ha spenderat pengar eller
+         * tappat ett requirement-item efter att favouren
+         * accepterades.
+         */
+        if (!AreRequirementsMet())
+            return false;
+
+        if (!ValidateRewardSelections())
+            return false;
+
+        if (!CanGrantNonInventoryRewards())
+            return false;
+
+        BuildMergedCompletionCosts();
+        BuildInventoryRemovals();
+        BuildMergedInventoryRewards();
+
+        Inventory inventory =
+            ResolveInventory();
+
+        if (!CanPayCompletionCosts(
+                inventory))
+        {
+            return false;
+        }
+
+        bool requiresInventory =
+            inventoryRemovals.Count > 0 ||
+            mergedInventoryRewards.Count > 0;
+
+        if (requiresInventory &&
+            inventory == null)
+        {
+            Debug.LogError(
+                $"Favour '{Data?.DisplayName}' kräver Inventory, " +
+                $"men inget Inventory kunde hittas."
+            );
+
+            return false;
+        }
+
+        isFinalizingCompletion =
+            true;
+
+        try
+        {
+            if (requiresInventory)
+            {
+                bool transactionSucceeded =
+                    inventory.TryApplyTransaction(
+                        inventoryRemovals,
+                        mergedInventoryRewards,
+                        notifyIfInventoryFull: true
+                    );
+
+                if (!transactionSucceeded)
+                {
+                    /*
+                     * Ingen del av transaktionen genomförs.
+                     * Favouren förblir ReadyToTurnIn.
+                     */
+                    return false;
+                }
+            }
+
+            GrantNonInventoryRewards();
+
+            Complete();
+
+            return true;
+        }
+        finally
+        {
+            isFinalizingCompletion =
+                false;
+        }
+    }
+
+    private void Complete()
+    {
+        if (State ==
+            FavourState.Completed)
+        {
+            return;
+        }
+
+        DeactivateObjectives();
+
+        SetState(
+            FavourState.Completed
+        );
+
+        RegisterFollowUps();
+    }
+
+    // =========================================================
+    // OBJECTIVES
+    // =========================================================
 
     internal void HandleCharacterDefeated(
         CharacterDefeatedResult result)
@@ -198,85 +688,10 @@ public sealed class FavourRuntime
             this
         );
 
+        if (isFinalizingCompletion)
+            return;
+
         EvaluateCompletion();
-    }
-
-    private void EvaluateCompletion()
-    {
-        if (State != FavourState.Active &&
-            State != FavourState.ReadyToTurnIn)
-        {
-            return;
-        }
-
-        bool allComplete =
-            AreAllObjectivesComplete();
-
-        if (!allComplete)
-        {
-            if (State ==
-                FavourState.ReadyToTurnIn)
-            {
-                SetState(
-                    FavourState.Active
-                );
-            }
-
-            return;
-        }
-
-        if (Data.CompletionPolicy ==
-            FavourCompletionPolicy.Automatic)
-        {
-            Complete();
-            return;
-        }
-
-        /*
-         * Objectives förblir aktiva i ReadyToTurnIn så att
-         * inventorybaserad progress fortfarande kan förändras.
-         */
-        SetState(
-            FavourState.ReadyToTurnIn
-        );
-    }
-
-    private bool AreAllObjectivesComplete()
-    {
-        if (objectives.Count == 0)
-            return false;
-
-        foreach (FavourObjectiveRuntime
-                 objective
-                 in objectives)
-        {
-            if (objective == null ||
-                !objective.IsComplete)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private void Complete()
-    {
-        if (State ==
-            FavourState.Completed)
-        {
-            return;
-        }
-
-        DeactivateObjectives();
-
-        GrantRewards();
-
-        SetState(
-            FavourState.Completed
-        );
-
-        RegisterFollowUps();
     }
 
     private void ActivateObjectives()
@@ -299,19 +714,820 @@ public sealed class FavourRuntime
         }
     }
 
-    private void GrantRewards()
+    public void ResetObjectives()
     {
-        if (Data?.Rewards == null)
+        foreach (FavourObjectiveRuntime
+                 objective
+                 in objectives)
+        {
+            objective?.ResetProgress();
+        }
+
+        ClearRewardSelections();
+
+        EvaluateCompletion();
+    }
+
+    // =========================================================
+    // REWARD CHOICES
+    // =========================================================
+
+    public bool SetRewardChoiceSelected(
+        int groupIndex,
+        int optionIndex,
+        bool selected)
+    {
+        if (!CanChangeRewardSelections)
+            return false;
+
+        if (!TryGetRewardChoiceGroup(
+                groupIndex,
+                out FavourRewardChoiceGroup group))
+        {
+            return false;
+        }
+
+        if (group.Options == null ||
+            optionIndex < 0 ||
+            optionIndex >=
+            group.Options.Count)
+        {
+            return false;
+        }
+
+        FavourRewardChoiceOption option =
+            group.Options[optionIndex];
+
+        if (option == null ||
+            !option.IsValid)
+        {
+            return false;
+        }
+
+        HashSet<int> selections =
+            selectedRewardOptions[
+                groupIndex
+            ];
+
+        bool changed;
+
+        if (selected)
+        {
+            if (selections.Contains(
+                    optionIndex))
+            {
+                return true;
+            }
+
+            if (selections.Count >=
+                group.ChoicesAllowed)
+            {
+                return false;
+            }
+
+            changed =
+                selections.Add(
+                    optionIndex
+                );
+        }
+        else
+        {
+            changed =
+                selections.Remove(
+                    optionIndex
+                );
+        }
+
+        if (!changed)
+            return false;
+
+        RewardSelectionChanged?.Invoke(
+            this
+        );
+
+        ProgressChanged?.Invoke(
+            this
+        );
+
+        if (!isFinalizingCompletion)
+        {
+            EvaluateCompletion();
+        }
+
+        return true;
+    }
+
+    public bool IsRewardChoiceSelected(
+        int groupIndex,
+        int optionIndex)
+    {
+        if (groupIndex < 0 ||
+            groupIndex >=
+            selectedRewardOptions.Count)
+        {
+            return false;
+        }
+
+        return selectedRewardOptions[
+            groupIndex
+        ].Contains(
+            optionIndex
+        );
+    }
+
+    public int GetSelectedRewardCount(
+        int groupIndex)
+    {
+        if (groupIndex < 0 ||
+            groupIndex >=
+            selectedRewardOptions.Count)
+        {
+            return 0;
+        }
+
+        return selectedRewardOptions[
+            groupIndex
+        ].Count;
+    }
+
+    public void ClearRewardSelections()
+    {
+        bool changed = false;
+
+        foreach (HashSet<int> selections
+                 in selectedRewardOptions)
+        {
+            if (selections.Count == 0)
+                continue;
+
+            selections.Clear();
+            changed = true;
+        }
+
+        if (!changed)
             return;
 
-        foreach (FavourRewardData reward
-                 in Data.Rewards)
+        RewardSelectionChanged?.Invoke(
+            this
+        );
+
+        ProgressChanged?.Invoke(
+            this
+        );
+
+        if (!isFinalizingCompletion)
         {
-            reward?.Grant(
-                Manager
+            EvaluateCompletion();
+        }
+    }
+
+    private bool ValidateRewardSelections()
+    {
+        IReadOnlyList<
+            FavourRewardChoiceGroup>
+            groups =
+                Data?.RewardChoiceGroups;
+
+        if (groups == null ||
+            groups.Count == 0)
+        {
+            return true;
+        }
+
+        if (selectedRewardOptions.Count !=
+            groups.Count)
+        {
+            return false;
+        }
+
+        for (int groupIndex = 0;
+             groupIndex < groups.Count;
+             groupIndex++)
+        {
+            FavourRewardChoiceGroup group =
+                groups[groupIndex];
+
+            if (group == null ||
+                group.Options == null)
+            {
+                return false;
+            }
+
+            HashSet<int> selections =
+                selectedRewardOptions[
+                    groupIndex
+                ];
+
+            if (selections.Count !=
+                group.ChoicesAllowed)
+            {
+                return false;
+            }
+
+            foreach (int optionIndex
+                     in selections)
+            {
+                if (optionIndex < 0 ||
+                    optionIndex >=
+                    group.Options.Count)
+                {
+                    return false;
+                }
+
+                FavourRewardChoiceOption option =
+                    group.Options[
+                        optionIndex
+                    ];
+
+                if (option == null ||
+                    !option.IsValid)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private bool TryGetRewardChoiceGroup(
+        int groupIndex,
+        out FavourRewardChoiceGroup group)
+    {
+        group = null;
+
+        IReadOnlyList<
+            FavourRewardChoiceGroup>
+            groups =
+                Data?.RewardChoiceGroups;
+
+        if (groups == null ||
+            groupIndex < 0 ||
+            groupIndex >= groups.Count ||
+            groupIndex >=
+            selectedRewardOptions.Count)
+        {
+            return false;
+        }
+
+        group =
+            groups[groupIndex];
+
+        return group != null;
+    }
+
+    // =========================================================
+    // INVENTORY TRANSACTION
+    // =========================================================
+
+    private void BuildMergedCompletionCosts()
+    {
+        rawCompletionCosts.Clear();
+        mergedCompletionCosts.Clear();
+
+        foreach (FavourObjectiveRuntime objective
+                 in objectives)
+        {
+            objective?.CollectTurnInCosts(
+                rawCompletionCosts
+            );
+        }
+
+        IReadOnlyList<
+            FavourItemRequirement>
+            itemRequirements =
+                Data?.ItemRequirements;
+
+        if (itemRequirements != null)
+        {
+            foreach (FavourItemRequirement
+                     requirement
+                     in itemRequirements)
+            {
+                if (requirement == null ||
+                    !requirement
+                        .ConsumeOnCompletion ||
+                    requirement.Item == null ||
+                    requirement.Amount <= 0)
+                {
+                    continue;
+                }
+
+                rawCompletionCosts.Add(
+                    new FavourItemCost(
+                        requirement.Item,
+                        requirement.Amount
+                    )
+                );
+            }
+        }
+
+        foreach (FavourItemCost rawCost
+                 in rawCompletionCosts)
+        {
+            if (rawCost.Item == null ||
+                rawCost.Amount <= 0)
+            {
+                continue;
+            }
+
+            MergeCompletionCost(
+                rawCost.Item,
+                rawCost.Amount
             );
         }
     }
+
+    private void MergeCompletionCost(
+        ItemData item,
+        int amount)
+    {
+        for (int i = 0;
+             i < mergedCompletionCosts.Count;
+             i++)
+        {
+            FavourItemCost existing =
+                mergedCompletionCosts[i];
+
+            if (!Inventory.ItemsMatch(
+                    existing.Item,
+                    item))
+            {
+                continue;
+            }
+
+            mergedCompletionCosts[i] =
+                new FavourItemCost(
+                    existing.Item,
+                    existing.Amount +
+                    amount
+                );
+
+            return;
+        }
+
+        mergedCompletionCosts.Add(
+            new FavourItemCost(
+                item,
+                amount
+            )
+        );
+    }
+
+    private void BuildInventoryRemovals()
+    {
+        inventoryRemovals.Clear();
+
+        foreach (FavourItemCost cost
+                 in mergedCompletionCosts)
+        {
+            if (cost.Item == null ||
+                cost.Amount <= 0)
+            {
+                continue;
+            }
+
+            inventoryRemovals.Add(
+                new InventoryItemAmount(
+                    cost.Item,
+                    cost.Amount
+                )
+            );
+        }
+    }
+
+    private void BuildMergedInventoryRewards()
+    {
+        rawInventoryRewards.Clear();
+        mergedInventoryRewards.Clear();
+
+        CollectFixedItemRewards();
+        CollectSelectedItemRewards();
+
+        foreach (InventoryItemAmount reward
+                 in rawInventoryRewards)
+        {
+            if (!reward.IsValid)
+                continue;
+
+            MergeInventoryReward(
+                reward.Item,
+                reward.Amount
+            );
+        }
+    }
+
+    private void CollectFixedItemRewards()
+    {
+        IReadOnlyList<FavourItemReward>
+            rewards =
+                Data?.ItemRewards;
+
+        if (rewards == null)
+            return;
+
+        foreach (FavourItemReward reward
+                 in rewards)
+        {
+            if (reward == null ||
+                reward.Item == null ||
+                reward.Amount <= 0)
+            {
+                continue;
+            }
+
+            rawInventoryRewards.Add(
+                new InventoryItemAmount(
+                    reward.Item,
+                    reward.Amount
+                )
+            );
+        }
+    }
+
+    private void CollectSelectedItemRewards()
+    {
+        ForEachSelectedReward(
+            option =>
+            {
+                if (option.Type !=
+                    FavourRewardChoiceType.Item)
+                {
+                    return;
+                }
+
+                if (option.Item == null ||
+                    option.ItemAmount <= 0)
+                {
+                    return;
+                }
+
+                rawInventoryRewards.Add(
+                    new InventoryItemAmount(
+                        option.Item,
+                        option.ItemAmount
+                    )
+                );
+            }
+        );
+    }
+
+    private void MergeInventoryReward(
+        ItemData item,
+        int amount)
+    {
+        for (int i = 0;
+             i < mergedInventoryRewards.Count;
+             i++)
+        {
+            InventoryItemAmount existing =
+                mergedInventoryRewards[i];
+
+            if (!Inventory.ItemsMatch(
+                    existing.Item,
+                    item))
+            {
+                continue;
+            }
+
+            mergedInventoryRewards[i] =
+                new InventoryItemAmount(
+                    existing.Item,
+                    existing.Amount +
+                    amount
+                );
+
+            return;
+        }
+
+        mergedInventoryRewards.Add(
+            new InventoryItemAmount(
+                item,
+                amount
+            )
+        );
+    }
+
+    private bool CanPayCompletionCosts(
+        Inventory inventory)
+    {
+        if (mergedCompletionCosts.Count == 0)
+            return true;
+
+        if (inventory == null)
+            return false;
+
+        foreach (FavourItemCost cost
+                 in mergedCompletionCosts)
+        {
+            if (inventory.GetItemCount(
+                    cost.Item) <
+                cost.Amount)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // =========================================================
+    // NON-INVENTORY REWARDS
+    // =========================================================
+
+    private bool CanGrantNonInventoryRewards()
+    {
+        if (Data.ExperienceReward > 0 &&
+            Manager?.Player == null)
+        {
+            Debug.LogError(
+                $"Favour '{Data.DisplayName}' delar ut XP, " +
+                $"men PlayerStats saknas."
+            );
+
+            return false;
+        }
+
+        if (Data.CurrencyReward > 0 &&
+            Manager?.PlayerCurrency == null)
+        {
+            Debug.LogError(
+                $"Favour '{Data.DisplayName}' delar ut valuta, " +
+                $"men PlayerCurrency saknas."
+            );
+
+            return false;
+        }
+
+        if (!CanGrantReputationRewards())
+            return false;
+
+        if (!CanGrantAbilityRewards())
+            return false;
+
+        return true;
+    }
+
+    private bool CanGrantReputationRewards()
+    {
+        IReadOnlyList<
+            FavourReputationReward>
+            rewards =
+                Data.ReputationRewards;
+
+        if (rewards == null)
+            return true;
+
+        foreach (FavourReputationReward reward
+                 in rewards)
+        {
+            if (reward == null ||
+                reward.Faction == null ||
+                reward.Amount == 0)
+            {
+                continue;
+            }
+
+            if (Manager?.PlayerReputation == null)
+            {
+                Debug.LogError(
+                    $"Favour '{Data.DisplayName}' delar ut " +
+                    $"reputation, men PlayerReputationManager saknas."
+                );
+
+                return false;
+            }
+
+            if (Manager.PlayerReputation
+                    .LevelDefinition == null)
+            {
+                Debug.LogError(
+                    $"Favour '{Data.DisplayName}' delar ut " +
+                    $"reputation, men ReputationLevelDefinition saknas."
+                );
+
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private bool CanGrantAbilityRewards()
+    {
+        IReadOnlyList<FavourAbilityReward>
+            fixedRewards =
+                Data.AbilityRewards;
+
+        if (fixedRewards != null)
+        {
+            foreach (FavourAbilityReward reward
+                     in fixedRewards)
+            {
+                if (reward == null ||
+                    reward.Ability == null)
+                {
+                    continue;
+                }
+
+                if (!Manager.CanGrantAbility(
+                        reward.Ability))
+                {
+                    return false;
+                }
+            }
+        }
+
+        bool canGrantSelected =
+            true;
+
+        ForEachSelectedReward(
+            option =>
+            {
+                if (!canGrantSelected ||
+                    option.Type !=
+                    FavourRewardChoiceType.Ability)
+                {
+                    return;
+                }
+
+                if (option.Ability == null ||
+                    !Manager.CanGrantAbility(
+                        option.Ability))
+                {
+                    canGrantSelected = false;
+                }
+            }
+        );
+
+        return canGrantSelected;
+    }
+
+    private void GrantNonInventoryRewards()
+    {
+        GrantExperience();
+        GrantCurrency();
+        GrantReputation();
+        GrantAbilities();
+    }
+
+    private void GrantExperience()
+    {
+        if (Data.ExperienceReward <= 0)
+            return;
+
+        Manager.Player.GainExp(
+            Data.ExperienceReward
+        );
+    }
+
+    private void GrantCurrency()
+    {
+        if (Data.CurrencyReward <= 0)
+            return;
+
+        Manager.PlayerCurrency.AddCoins(
+            Data.CurrencyReward
+        );
+    }
+
+    private void GrantReputation()
+    {
+        IReadOnlyList<
+            FavourReputationReward>
+            rewards =
+                Data.ReputationRewards;
+
+        if (rewards == null)
+            return;
+
+        foreach (FavourReputationReward reward
+                 in rewards)
+        {
+            if (reward == null ||
+                reward.Faction == null ||
+                reward.Amount == 0)
+            {
+                continue;
+            }
+
+            if (reward.DiscoverFaction)
+            {
+                Manager.PlayerReputation
+                    .DiscoverFaction(
+                        reward.Faction
+                    );
+            }
+
+            Manager.PlayerReputation
+                .AddReputation(
+                    reward.Faction,
+                    reward.Amount
+                );
+        }
+    }
+
+    private void GrantAbilities()
+    {
+        IReadOnlyList<FavourAbilityReward>
+            fixedRewards =
+                Data.AbilityRewards;
+
+        if (fixedRewards != null)
+        {
+            foreach (FavourAbilityReward reward
+                     in fixedRewards)
+            {
+                if (reward?.Ability == null)
+                    continue;
+
+                Manager.TryGrantAbility(
+                    reward.Ability
+                );
+            }
+        }
+
+        ForEachSelectedReward(
+            option =>
+            {
+                if (option.Type !=
+                    FavourRewardChoiceType.Ability ||
+                    option.Ability == null)
+                {
+                    return;
+                }
+
+                Manager.TryGrantAbility(
+                    option.Ability
+                );
+            }
+        );
+    }
+
+    private void ForEachSelectedReward(
+        Action<FavourRewardChoiceOption>
+            callback)
+    {
+        if (callback == null)
+            return;
+
+        IReadOnlyList<
+            FavourRewardChoiceGroup>
+            groups =
+                Data?.RewardChoiceGroups;
+
+        if (groups == null)
+            return;
+
+        int count =
+            Mathf.Min(
+                groups.Count,
+                selectedRewardOptions.Count
+            );
+
+        for (int groupIndex = 0;
+             groupIndex < count;
+             groupIndex++)
+        {
+            FavourRewardChoiceGroup group =
+                groups[groupIndex];
+
+            if (group?.Options == null)
+                continue;
+
+            foreach (int optionIndex
+                     in selectedRewardOptions[
+                         groupIndex
+                     ])
+            {
+                if (optionIndex < 0 ||
+                    optionIndex >=
+                    group.Options.Count)
+                {
+                    continue;
+                }
+
+                FavourRewardChoiceOption option =
+                    group.Options[
+                        optionIndex
+                    ];
+
+                if (option == null ||
+                    !option.IsValid)
+                {
+                    continue;
+                }
+
+                callback.Invoke(
+                    option
+                );
+            }
+        }
+    }
+
+    // =========================================================
+    // FOLLOW-UPS / STATE
+    // =========================================================
 
     private void RegisterFollowUps()
     {
@@ -333,16 +1549,18 @@ public sealed class FavourRuntime
         }
     }
 
-    public void ResetObjectives()
+    private Inventory ResolveInventory()
     {
-        foreach (FavourObjectiveRuntime
-                 objective
-                 in objectives)
+        Inventory inventory =
+            Manager?.PlayerInventory;
+
+        if (inventory == null)
         {
-            objective?.ResetProgress();
+            inventory =
+                Inventory.Instance;
         }
 
-        EvaluateCompletion();
+        return inventory;
     }
 
     private void SetState(
@@ -351,11 +1569,109 @@ public sealed class FavourRuntime
         if (State == newState)
             return;
 
-        State =
-            newState;
+        State = newState;
 
         StateChanged?.Invoke(
             this
         );
+    }
+
+    public int ExperienceReward =>
+    Data != null
+        ? Data.ExperienceReward
+        : 0;
+
+    public int CurrencyReward =>
+        Data != null
+            ? Data.CurrencyReward
+            : 0;
+
+    public IReadOnlyList<
+        FavourItemReward>
+        ItemRewards =>
+            Data?.ItemRewards;
+
+    public IReadOnlyList<
+        FavourAbilityReward>
+        AbilityRewards =>
+            Data?.AbilityRewards;
+
+    public IReadOnlyList<
+        FavourReputationReward>
+        ReputationRewards =>
+            Data?.ReputationRewards;
+
+    public IReadOnlyList<
+        FavourRewardChoiceRuntime>
+        RewardChoices =>
+            rewardChoices;
+
+    public bool HasRewardChoices =>
+        rewardChoices.Count > 0;
+
+    public bool HasFixedItemOrAbilityRewards
+    {
+        get
+        {
+            bool hasItems =
+                Data?.ItemRewards != null &&
+                Data.ItemRewards.Count > 0;
+
+            bool hasAbilities =
+                Data?.AbilityRewards != null &&
+                Data.AbilityRewards.Count > 0;
+
+            return hasItems ||
+                   hasAbilities;
+        }
+    }
+
+    public string Id =>
+    Data != null
+        ? Data.Id
+        : string.Empty;
+
+    public string DisplayName =>
+        Data != null
+            ? Data.DisplayName
+            : "Missing Favour";
+
+    public string Description =>
+        Data != null
+            ? Data.Description
+            : string.Empty;
+
+    public FavourType Category =>
+        Data != null
+            ? Data.Category
+            : FavourType.General;
+
+    public FavourActivationPolicy
+        ActivationPolicy =>
+            Data != null
+                ? Data.ActivationPolicy
+                : FavourActivationPolicy
+                    .ExplicitAccept;
+
+    public FavourCompletionPolicy
+        CompletionPolicy =>
+            Data != null
+                ? Data.CompletionPolicy
+                : FavourCompletionPolicy
+                    .ReturnToGiver;
+
+    public string CurrentDialogue
+    {
+        get
+        {
+            FavourDialogueSet dialogueSet =
+                Data?.DialogueSet;
+
+            return dialogueSet != null
+                ? dialogueSet.GetDialogue(
+                    State
+                )
+                : string.Empty;
+        }
     }
 }

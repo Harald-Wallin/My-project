@@ -10,8 +10,8 @@ public class PlayerReputationManager : MonoBehaviour
 
     public List<FactionReputationData> reputations = new List<FactionReputationData>();
 
-    //DEBUG FACTION
-    public Faction debugFaction;
+    public ReputationLevelDefinition LevelDefinition =>
+    levelDefinition;
 
     //Temporär hostility
     private Dictionary<Faction, float> temporaryHostilityTimers = new Dictionary<Faction, float>();
@@ -30,98 +30,180 @@ public class PlayerReputationManager : MonoBehaviour
         return null;
     }
 
-
-    public void DiscoverFaction(Faction faction)
+    public void DiscoverFaction(
+    Faction faction)
     {
         if (faction == null)
             return;
 
-        var rep = GetReputation(faction);
-        //int oldLevel = rep != null ? rep.level : 1;
+        FactionReputationData reputation =
+            GetReputation(
+                faction
+            );
 
-        if (rep == null)
+        if (reputation == null)
         {
-            rep = new FactionReputationData
-            {
-                faction = faction,
-                discovered = true,
-                level = 1,
-                currentXP = 0
-            };
+            reputation =
+                new FactionReputationData
+                {
+                    faction = faction,
+                    discovered = true,
+                    level = 1,
+                    currentXP = 0
+                };
 
-            reputations.Add(rep);
+            reputations.Add(
+                reputation
+            );
         }
         else
         {
-            if (rep.discovered)
+            if (reputation.discovered)
                 return;
 
-            rep.discovered = true;
+            reputation.discovered = true;
         }
 
         if (faction.showInReputationWindow)
         {
-            AnnouncementSpawner.Instance?.QueueAnnouncement(
-                AnnouncementSpawner.Instance.Database.factionDiscovered,
-                AnnouncementFormatter.BuildFactionDiscoveryAnnouncement(
-                    faction.factionName
-                )
-            );
+            AnnouncementSpawner.Instance
+                ?.QueueAnnouncement(
+                    AnnouncementSpawner.Instance
+                        .Database
+                        .factionDiscovered,
+                    AnnouncementFormatter
+                        .BuildFactionDiscoveryAnnouncement(
+                            faction.factionName
+                        )
+                );
 
             FactionNotificationManager.Instance
                 ?.RegisterNewFaction();
         }
 
-        OnReputationChanged?.Invoke(rep);
+        OnReputationChanged?.Invoke(
+            reputation
+        );
     }
 
-
-
-    public void AddReputation(Faction faction, int amount)
+    public bool AddReputation(
+    Faction faction,
+    int amount)
     {
         if (faction == null)
-            return;
+            return false;
 
-        var rep = GetReputation(faction);
+        if (amount == 0)
+            return false;
 
-        int oldLevel = rep != null ? rep.level : 1;
+        if (levelDefinition == null)
+        {
+            Debug.LogError(
+                "PlayerReputationManager saknar ReputationLevelDefinition.",
+                this
+            );
+
+            return false;
+        }
+
+        FactionReputationData rep =
+            GetReputation(
+                faction
+            );
+
+        int oldLevel =
+            rep != null
+                ? rep.level
+                : 1;
 
         if (rep == null)
         {
-            rep = new FactionReputationData
-            {
-                faction = faction,
-                discovered = false,
-                level = 1,
-                currentXP = 0
-            };
+            rep =
+                new FactionReputationData
+                {
+                    faction = faction,
+                    discovered = false,
+                    level = 1,
+                    currentXP = 0
+                };
 
-            reputations.Add(rep);
+            reputations.Add(
+                rep
+            );
         }
+
+        rep.level =
+            Mathf.Clamp(
+                rep.level,
+                1,
+                Mathf.Max(
+                    1,
+                    levelDefinition.maxLevel
+                )
+            );
 
         rep.currentXP += amount;
 
-        while (rep.currentXP >=
-               levelDefinition.GetXPRequired(rep.level)
-               && rep.level < levelDefinition.maxLevel)
+        while (rep.level <
+               levelDefinition.maxLevel)
         {
-            rep.currentXP -= levelDefinition.GetXPRequired(rep.level);
+            int requiredXP =
+                Mathf.Max(
+                    1,
+                    levelDefinition.GetXPRequired(
+                        rep.level
+                    )
+                );
 
+            if (rep.currentXP <
+                requiredXP)
+            {
+                break;
+            }
+
+            rep.currentXP -=
+                requiredXP;
 
             rep.level++;
         }
 
-        while (rep.currentXP < 0 && rep.level > 1)
+        while (rep.currentXP < 0 &&
+               rep.level > 1)
         {
-
             rep.level--;
-            rep.currentXP += levelDefinition.GetXPRequired(rep.level);
+
+            rep.currentXP +=
+                Mathf.Max(
+                    1,
+                    levelDefinition.GetXPRequired(
+                        rep.level
+                    )
+                );
+        }
+
+        if (rep.level <= 1 &&
+            rep.currentXP < 0)
+        {
+            rep.currentXP = 0;
+        }
+
+        if (rep.level >=
+            levelDefinition.maxLevel)
+        {
+            rep.level =
+                levelDefinition.maxLevel;
+
+            rep.currentXP =
+                Mathf.Max(
+                    0,
+                    rep.currentXP
+                );
         }
 
         if (rep.level != oldLevel)
         {
             string tierName =
-                levelDefinition.GetTierName(
+                GetReputationTierName(
                     rep.level
                 );
 
@@ -137,11 +219,11 @@ public class PlayerReputationManager : MonoBehaviour
 
             string message =
                 AnnouncementFormatter
-                .BuildReputationAnnouncement(
-                    tierName,
-                    tierColor,
-                    faction.factionName
-                );
+                    .BuildReputationAnnouncement(
+                        tierName,
+                        tierColor,
+                        faction.factionName
+                    );
 
             AnnouncementSpawner.Instance
                 ?.QueueAnnouncement(
@@ -153,8 +235,89 @@ public class PlayerReputationManager : MonoBehaviour
                 );
         }
 
-        OnReputationChanged?.Invoke(rep);
+        OnReputationChanged?.Invoke(
+            rep
+        );
 
+        return true;
+    }
+
+    public int GetReputationLevel(
+    Faction faction)
+    {
+        if (faction == null)
+            return 0;
+
+        FactionReputationData reputation =
+            GetReputation(
+                faction
+            );
+
+        /*
+         * En undiscovered eller helt okänd faction räknas som
+         * nivå 0 för requirements.
+         */
+        if (reputation == null ||
+            !reputation.discovered)
+        {
+            return 0;
+        }
+
+        return Mathf.Max(
+            1,
+            reputation.level
+        );
+    }
+
+    public bool HasReputationLevel(
+        Faction faction,
+        int minimumLevel)
+    {
+        if (faction == null)
+            return false;
+
+        int requiredLevel =
+            Mathf.Max(
+                1,
+                minimumLevel
+            );
+
+        return GetReputationLevel(
+                   faction
+               ) >= requiredLevel;
+    }
+
+    public string GetReputationTierName(
+        int level)
+    {
+        if (levelDefinition == null)
+        {
+            return $"Rank {Mathf.Max(1, level)}";
+        }
+
+        if (levelDefinition.tiers == null ||
+            levelDefinition.tiers.Count == 0)
+        {
+            return $"Rank {Mathf.Max(1, level)}";
+        }
+
+        return levelDefinition.GetTierName(
+            Mathf.Max(
+                1,
+                level
+            )
+        );
+    }
+
+    public int GetMaximumReputationLevel()
+    {
+        if (levelDefinition == null)
+            return 1;
+
+        return Mathf.Max(
+            1,
+            levelDefinition.maxLevel
+        );
     }
 
     public FactionReputationData GetTrackedFaction()

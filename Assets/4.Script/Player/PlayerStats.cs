@@ -3,6 +3,8 @@ using System;
 
 public class PlayerStats : CharacterStats
 {
+    public int Level =>
+    level;
     public int currentExp = 0;
     public int expToNextLevel = 112;
     [Header("LevelUpConfetti")]
@@ -87,26 +89,63 @@ public class PlayerStats : CharacterStats
     }
 
 
-    public void GainExp(int amount)
+    public bool GainExp(
+    int amount)
     {
+        if (amount <= 0)
+        {
+            Debug.LogWarning(
+                $"GainExp kräver ett positivt värde. " +
+                $"Mottaget värde: {amount}.",
+                this
+            );
+
+            return false;
+        }
+
         currentExp += amount;
 
-        while (currentExp >= expToNextLevel)
+        bool levelChanged = false;
+
+        while (currentExp >=
+               expToNextLevel)
         {
-            currentExp -= expToNextLevel;
+            currentExp -=
+                expToNextLevel;
+
             level++;
-            base.level = level;
+
+            base.level =
+                level;
 
             ApplyLevelUpStats();
-            AnnouncementSpawner.Instance?.QueueAnnouncement(AnnouncementSpawner.Instance.Database.levelUp,$"Hail!\n You reached\nLevel {level}");
 
-            expToNextLevel = Mathf.RoundToInt(expToNextLevel * 1.12f);
+            AnnouncementSpawner.Instance
+                ?.QueueAnnouncement(
+                    AnnouncementSpawner.Instance
+                        .Database
+                        .levelUp,
+                    $"Hail!\n You reached\nLevel {level}"
+                );
+
+            expToNextLevel =
+                Mathf.Max(
+                    1,
+                    Mathf.RoundToInt(
+                        expToNextLevel *
+                        1.12f
+                    )
+                );
+
+            levelChanged =
+                true;
 
             OnLevelChanged?.Invoke();
-
         }
 
         OnExpChanged?.Invoke();
+
+        return true;
     }
 
     protected override void Awake()

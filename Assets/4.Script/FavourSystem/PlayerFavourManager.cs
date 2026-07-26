@@ -16,6 +16,9 @@ public sealed class PlayerFavourManager :
         runtimeSnapshot =
             new();
 
+    public event Action<FavourRuntime>
+    FavourRewardSelectionChanged;
+
     [Header("Optional Starting Favours")]
 
     [SerializeField]
@@ -23,8 +26,7 @@ public sealed class PlayerFavourManager :
         startingFavours =
             new();
 
-    public static PlayerFavourManager
-        Instance
+    public static PlayerFavourManager Instance
     {
         get;
         private set;
@@ -42,6 +44,30 @@ public sealed class PlayerFavourManager :
         private set;
     }
 
+    public PlayerCurrency PlayerCurrency
+    {
+        get;
+        private set;
+    }
+
+    public PlayerReputationManager PlayerReputation
+    {
+        get;
+        private set;
+    }
+
+    public PlayerAbilityCollection PlayerAbilities
+    {
+        get;
+        private set;
+    }
+
+    public PlayerBaseAttackCollection PlayerBaseAttacks
+    {
+        get;
+        private set;
+    }
+
     public event Action<FavourRuntime>
         FavourRegistered;
 
@@ -51,9 +77,8 @@ public sealed class PlayerFavourManager :
     public event Action<FavourRuntime>
         FavourProgressChanged;
 
-    public IEnumerable<FavourRuntime>
-        Runtimes =>
-            runtimesById.Values;
+    public IEnumerable<FavourRuntime> Runtimes =>
+        runtimesById.Values;
 
     private void Awake()
     {
@@ -70,22 +95,9 @@ public sealed class PlayerFavourManager :
             return;
         }
 
-        Instance =
-            this;
+        Instance = this;
 
-        Player =
-            GetComponent<PlayerStats>();
-
-        PlayerInventory =
-            GetComponent<Inventory>();
-
-        if (PlayerInventory == null)
-        {
-            PlayerInventory =
-                GetComponentInChildren<
-                    Inventory
-                >();
-        }
+        ResolveLocalReferences();
     }
 
     private void OnEnable()
@@ -97,15 +109,13 @@ public sealed class PlayerFavourManager :
 
     private void Start()
     {
-        if (PlayerInventory == null)
-        {
-            PlayerInventory =
-                Inventory.Instance;
-        }
+        ResolveReferences();
 
-        SubscribeToInventory();
+        SubscribeToPlayerSystems();
 
         RegisterStartingFavours();
+
+        RefreshAllAvailability();
     }
 
     private void OnDisable()
@@ -114,47 +124,207 @@ public sealed class PlayerFavourManager :
             .CharacterDefeated -=
             HandleCharacterDefeated;
 
-        UnsubscribeFromInventory();
+        UnsubscribeFromPlayerSystems();
     }
 
     private void OnDestroy()
     {
+        UnsubscribeFromRuntimes();
+
         if (Instance == this)
         {
             Instance = null;
         }
     }
 
-    private void SubscribeToInventory()
+    private void ResolveLocalReferences()
     {
+        Player =
+            GetComponent<PlayerStats>();
+
+        PlayerInventory =
+            GetComponent<Inventory>();
+
         if (PlayerInventory == null)
-            return;
+        {
+            PlayerInventory =
+                GetComponentInChildren<
+                    Inventory>(
+                    true
+                );
+        }
 
-        PlayerInventory.OnInventoryChanged -=
-            HandleInventoryChanged;
+        PlayerCurrency =
+            GetComponent<PlayerCurrency>();
 
-        PlayerInventory.OnInventoryChanged +=
-            HandleInventoryChanged;
+        if (PlayerCurrency == null)
+        {
+            PlayerCurrency =
+                GetComponentInChildren<
+                    PlayerCurrency>(
+                    true
+                );
+        }
+
+        PlayerReputation =
+            GetComponent<
+                PlayerReputationManager>();
+
+        if (PlayerReputation == null)
+        {
+            PlayerReputation =
+                GetComponentInChildren<
+                    PlayerReputationManager>(
+                    true
+                );
+        }
+
+        PlayerAbilities =
+            GetComponent<
+                PlayerAbilityCollection>();
+
+        if (PlayerAbilities == null)
+        {
+            PlayerAbilities =
+                GetComponentInChildren<
+                    PlayerAbilityCollection>(
+                    true
+                );
+        }
+
+        PlayerBaseAttacks =
+            GetComponent<
+                PlayerBaseAttackCollection>();
+
+        if (PlayerBaseAttacks == null)
+        {
+            PlayerBaseAttacks =
+                GetComponentInChildren<
+                    PlayerBaseAttackCollection>(
+                    true
+                );
+        }
     }
 
-    private void UnsubscribeFromInventory()
+    private void ResolveReferences()
     {
-        if (PlayerInventory == null)
-            return;
+        if (Player == null)
+        {
+            Player =
+                GetComponent<PlayerStats>();
+        }
 
-        PlayerInventory.OnInventoryChanged -=
-            HandleInventoryChanged;
+        if (PlayerInventory == null)
+        {
+            PlayerInventory =
+                Inventory.Instance;
+        }
+
+        if (PlayerCurrency == null)
+        {
+            PlayerCurrency =
+                global::PlayerCurrency.Instance;
+        }
+
+        if (PlayerReputation == null &&
+            Player != null)
+        {
+            PlayerReputation =
+                Player.GetComponent<
+                    PlayerReputationManager>();
+        }
+
+        if (PlayerAbilities == null &&
+            Player != null)
+        {
+            PlayerAbilities =
+                Player.GetComponentInChildren<
+                    PlayerAbilityCollection>(
+                    true
+                );
+        }
+
+        if (PlayerBaseAttacks == null &&
+            Player != null)
+        {
+            PlayerBaseAttacks =
+                Player.GetComponentInChildren<
+                    PlayerBaseAttackCollection>(
+                    true
+                );
+        }
     }
 
-    private void HandleInventoryChanged()
+    private void SubscribeToPlayerSystems()
     {
-        /*
-         * CollectObjectiveRuntime uppdaterar sin egen progress
-         * genom samma inventory-event.
-         *
-         * Managern uppdaterar availability för favours som har
-         * ItemRequirementData.
-         */
+        UnsubscribeFromPlayerSystems();
+
+        if (PlayerInventory != null)
+        {
+            PlayerInventory
+                .OnInventoryChanged +=
+                HandleRequirementSourceChanged;
+        }
+
+        if (PlayerCurrency != null)
+        {
+            PlayerCurrency
+                .OnCoinsChanged +=
+                HandleRequirementSourceChanged;
+        }
+
+        if (Player != null)
+        {
+            Player.OnLevelChanged +=
+                HandleRequirementSourceChanged;
+        }
+
+        if (PlayerReputation != null)
+        {
+            PlayerReputation
+                .OnReputationChanged +=
+                HandleReputationChanged;
+        }
+    }
+
+    private void UnsubscribeFromPlayerSystems()
+    {
+        if (PlayerInventory != null)
+        {
+            PlayerInventory
+                .OnInventoryChanged -=
+                HandleRequirementSourceChanged;
+        }
+
+        if (PlayerCurrency != null)
+        {
+            PlayerCurrency
+                .OnCoinsChanged -=
+                HandleRequirementSourceChanged;
+        }
+
+        if (Player != null)
+        {
+            Player.OnLevelChanged -=
+                HandleRequirementSourceChanged;
+        }
+
+        if (PlayerReputation != null)
+        {
+            PlayerReputation
+                .OnReputationChanged -=
+                HandleReputationChanged;
+        }
+    }
+
+    private void HandleRequirementSourceChanged()
+    {
+        RefreshAllAvailability();
+    }
+
+    private void HandleReputationChanged(
+        FactionReputationData reputation)
+    {
         RefreshAllAvailability();
     }
 
@@ -214,6 +384,9 @@ public sealed class PlayerFavourManager :
 
         runtime.RefreshAvailability();
 
+        runtime.RewardSelectionChanged +=
+            HandleRuntimeRewardSelectionChanged;
+
         FavourRegistered?.Invoke(
             runtime
         );
@@ -221,12 +394,19 @@ public sealed class PlayerFavourManager :
         return runtime;
     }
 
+    private void HandleRuntimeRewardSelectionChanged(
+    FavourRuntime runtime)
+    {
+        FavourRewardSelectionChanged?.Invoke(
+            runtime
+        );
+    }
+
     public bool TryGetRuntime(
         FavourData favour,
         out FavourRuntime runtime)
     {
-        runtime =
-            null;
+        runtime = null;
 
         if (favour == null ||
             string.IsNullOrWhiteSpace(
@@ -245,8 +425,7 @@ public sealed class PlayerFavourManager :
         string favourId,
         out FavourRuntime runtime)
     {
-        runtime =
-            null;
+        runtime = null;
 
         if (string.IsNullOrWhiteSpace(
                 favourId))
@@ -258,6 +437,17 @@ public sealed class PlayerFavourManager :
             favourId,
             out runtime
         );
+    }
+
+    public bool IsCompleted(
+        FavourData favour)
+    {
+        return TryGetRuntime(
+                   favour,
+                   out FavourRuntime runtime
+               ) &&
+               runtime.State ==
+               FavourState.Completed;
     }
 
     public bool TryAccept(
@@ -285,18 +475,67 @@ public sealed class PlayerFavourManager :
         return runtime.TryTurnIn();
     }
 
+    public bool CanGrantAbility(
+        AbilityData ability)
+    {
+        if (ability == null)
+            return false;
+
+        return ability.IsBaseAttack
+            ? PlayerBaseAttacks != null
+            : PlayerAbilities != null;
+    }
+
+    public bool TryGrantAbility(
+        AbilityData ability)
+    {
+        if (ability == null)
+            return false;
+
+        if (ability.IsBaseAttack)
+        {
+            if (PlayerBaseAttacks == null)
+            {
+                Debug.LogError(
+                    $"Kan inte dela ut base attack " +
+                    $"'{ability.name}': spelaren saknar " +
+                    $"{nameof(PlayerBaseAttackCollection)}.",
+                    this
+                );
+
+                return false;
+            }
+
+            PlayerBaseAttacks.LearnAttack(
+                ability
+            );
+
+            return true;
+        }
+
+        if (PlayerAbilities == null)
+        {
+            Debug.LogError(
+                $"Kan inte dela ut ability " +
+                $"'{ability.name}': spelaren saknar " +
+                $"{nameof(PlayerAbilityCollection)}.",
+                this
+            );
+
+            return false;
+        }
+
+        PlayerAbilities.LearnAbility(
+            ability
+        );
+
+        return true;
+    }
+
     private void HandleCharacterDefeated(
         CharacterDefeatedResult result)
     {
-        runtimeSnapshot.Clear();
-
-        foreach (FavourRuntime runtime
-                 in runtimesById.Values)
-        {
-            runtimeSnapshot.Add(
-                runtime
-            );
-        }
+        CreateRuntimeSnapshot();
 
         foreach (FavourRuntime runtime
                  in runtimeSnapshot)
@@ -327,6 +566,17 @@ public sealed class PlayerFavourManager :
 
     public void RefreshAllAvailability()
     {
+        CreateRuntimeSnapshot();
+
+        foreach (FavourRuntime runtime
+                 in runtimeSnapshot)
+        {
+            runtime.RefreshAvailability();
+        }
+    }
+
+    private void CreateRuntimeSnapshot()
+    {
         runtimeSnapshot.Clear();
 
         foreach (FavourRuntime runtime
@@ -336,20 +586,27 @@ public sealed class PlayerFavourManager :
                 runtime
             );
         }
+    }
 
+    private void UnsubscribeFromRuntimes()
+    {
         foreach (FavourRuntime runtime
-                 in runtimeSnapshot)
+                 in runtimesById.Values)
         {
-            runtime.RefreshAvailability();
+            if (runtime == null)
+                continue;
+
+            runtime.StateChanged -=
+                HandleRuntimeStateChanged;
+
+            runtime.ProgressChanged -=
+                HandleRuntimeProgressChanged;
+
+            runtime.RewardSelectionChanged -=
+                HandleRuntimeRewardSelectionChanged;
         }
     }
 
-    /// <summary>
-    /// Returnerar true om ett aktivt CollectObjective efterfrågar
-    /// det angivna föremålet.
-    ///
-    /// Kan senare användas av loot-, spawn- och world-system.
-    /// </summary>
     public bool IsCollectObjectiveActive(
         ItemData item)
     {
@@ -366,8 +623,7 @@ public sealed class PlayerFavourManager :
                 continue;
             }
 
-            foreach (FavourObjectiveRuntime
-                     objective
+            foreach (FavourObjectiveRuntime objective
                      in favour.Objectives)
             {
                 if (objective is not
@@ -394,10 +650,6 @@ public sealed class PlayerFavourManager :
         return false;
     }
 
-    /// <summary>
-    /// Hur många ytterligare exemplar som totalt behövs av alla
-    /// aktiva och inkompletta CollectObjectives för detta item.
-    /// </summary>
     public int GetRemainingCollectAmount(
         ItemData item)
     {
@@ -416,8 +668,7 @@ public sealed class PlayerFavourManager :
                 continue;
             }
 
-            foreach (FavourObjectiveRuntime
-                     objective
+            foreach (FavourObjectiveRuntime objective
                      in favour.Objectives)
             {
                 if (objective is not

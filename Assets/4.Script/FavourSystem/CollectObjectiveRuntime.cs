@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public sealed class CollectObjectiveRuntime :
@@ -17,8 +18,7 @@ public sealed class CollectObjectiveRuntime :
             data,
             favour)
     {
-        collectData =
-            data;
+        collectData = data;
     }
 
     public ItemData RequiredItem =>
@@ -50,11 +50,29 @@ public sealed class CollectObjectiveRuntime :
         UnsubscribeFromInventory();
     }
 
+    protected override void OnCollectTurnInCosts(
+        List<FavourItemCost> costs)
+    {
+        if (collectData == null ||
+            !collectData.ConsumeItemsOnCompletion ||
+            collectData.Item == null)
+        {
+            return;
+        }
+
+        costs.Add(
+            new FavourItemCost(
+                collectData.Item,
+                collectData.RequiredAmount
+            )
+        );
+    }
+
     public override void ResetProgress()
     {
         /*
-         * Ett CollectObjective baseras på nuvarande inventory.
-         * Det har därför ingen fristående progress att nollställa.
+         * Progressen baseras alltid på det aktuella
+         * inventoryinnehavet.
          */
         RefreshProgress();
     }

@@ -27,7 +27,8 @@ public enum ItemType
     Reputation,
     Trash,
     Offhand,
-    Shield
+    Shield,
+    FavourItem
 }
 
 [CreateAssetMenu(

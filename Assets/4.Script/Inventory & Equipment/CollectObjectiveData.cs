@@ -16,6 +16,15 @@ public sealed class CollectObjectiveData :
     [Min(1)]
     private int requiredAmount = 1;
 
+    [Header("Completion")]
+
+    [SerializeField]
+    [Tooltip(
+        "Tar bort den begärda mängden från inventoryt " +
+        "när favouren färdigställs."
+    )]
+    private bool consumeItemsOnCompletion = true;
+
     public ItemData Item =>
         item;
 
@@ -24,6 +33,9 @@ public sealed class CollectObjectiveData :
             1,
             requiredAmount
         );
+
+    public bool ConsumeItemsOnCompletion =>
+        consumeItemsOnCompletion;
 
     public override FavourObjectiveRuntime
         CreateRuntime(

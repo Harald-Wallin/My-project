@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using UnityEngine;
 
 public abstract class FavourObjectiveRuntime
 {
@@ -8,11 +10,8 @@ public abstract class FavourObjectiveRuntime
         FavourObjectiveData data,
         FavourRuntime favour)
     {
-        Data =
-            data;
-
-        Favour =
-            favour;
+        Data = data;
+        Favour = favour;
     }
 
     public FavourObjectiveData Data
@@ -27,6 +26,16 @@ public abstract class FavourObjectiveRuntime
 
     public bool IsActive =>
         active;
+
+    public string DisplayName =>
+        Data != null
+            ? Data.DisplayName
+            : "Missing Objective";
+
+    public string Description =>
+        Data != null
+            ? Data.Description
+            : string.Empty;
 
     public abstract bool IsComplete
     {
@@ -43,8 +52,53 @@ public abstract class FavourObjectiveRuntime
         get;
     }
 
-    public event Action<
-        FavourObjectiveRuntime>
+    public int ClampedCurrentProgress =>
+        Mathf.Clamp(
+            CurrentProgress,
+            0,
+            Mathf.Max(
+                0,
+                RequiredProgress
+            )
+        );
+
+    public float ProgressNormalized
+    {
+        get
+        {
+            if (RequiredProgress <= 0)
+            {
+                return IsComplete
+                    ? 1f
+                    : 0f;
+            }
+
+            return Mathf.Clamp01(
+                (float)ClampedCurrentProgress /
+                RequiredProgress
+            );
+        }
+    }
+
+    public virtual string ProgressText =>
+        $"{ClampedCurrentProgress}/{RequiredProgress}";
+
+    public virtual string DisplayText
+    {
+        get
+        {
+            if (RequiredProgress <= 1)
+            {
+                return DisplayName;
+            }
+
+            return
+                $"{DisplayName} " +
+                $"({ProgressText})";
+        }
+    }
+
+    public event Action<FavourObjectiveRuntime>
         ProgressChanged;
 
     internal void Activate()
@@ -82,6 +136,17 @@ public abstract class FavourObjectiveRuntime
         );
     }
 
+    internal void CollectTurnInCosts(
+        List<FavourItemCost> costs)
+    {
+        if (costs == null)
+            return;
+
+        OnCollectTurnInCosts(
+            costs
+        );
+    }
+
     protected void RaiseProgressChanged()
     {
         ProgressChanged?.Invoke(
@@ -99,6 +164,11 @@ public abstract class FavourObjectiveRuntime
 
     protected virtual void OnCharacterDefeated(
         CharacterDefeatedResult result)
+    {
+    }
+
+    protected virtual void OnCollectTurnInCosts(
+        List<FavourItemCost> costs)
     {
     }
 

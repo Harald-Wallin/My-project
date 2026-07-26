@@ -42,12 +42,9 @@ public sealed class FavourData :
             FavourCompletionPolicy
                 .ReturnToGiver;
 
-    [Header("Requirements")]
-
-    [SerializeField]
-    private List<FavourRequirementData>
-        requirements =
-            new();
+    // =========================================================
+    // OBJECTIVES
+    // =========================================================
 
     [Header("Objectives")]
 
@@ -56,17 +53,104 @@ public sealed class FavourData :
         objectives =
             new();
 
+    // =========================================================
+    // DIALOGUE
+    // =========================================================
+
     [Header("Dialogue")]
 
     [SerializeField]
     private FavourDialogueSet dialogueSet;
 
+    // =========================================================
+    // REWARDS
+    // =========================================================
+
     [Header("Rewards")]
 
     [SerializeField]
-    private List<FavourRewardData>
-        rewards =
+    [Min(0)]
+    private int experienceReward;
+
+    [SerializeField]
+    [Min(0)]
+    private int currencyReward;
+
+    [SerializeField]
+    private List<FavourReputationReward>
+        reputationRewards =
             new();
+
+    [SerializeField]
+    private List<FavourItemReward>
+        itemRewards =
+            new();
+
+    [SerializeField]
+    private List<FavourAbilityReward>
+        abilityRewards =
+            new();
+
+    [SerializeField]
+    [Tooltip(
+        "Varje grupp kräver att spelaren väljer det angivna " +
+        "antalet rewards innan favouren kan lämnas in."
+    )]
+    private List<FavourRewardChoiceGroup>
+        rewardChoiceGroups =
+            new();
+
+    // =========================================================
+    // REQUIREMENTS
+    // =========================================================
+
+    [Header("Requirements")]
+
+    [SerializeField]
+    [Min(0)]
+    [Tooltip(
+        "0 innebär att favouren saknar level requirement."
+    )]
+    private int minimumLevel;
+
+    [SerializeField]
+    [Min(0)]
+    [Tooltip(
+        "0 innebär att favouren saknar currency requirement. " +
+        "Valutan förbrukas inte."
+    )]
+    private int minimumCurrency;
+
+    [SerializeField]
+    private List<FavourReputationRequirement>
+        reputationRequirements =
+            new();
+
+    [SerializeField]
+    private List<FavourItemRequirement>
+        itemRequirements =
+            new();
+
+    [SerializeField]
+    [Tooltip(
+        "Samtliga angivna favours måste vara completed."
+    )]
+    private List<FavourData>
+        requiredCompletedFavours =
+            new();
+
+    [SerializeField]
+    [Tooltip(
+        "Favouren är otillgänglig om någon angiven favour " +
+        "redan är completed."
+    )]
+    private List<FavourData>
+        forbiddenCompletedFavours =
+            new();
+
+    // =========================================================
+    // FAILURE / REPEATABILITY / FOLLOW-UPS
+    // =========================================================
 
     [Header("Failure")]
 
@@ -92,6 +176,10 @@ public sealed class FavourData :
     private List<FavourData> followUps =
         new();
 
+    // =========================================================
+    // IDENTITY API
+    // =========================================================
+
     public string Id =>
         id;
 
@@ -108,6 +196,10 @@ public sealed class FavourData :
     public FavourType Category =>
         category;
 
+    // =========================================================
+    // FLOW API
+    // =========================================================
+
     public FavourActivationPolicy
         ActivationPolicy =>
             activationPolicy;
@@ -116,10 +208,9 @@ public sealed class FavourData :
         CompletionPolicy =>
             completionPolicy;
 
-    public IReadOnlyList<
-        FavourRequirementData>
-        Requirements =>
-            requirements;
+    // =========================================================
+    // OBJECTIVE / DIALOGUE API
+    // =========================================================
 
     public IReadOnlyList<
         FavourObjectiveData>
@@ -129,10 +220,83 @@ public sealed class FavourData :
     public FavourDialogueSet DialogueSet =>
         dialogueSet;
 
+    // =========================================================
+    // REWARD API
+    // =========================================================
+
+    public int ExperienceReward =>
+        Mathf.Max(
+            0,
+            experienceReward
+        );
+
+    public int CurrencyReward =>
+        Mathf.Max(
+            0,
+            currencyReward
+        );
+
     public IReadOnlyList<
-        FavourRewardData>
-        Rewards =>
-            rewards;
+        FavourReputationReward>
+        ReputationRewards =>
+            reputationRewards;
+
+    public IReadOnlyList<
+        FavourItemReward>
+        ItemRewards =>
+            itemRewards;
+
+    public IReadOnlyList<
+        FavourAbilityReward>
+        AbilityRewards =>
+            abilityRewards;
+
+    public IReadOnlyList<
+        FavourRewardChoiceGroup>
+        RewardChoiceGroups =>
+            rewardChoiceGroups;
+
+    public bool HasRewardChoices =>
+        rewardChoiceGroups != null &&
+        rewardChoiceGroups.Count > 0;
+
+    // =========================================================
+    // REQUIREMENT API
+    // =========================================================
+
+    public int MinimumLevel =>
+        Mathf.Max(
+            0,
+            minimumLevel
+        );
+
+    public int MinimumCurrency =>
+        Mathf.Max(
+            0,
+            minimumCurrency
+        );
+
+    public IReadOnlyList<
+        FavourReputationRequirement>
+        ReputationRequirements =>
+            reputationRequirements;
+
+    public IReadOnlyList<
+        FavourItemRequirement>
+        ItemRequirements =>
+            itemRequirements;
+
+    public IReadOnlyList<FavourData>
+        RequiredCompletedFavours =>
+            requiredCompletedFavours;
+
+    public IReadOnlyList<FavourData>
+        ForbiddenCompletedFavours =>
+            forbiddenCompletedFavours;
+
+    // =========================================================
+    // OTHER API
+    // =========================================================
 
     public FavourFailureSettings
         FailureSettings =>
@@ -152,7 +316,75 @@ public sealed class FavourData :
         id =
             id?.Trim();
 
-        if (string.IsNullOrWhiteSpace(id))
+        experienceReward =
+            Mathf.Max(
+                0,
+                experienceReward
+            );
+
+        currencyReward =
+            Mathf.Max(
+                0,
+                currencyReward
+            );
+
+        minimumLevel =
+            Mathf.Max(
+                0,
+                minimumLevel
+            );
+
+        minimumCurrency =
+            Mathf.Max(
+                0,
+                minimumCurrency
+            );
+
+        objectives ??=
+            new List<FavourObjectiveData>();
+
+        reputationRewards ??=
+            new List<
+                FavourReputationReward>();
+
+        itemRewards ??=
+            new List<FavourItemReward>();
+
+        abilityRewards ??=
+            new List<
+                FavourAbilityReward>();
+
+        rewardChoiceGroups ??=
+            new List<
+                FavourRewardChoiceGroup>();
+
+        reputationRequirements ??=
+            new List<
+                FavourReputationRequirement>();
+
+        itemRequirements ??=
+            new List<
+                FavourItemRequirement>();
+
+        requiredCompletedFavours ??=
+            new List<FavourData>();
+
+        forbiddenCompletedFavours ??=
+            new List<FavourData>();
+
+        followUps ??=
+            new List<FavourData>();
+
+
+        foreach (FavourRewardChoiceGroup
+                 group
+                 in rewardChoiceGroups)
+        {
+            group?.Normalize();
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                id))
         {
             Debug.LogWarning(
                 $"FavourData '{name}' saknar permanent ID.",
@@ -160,13 +392,116 @@ public sealed class FavourData :
             );
         }
 
-        if (objectives == null ||
-            objectives.Count == 0)
+        if (objectives.Count == 0)
         {
             Debug.LogWarning(
                 $"FavourData '{name}' saknar objectives.",
                 this
             );
+        }
+
+        ValidateRewardEntries();
+        ValidateRequirementEntries();
+    }
+
+    private void ValidateRewardEntries()
+    {
+        foreach (FavourReputationReward reward
+                 in reputationRewards)
+        {
+            if (reward != null &&
+                reward.Faction == null)
+            {
+                Debug.LogWarning(
+                    $"FavourData '{name}' har en reputation " +
+                    $"reward utan Faction.",
+                    this
+                );
+            }
+        }
+
+        foreach (FavourItemReward reward
+                 in itemRewards)
+        {
+            if (reward != null &&
+                reward.Item == null)
+            {
+                Debug.LogWarning(
+                    $"FavourData '{name}' har en item reward " +
+                    $"utan ItemData.",
+                    this
+                );
+            }
+        }
+
+        foreach (FavourAbilityReward reward
+                 in abilityRewards)
+        {
+            if (reward != null &&
+                reward.Ability == null)
+            {
+                Debug.LogWarning(
+                    $"FavourData '{name}' har en ability reward " +
+                    $"utan AbilityData.",
+                    this
+                );
+            }
+        }
+    }
+
+    private void ValidateRequirementEntries()
+    {
+        foreach (FavourReputationRequirement
+                 requirement
+                 in reputationRequirements)
+        {
+            if (requirement != null &&
+                requirement.Faction == null)
+            {
+                Debug.LogWarning(
+                    $"FavourData '{name}' har ett reputation " +
+                    $"requirement utan Faction.",
+                    this
+                );
+            }
+        }
+
+        foreach (FavourItemRequirement requirement
+                 in itemRequirements)
+        {
+            if (requirement != null &&
+                requirement.Item == null)
+            {
+                Debug.LogWarning(
+                    $"FavourData '{name}' har ett item " +
+                    $"requirement utan ItemData.",
+                    this
+                );
+            }
+        }
+
+        foreach (FavourData required
+                 in requiredCompletedFavours)
+        {
+            if (required == this)
+            {
+                Debug.LogWarning(
+                    $"FavourData '{name}' kräver sig själv.",
+                    this
+                );
+            }
+        }
+
+        foreach (FavourData forbidden
+                 in forbiddenCompletedFavours)
+        {
+            if (forbidden == this)
+            {
+                Debug.LogWarning(
+                    $"FavourData '{name}' förbjuder sig själv.",
+                    this
+                );
+            }
         }
     }
 #endif

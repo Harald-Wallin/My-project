@@ -1,22 +1,42 @@
-using UnityEngine;
 using System;
+using UnityEngine;
 
-public class PlayerCurrency : MonoBehaviour
+public sealed class PlayerCurrency : MonoBehaviour
 {
-    public static PlayerCurrency Instance;
+    public static PlayerCurrency Instance
+    {
+        get;
+        private set;
+    }
 
     public event Action OnCoinsChanged;
 
-    [SerializeField] private int bronzeCoins;
+    [SerializeField]
+    [Min(0)]
+    private int bronzeCoins;
+
+    public int Coins =>
+        bronzeCoins;
 
     private void Awake()
     {
         if (Instance == null)
+        {
             Instance = this;
-        else
+            return;
+        }
+
+        if (Instance != this)
         {
             Destroy(gameObject);
-            return;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
         }
     }
 
@@ -25,19 +45,89 @@ public class PlayerCurrency : MonoBehaviour
         return bronzeCoins;
     }
 
-    public void AddCoins(int amount)
+    public bool HasCoins(
+        int amount)
     {
-        bronzeCoins += amount;
-        OnCoinsChanged?.Invoke();
+        if (amount < 0)
+            return false;
+
+        return bronzeCoins >= amount;
     }
 
-    public bool TrySpendCoins(int amount)
+    public bool AddCoins(
+        int amount)
     {
+        if (amount <= 0)
+        {
+            Debug.LogWarning(
+                $"AddCoins kräver ett positivt belopp. " +
+                $"Mottaget värde: {amount}.",
+                this
+            );
+
+            return false;
+        }
+
+        bronzeCoins += amount;
+
+        OnCoinsChanged?.Invoke();
+
+        return true;
+    }
+
+    public bool TrySpendCoins(
+        int amount)
+    {
+        if (amount <= 0)
+        {
+            Debug.LogWarning(
+                $"TrySpendCoins kräver ett positivt belopp. " +
+                $"Mottaget värde: {amount}.",
+                this
+            );
+
+            return false;
+        }
+
         if (bronzeCoins < amount)
             return false;
 
         bronzeCoins -= amount;
+
         OnCoinsChanged?.Invoke();
+
         return true;
     }
+
+    public void SetCoins(
+        int amount)
+    {
+        int clampedAmount =
+            Mathf.Max(
+                0,
+                amount
+            );
+
+        if (bronzeCoins ==
+            clampedAmount)
+        {
+            return;
+        }
+
+        bronzeCoins =
+            clampedAmount;
+
+        OnCoinsChanged?.Invoke();
+    }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        bronzeCoins =
+            Mathf.Max(
+                0,
+                bronzeCoins
+            );
+    }
+#endif
 }

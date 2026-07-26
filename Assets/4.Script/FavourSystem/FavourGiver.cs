@@ -166,9 +166,23 @@ public sealed class FavourGiver :
             }
         }
 
-        /*
-         * Nästa UI-fas öppnar favour-selection-fönstret här.
-         */
+        FavourWindow window =
+    FavourWindow.Instance;
+
+        if (window != null)
+        {
+            window.Open(
+                this
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                $"'{name}' försökte öppna FavourWindow, " +
+                $"men inget aktivt FavourWindow hittades.",
+                this
+            );
+        }
     }
 
     public bool TryAccept(
@@ -253,5 +267,33 @@ public sealed class FavourGiver :
                favours.Contains(
                    favour
                );
+    }
+
+    public bool TryGetVisibleRuntime(
+    FavourData favour,
+    out FavourRuntime runtime)
+    {
+        runtime = null;
+
+        if (!ContainsFavour(
+                favour))
+        {
+            return false;
+        }
+
+        PlayerFavourManager manager =
+            PlayerFavourManager.Instance;
+
+        if (manager == null ||
+            !manager.TryGetRuntime(
+                favour,
+                out runtime))
+        {
+            runtime = null;
+            return false;
+        }
+
+        return runtime.State !=
+               FavourState.Unavailable;
     }
 }

@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05bc19b3ecb135c42ac63f5173f2ded6, type: 3}
+  m_Name: New Favour Dialogue Set
+  m_EditorClassIdentifier: Assembly-CSharp::FavourDialogueSet
+  unavailable: Mm, yes?
+  offer: 'You! You came from over there, did you not? Did you see the animals there?
+    Yes, yes, the wolves! There is something odd about them, and I intend to investigate
+    rather than just putting them down with a spear, and letting two more take the
+    scoundrels place. Speaking of "putting down", why do you not go over there and
+    fetch me some of their teeth? They would do good for studying! '
+  active: Did you find any strange looking fangs yet?
+  readyToTurnIn: Ah, brilliant- just what I needed. Here, take these as thanks for
+    your help.
+  completed: Thank you for helping me!
+  failed: 
+  cooldown: 

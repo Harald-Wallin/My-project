@@ -1,17 +1,23 @@
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
-[CreateAssetMenu(menuName = "RPG/Reputation Levels")]
-public class ReputationLevelDefinition : ScriptableObject
+[CreateAssetMenu(
+    menuName = "RPG/Reputation Levels"
+)]
+public sealed class ReputationLevelDefinition :
+    ScriptableObject
 {
+    [Min(1)]
     public int baseXPRequired = 100;
+
+    [Min(1f)]
     public float scalingMultiplier = 1.5f;
-    public int maxLevel = 9; // Vi kör 7 tiers
 
-
+    [Min(1)]
+    public int maxLevel = 9;
 
     [System.Serializable]
-    public class ReputationTier
+    public sealed class ReputationTier
     {
         public string tierName;
 
@@ -21,23 +27,39 @@ public class ReputationLevelDefinition : ScriptableObject
         public AudioClip rankReachedSound;
     }
 
-    public List<ReputationTier> tiers = new List<ReputationTier>();
+    public List<ReputationTier> tiers =
+        new();
 
-    public int GetXPRequired(int level)
+    public int GetXPRequired(
+        int level)
     {
-        return Mathf.RoundToInt(
-            baseXPRequired * Mathf.Pow(scalingMultiplier, level - 1)
+        int safeLevel =
+            Mathf.Max(
+                1,
+                level
+            );
+
+        return Mathf.Max(
+            1,
+            Mathf.RoundToInt(
+                baseXPRequired *
+                Mathf.Pow(
+                    scalingMultiplier,
+                    safeLevel - 1
+                )
+            )
         );
     }
 
-    public string GetTierName(int level)
+    public string GetTierName(
+        int level)
     {
-        int index = Mathf.Clamp(level - 1, 0, tiers.Count - 1);
-        return tiers[index].tierName;
-    }
+        if (tiers == null ||
+            tiers.Count == 0)
+        {
+            return $"Rank {Mathf.Max(1, level)}";
+        }
 
-    public AudioClip GetTierSound(int level)
-    {
         int index =
             Mathf.Clamp(
                 level - 1,
@@ -45,8 +67,59 @@ public class ReputationLevelDefinition : ScriptableObject
                 tiers.Count - 1
             );
 
-        return tiers[index].rankReachedSound;
+        ReputationTier tier =
+            tiers[index];
+
+        if (tier == null ||
+            string.IsNullOrWhiteSpace(
+                tier.tierName))
+        {
+            return $"Rank {Mathf.Max(1, level)}";
+        }
+
+        return tier.tierName;
     }
+
+    public AudioClip GetTierSound(
+        int level)
+    {
+        if (tiers == null ||
+            tiers.Count == 0)
+        {
+            return null;
+        }
+
+        int index =
+            Mathf.Clamp(
+                level - 1,
+                0,
+                tiers.Count - 1
+            );
+
+        return tiers[index]
+            ?.rankReachedSound;
+    }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        baseXPRequired =
+            Mathf.Max(
+                1,
+                baseXPRequired
+            );
+
+        scalingMultiplier =
+            Mathf.Max(
+                1f,
+                scalingMultiplier
+            );
+
+        maxLevel =
+            Mathf.Max(
+                1,
+                maxLevel
+            );
+    }
+#endif
 }
-
-
