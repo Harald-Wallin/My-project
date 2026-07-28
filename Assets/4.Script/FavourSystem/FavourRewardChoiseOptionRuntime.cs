@@ -111,12 +111,30 @@ public sealed class FavourRewardChoiceOptionRuntime
             OptionIndex
         );
 
-    public bool CanSelect =>
-        IsValid &&
-        Group != null &&
-        Group.CanChangeSelection &&
-        (IsSelected ||
-         Group.CanSelectMore);
+    public bool CanSelect
+    {
+        get
+        {
+            if (!IsValid ||
+                Group == null ||
+                !Group.CanChangeSelection)
+            {
+                return false;
+            }
+
+            if (IsSelected)
+                return true;
+
+            /*
+             * I en Choose 1-grupp får ett nytt val ersätta det
+             * befintliga valet.
+             */
+            if (Group.RequiredSelections == 1)
+                return true;
+
+            return Group.CanSelectMore;
+        }
+    }
 
     public bool CanDeselect =>
         IsValid &&

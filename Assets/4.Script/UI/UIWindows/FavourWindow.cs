@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 public sealed class FavourWindow :
-    MonoBehaviour
+    MonoBehaviour, IUIWindow
 {
     private readonly List<
         FavourObjectiveRowUI>
@@ -29,6 +29,9 @@ public sealed class FavourWindow :
 
     [SerializeField]
     private GameObject windowRoot;
+
+    [SerializeField]
+    private RectTransform windowPanel;
 
     [Header("Header")]
 
@@ -97,6 +100,14 @@ public sealed class FavourWindow :
 
     [SerializeField]
     private Button closeButton;
+
+    [Header("Main Sections")]
+
+    [SerializeField]
+    private GameObject objectivesSection;
+
+    [SerializeField]
+    private GameObject rewardsSection;
 
     public static FavourWindow Instance
     {
@@ -205,9 +216,53 @@ public sealed class FavourWindow :
         }
     }
 
+    public void Open(FavourGiver giver)
+    {
+        Open(
+            giver,
+            (InteractionTarget)null);
+    }
+
+    public void Open(
+        FavourGiver giver,
+        InteractionTarget interactionTarget)
+    {
+        if (giver == null)
+            return;
+
+        List<FavourRuntime> visibleFavours =
+            giver.GetVisibleFavours();
+
+        if (visibleFavours == null ||
+            visibleFavours.Count == 0)
+        {
+            Debug.Log(
+                $"{giver.GiverName} har inga synliga favours.",
+                giver);
+
+            return;
+        }
+
+        Open(
+            giver,
+            visibleFavours[0],
+            interactionTarget);
+    }
+
     public void Open(
         FavourGiver giver,
         FavourRuntime runtime)
+    {
+        Open(
+            giver,
+            runtime,
+            null);
+    }
+
+    public void Open(
+        FavourGiver giver,
+        FavourRuntime runtime,
+        InteractionTarget interactionTarget)
     {
         if (giver == null ||
             runtime == null)
@@ -222,42 +277,45 @@ public sealed class FavourWindow :
 
         SubscribeToRuntime();
 
-        SetOpen(
-            true
-        );
+        SetOpen(true);
+
+        if (interactionTarget != null)
+        {
+            GlobalUIManager.Instance?
+                .RegisterInteractionWindow(
+                    this,
+                    interactionTarget.InteractionTransform,
+                    interactionTarget.WindowCloseDistance);
+        }
 
         RebuildAll();
     }
 
-    public void Open(
-        FavourGiver giver)
+    private void RegisterAsInteractionWindow(
+    FavourGiver giver)
     {
         if (giver == null)
             return;
 
-        List<FavourRuntime> favours =
-            giver.GetVisibleFavours();
+        InteractionTarget target =
+            giver.GetComponentInChildren<
+                InteractionTarget>();
 
-        if (favours == null ||
-            favours.Count == 0)
+        if (target == null)
         {
-            Debug.Log(
-                $"{giver.GiverName} har inga synliga favours.",
-                giver
-            );
+            Debug.LogWarning(
+                $"FavourGiver '{giver.name}' saknar " +
+                "InteractionTarget i sin hierarchy.",
+                giver);
 
             return;
         }
 
-        /*
-         * Första versionen visar den första synliga favouren.
-         * En favour-lista kan senare placeras framför denna
-         * detaljvy utan att detaljfönstret behöver skrivas om.
-         */
-        Open(
-            giver,
-            favours[0]
-        );
+        GlobalUIManager.Instance?
+            .RegisterInteractionWindow(
+                this,
+                target.InteractionTransform,
+                target.WindowCloseDistance);
     }
 
     public void Close()
@@ -268,12 +326,11 @@ public sealed class FavourWindow :
         CurrentGiver = null;
 
         ClearDynamicContent();
-        ClearObjectiveRows();
         ClearRewardChoices();
 
-        SetOpen(
-            false
-        );
+        SetOpen(false);
+
+        GlobalUIManager.Instance?.ClearInteractionWindow(this);
     }
 
 
@@ -311,14 +368,29 @@ public sealed class FavourWindow :
     }
 
     private void HandleRuntimeStateChanged(
-        FavourRuntime runtime)
+    FavourRuntime runtime)
     {
         if (runtime != CurrentRuntime)
             return;
 
-        RefreshStaticText();
-        RebuildObjectives();
-        RefreshButtons();
+        /*
+         * State kan ändra hela presentationen.
+         * Completed ska exempelvis ta bort objectives och rewards.
+         */
+        RebuildAll();
+    }
+
+    private void RefreshLayout()
+    {
+        Canvas.ForceUpdateCanvases();
+
+        if (windowPanel != null)
+        {
+            LayoutRebuilder
+                .ForceRebuildLayoutImmediate(
+                    windowPanel
+                );
+        }
     }
 
     private void HandleRuntimeProgressChanged(
@@ -332,22 +404,114 @@ public sealed class FavourWindow :
     }
 
     private void HandleRewardSelectionChanged(
-        FavourRuntime runtime)
+    FavourRuntime runtime)
     {
         if (runtime != CurrentRuntime)
             return;
 
-        RefreshButtons();
+        RefreshRewardChoices();
     }
 
     private void RebuildAll()
     {
         RefreshStaticText();
 
+        bool completed =
+            CurrentRuntime != null &&
+            CurrentRuntime.State ==
+            FavourState.Completed;
+
+        if (completed)
+        {
+            ApplyCompletedPresentation();
+            RefreshButtons();
+            RefreshLayout();
+
+            return;
+        }
+
+        ApplyStandardPresentation();
+
         RebuildObjectives();
         RebuildRewards();
 
         RefreshButtons();
+        RefreshLayout();
+    }
+
+    private void ApplyCompletedPresentation()
+    {
+        /*
+         * Rensa först de instansierade objekten så att de inte
+         * ligger kvar osynligt och återanvänds av misstag.
+         */
+        ClearObjectiveRows();
+        ClearFixedRewards();
+        ClearRewardChoices();
+
+        if (objectivesSection != null)
+        {
+            objectivesSection.SetActive(
+                false
+            );
+        }
+
+        if (rewardsSection != null)
+        {
+            rewardsSection.SetActive(
+                false
+            );
+        }
+
+        if (statusText != null)
+        {
+            statusText.text =
+                string.Empty;
+
+            statusText.gameObject.SetActive(
+                false
+            );
+        }
+
+        /*
+         * Close ska alltid finnas i det färdiga läget.
+         */
+        if (closeButton != null)
+        {
+            closeButton.gameObject.SetActive(
+                true
+            );
+
+            closeButton.interactable =
+                true;
+        }
+    }
+
+    private void ApplyStandardPresentation()
+    {
+        if (objectivesSection != null)
+        {
+            objectivesSection.SetActive(
+                true
+            );
+        }
+
+        if (rewardsSection != null)
+        {
+            rewardsSection.SetActive(
+                true
+            );
+        }
+
+        if (closeButton != null)
+        {
+            closeButton.gameObject.SetActive(
+                true
+            );
+
+            closeButton.interactable =
+                true;
+        }
     }
 
     private void RefreshStaticText()
@@ -934,10 +1098,9 @@ public sealed class FavourWindow :
                 CurrentRuntime.State ==
                 FavourState.Available;
 
-            acceptButton.gameObject
-                .SetActive(
-                    visible
-                );
+            acceptButton.gameObject.SetActive(
+                visible
+            );
 
             acceptButton.interactable =
                 visible &&
@@ -950,14 +1113,23 @@ public sealed class FavourWindow :
                 CurrentRuntime.State ==
                 FavourState.ReadyToTurnIn;
 
-            completeButton.gameObject
-                .SetActive(
-                    visible
-                );
+            completeButton.gameObject.SetActive(
+                visible
+            );
 
             completeButton.interactable =
                 visible &&
                 CurrentRuntime.CanTurnIn;
+        }
+
+        if (closeButton != null)
+        {
+            closeButton.gameObject.SetActive(
+                true
+            );
+
+            closeButton.interactable =
+                true;
         }
     }
 

@@ -317,7 +317,7 @@ public class InventorySlotUI : MonoBehaviour,
         // VENDOR OPEN → SELL
         // =========================
 
-        if (VendorUI.Instance != null && VendorUI.Instance.IsOpen())
+        if (VendorUI.Instance != null && VendorUI.Instance.IsOpen)
         {
             // SHIFT + Right Click = sell entire stack
             if (eventData.button == PointerEventData.InputButton.Right &&

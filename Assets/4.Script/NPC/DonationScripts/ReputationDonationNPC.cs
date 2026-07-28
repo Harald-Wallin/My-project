@@ -1,18 +1,33 @@
 using UnityEngine;
 
-public class ReputationDonationNPC : MonoBehaviour, IInteractable
+/// <summary>
+/// Interaktionsalternativ som låter spelaren donera ett visst
+/// item för reputation och eventuellt experience.
+/// </summary>
+public sealed class ReputationDonationNPC :
+    MonoBehaviour,
+    IInteractionOption
 {
     [Header("Donation")]
-    [SerializeField] private ItemData requiredItem;
 
-    [SerializeField] private int reputationPerItem = 5;
-    [SerializeField] private int experiencePerItem = 0;
+    [SerializeField]
+    private ItemData requiredItem;
+
+    [SerializeField]
+    private int reputationPerItem = 5;
+
+    [SerializeField]
+    private int experiencePerItem;
 
     [Header("Faction")]
-    [SerializeField] private Faction faction;
+
+    [SerializeField]
+    private Faction faction;
 
     [Header("Interaction Requirements")]
-    [SerializeField] private bool useReputationRequirement = false;
+
+    [SerializeField]
+    private bool useReputationRequirement;
 
     [SerializeField]
     private ReputationState requiredReputation =
@@ -23,52 +38,103 @@ public class ReputationDonationNPC : MonoBehaviour, IInteractable
     private string rejectedMessage =
         "I don't trust you enough.";
 
-    public ItemData RequiredItem => requiredItem;
+    public string InteractionName => "Donate";
 
-    public int ReputationPerItem => reputationPerItem;
+    public ItemData RequiredItem =>
+        requiredItem;
 
-    public int ExperiencePerItem => experiencePerItem;
+    public int ReputationPerItem =>
+        reputationPerItem;
 
-    public Faction Faction => faction;
+    public int ExperiencePerItem =>
+        experiencePerItem;
 
-    public bool CanInteract(PlayerReputationManager repManager)
+    public Faction Faction =>
+        faction;
+
+    public bool CanInteract(
+        in InteractionContext context)
     {
-        if (!useReputationRequirement)
-            return true;
-
-        if (repManager == null)
+        if (!context.IsValid)
             return false;
 
-        if (faction == null)
-            return false;
+        NPCReactionController reaction =
+            GetComponent<NPCReactionController>();
 
-        return repManager.GetReputationState(faction)
-            >= requiredReputation;
+        if (reaction != null &&
+            reaction.BlocksInteraction(
+                context.Player))
+        {
+            return false;
+        }
+
+        PlayerReputationManager repManager =
+            context.Player.GetComponent<
+                PlayerReputationManager>();
+
+        return MeetsReputationRequirement(
+            repManager);
     }
 
-    public void Interact(PlayerStats player)
+    public void Interact(
+        in InteractionContext context)
     {
-        PlayerReputationManager repManager =
-            player.GetComponent<PlayerReputationManager>();
+        if (!context.IsValid)
+            return;
 
-        if (!CanInteract(repManager))
+        if (!CanInteract(context))
         {
-            Debug.Log(rejectedMessage);
+            if (!string.IsNullOrWhiteSpace(
+                    rejectedMessage))
+            {
+                Debug.Log(rejectedMessage);
+            }
+
             return;
         }
 
         OpenDonationUI();
     }
 
+    /// <summary>
+    /// Behålls som separat publik kontroll eftersom andra system
+    /// kan behöva fråga om reputation-kravet utan ett fullständigt
+    /// InteractionContext.
+    /// </summary>
+    public bool CanInteract(
+        PlayerReputationManager repManager)
+    {
+        return MeetsReputationRequirement(
+            repManager);
+    }
+
     public void OpenDonationUI()
     {
-        if (DonationUI.Instance != null)
+        DonationUI donationUI =
+            DonationUI.Instance;
+
+        if (donationUI == null)
         {
-            DonationUI.Instance.Open(this);
+            Debug.LogWarning(
+                $"Donation NPC '{name}' kunde inte öppnas " +
+                "eftersom ingen DonationUI finns i scenen.",
+                this);
+
+            return;
         }
-        else
+
+        donationUI.Open(this);
+        InteractionTarget target =
+            GetComponentInChildren<
+        InteractionTarget>();
+
+        if (target != null)
         {
-            Debug.LogWarning("No DonationUI found in scene.");
+            GlobalUIManager.Instance?
+                .RegisterInteractionWindow(
+                    donationUI,
+                    target.InteractionTransform,
+                    target.WindowCloseDistance);
         }
     }
 
@@ -78,18 +144,42 @@ public class ReputationDonationNPC : MonoBehaviour, IInteractable
             return;
 
         if (requiredItem == null)
+        {
+            Debug.LogWarning(
+                $"Donation NPC '{name}' saknar Required Item.",
+                this);
+
             return;
+        }
 
-        int owned =
-            Inventory.Instance.GetItemCount(requiredItem);
+        Inventory inventory =
+            Inventory.Instance;
 
-        amount = Mathf.Min(amount, owned);
+        if (inventory == null)
+        {
+            Debug.LogWarning(
+                "Ingen Inventory.Instance kunde hittas.",
+                this);
 
-        if (amount <= 0)
+            return;
+        }
+
+        int ownedAmount =
+            inventory.GetItemCount(
+                requiredItem);
+
+        int donationAmount =
+            Mathf.Min(
+                amount,
+                ownedAmount);
+
+        if (donationAmount <= 0)
             return;
 
         bool removed =
-            Inventory.Instance.RemoveItemAmount(requiredItem, amount);
+            inventory.RemoveItemAmount(
+                requiredItem,
+                donationAmount);
 
         if (!removed)
             return;
@@ -98,32 +188,112 @@ public class ReputationDonationNPC : MonoBehaviour, IInteractable
             PlayerReference.Player;
 
         if (player == null)
+        {
+            Debug.LogWarning(
+                "Donation genomfördes inte eftersom " +
+                "PlayerReference.Player saknas.",
+                this);
+
+            /*
+             * I normal drift ska detta aldrig inträffa eftersom
+             * interaktionen redan kräver en giltig spelare.
+             *
+             * Vi återför inte items här eftersom Inventory API:t
+             * kan ha projektspecifika regler. Senare kan Donate
+             * göras helt transaktionell.
+             */
             return;
-
-        PlayerReputationManager repManager =
-            player.GetComponent<PlayerReputationManager>();
-
-        if (repManager != null && faction != null)
-        {
-            int reputationGain =
-                reputationPerItem * amount;
-
-            repManager.AddReputation(
-                faction,
-                reputationGain
-            );
         }
 
-        if (experiencePerItem > 0)
-        {
-            int expGain =
-                experiencePerItem * amount;
+        GrantReputation(
+            player,
+            donationAmount);
 
-            player.GainExp(expGain);
-        }
+        GrantExperience(
+            player,
+            donationAmount);
 
         Debug.Log(
-            $"Donated {amount}x {requiredItem.itemName}"
-        );
+            $"Donated {donationAmount}x " +
+            $"{requiredItem.itemName}.");
     }
+
+    private bool MeetsReputationRequirement(
+        PlayerReputationManager repManager)
+    {
+        if (!useReputationRequirement)
+            return true;
+
+        if (repManager == null ||
+            faction == null)
+        {
+            return false;
+        }
+
+        return repManager
+                   .GetReputationState(faction)
+               >= requiredReputation;
+    }
+
+    private void GrantReputation(
+        PlayerStats player,
+        int amount)
+    {
+        if (player == null ||
+            amount <= 0 ||
+            faction == null ||
+            reputationPerItem == 0)
+        {
+            return;
+        }
+
+        PlayerReputationManager repManager =
+            player.GetComponent<
+                PlayerReputationManager>();
+
+        if (repManager == null)
+            return;
+
+        int reputationGain =
+            reputationPerItem *
+            amount;
+
+        repManager.AddReputation(
+            faction,
+            reputationGain);
+    }
+
+    private void GrantExperience(
+        PlayerStats player,
+        int amount)
+    {
+        if (player == null ||
+            amount <= 0 ||
+            experiencePerItem <= 0)
+        {
+            return;
+        }
+
+        int experienceGain =
+            experiencePerItem *
+            amount;
+
+        player.GainExp(
+            experienceGain);
+    }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        reputationPerItem =
+            Mathf.Max(
+                0,
+                reputationPerItem);
+
+        experiencePerItem =
+            Mathf.Max(
+                0,
+                experiencePerItem);
+    }
+#endif
 }

@@ -1,7 +1,7 @@
 using UnityEngine;
 using TMPro;
 
-public class VendorUI : MonoBehaviour
+public class VendorUI : MonoBehaviour, IUIWindow
 {
     public static VendorUI Instance;
 
@@ -17,11 +17,7 @@ public class VendorUI : MonoBehaviour
     [SerializeField] private GameObject buybackSlotPrefab;
 
     public Vendor ActiveVendor { get; private set; }
-    [Header("Auto-close")]
-    [Tooltip("Max distance from vendor before the window auto-closes")]
-    [SerializeField] private float closeDistance = 2.5f;
 
-    private Transform player;
 
     void Awake()
     {
@@ -34,28 +30,11 @@ public class VendorUI : MonoBehaviour
     void Start()
     {
         Close();
-        var p = PlayerReference.Player;
-        if (p != null)
-            player = p.transform;
     }
 
-    void Update()
-    {
-        if (ActiveVendor == null || player == null)
-            return;
-
-        float dist = Vector3.Distance(player.position, ActiveVendor.transform.position);
-        if (dist > closeDistance)
-        {
-            Close();
-            Debug.Log("Vendor window closed: player moved too far from vendor.");
-        }
-    }
-
-    public bool IsOpen()
-    {
-        return canvasGroup.alpha > 0f;
-    }
+    public bool IsOpen =>
+    canvasGroup != null &&
+    canvasGroup.alpha > 0f;
 
     public void Open(Vendor vendor)
     {
@@ -106,6 +85,8 @@ public class VendorUI : MonoBehaviour
 
         // Clear active vendor when closing
         ActiveVendor = null;
+
+        GlobalUIManager.Instance?.ClearInteractionWindow();
     }
 
     void Populate()

@@ -733,9 +733,9 @@ public sealed class FavourRuntime
     // =========================================================
 
     public bool SetRewardChoiceSelected(
-        int groupIndex,
-        int optionIndex,
-        bool selected)
+    int groupIndex,
+    int optionIndex,
+    bool selected)
     {
         if (!CanChangeRewardSelections)
             return false;
@@ -764,12 +764,21 @@ public sealed class FavourRuntime
             return false;
         }
 
+        int choicesAllowed =
+            Mathf.Max(
+                0,
+                group.ChoicesAllowed
+            );
+
+        if (choicesAllowed <= 0)
+            return false;
+
         HashSet<int> selections =
             selectedRewardOptions[
                 groupIndex
             ];
 
-        bool changed;
+        bool changed = false;
 
         if (selected)
         {
@@ -779,16 +788,42 @@ public sealed class FavourRuntime
                 return true;
             }
 
-            if (selections.Count >=
-                group.ChoicesAllowed)
+            /*
+             * En Choose 1-grupp fungerar som en radiogrupp:
+             * det tidigare valet ersätts direkt.
+             */
+            if (choicesAllowed == 1)
             {
-                return false;
-            }
+                if (selections.Count > 0)
+                {
+                    selections.Clear();
+                    changed = true;
+                }
 
-            changed =
-                selections.Add(
-                    optionIndex
-                );
+                if (selections.Add(
+                        optionIndex))
+                {
+                    changed = true;
+                }
+            }
+            else
+            {
+                /*
+                 * För Choose 2+ måste spelaren fortfarande
+                 * avmarkera något innan ytterligare val görs
+                 * när gruppen är full.
+                 */
+                if (selections.Count >=
+                    choicesAllowed)
+                {
+                    return false;
+                }
+
+                changed =
+                    selections.Add(
+                        optionIndex
+                    );
+            }
         }
         else
         {

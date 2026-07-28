@@ -29,7 +29,7 @@ public sealed class FavourDebugTester :
         if (Input.GetKeyDown(
                 interactKey))
         {
-            giver.Interact();
+            //giver.Interact();
 
             Debug.Log(
                 $"Interacted with favour giver: " +

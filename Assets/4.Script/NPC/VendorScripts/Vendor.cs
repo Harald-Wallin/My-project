@@ -1,8 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
-using static UnityEngine.EventSystems.EventTrigger;
 
-public class Vendor : MonoBehaviour, IInteractable
+public class Vendor : MonoBehaviour, IInteractionOption
 {
     [System.Serializable]
     public class BuybackEntry
@@ -37,6 +36,7 @@ public class Vendor : MonoBehaviour, IInteractable
     [SerializeField] private List<VendorItem> itemsForSale = new List<VendorItem>();
 
     public VendorUI vendorUI;
+    public string InteractionName => "Trade";
 
 
     void Start()
@@ -70,41 +70,58 @@ public class Vendor : MonoBehaviour, IInteractable
         }
     }
 
-    public void Interact(PlayerStats player)
+    public bool CanInteract(
+    in InteractionContext context)
     {
-        PlayerReputationManager rep =
-            FindFirstObjectByType<PlayerReputationManager>();
+        if (!context.IsValid)
+            return false;
 
-        if (!CanTrade(rep))
-        {
-            //Debug.Log("Vendor refuses to trade.");
+        PlayerReputationManager repManager =
+            context.Player.GetComponent<
+                PlayerReputationManager>();
+
+        return CanTrade(repManager);
+    }
+
+    public void Interact(
+        in InteractionContext context)
+    {
+        if (!CanInteract(context))
             return;
-        }
 
         OpenVendor();
     }
 
     public void OpenVendor()
     {
-        //Debug.Log($"Vendor.OpenVendor: opening vendor UI for '{name}'");
+        VendorUI targetUI =
+            vendorUI != null
+                ? vendorUI
+                : VendorUI.Instance;
 
-        // Use explicit vendorUI reference if set (useful for testing),
-        // otherwise fall back to the global VendorUI instance in scene.
-        if (vendorUI != null)
+        if (targetUI == null)
         {
-            vendorUI.Open(this);
-            //Debug.Log("Vendor.OpenVendor: used vendorUI reference on Vendor component.");
+            Debug.LogWarning(
+                $"Vendor '{name}' kunde inte öppnas eftersom " +
+                "ingen VendorUI finns tillgänglig.",
+                this);
+
             return;
         }
 
-        if (VendorUI.Instance != null)
-        {
-            VendorUI.Instance.Open(this);
-            //Debug.Log("Vendor.OpenVendor: used VendorUI.Instance singleton.");
-            return;
-        }
+        targetUI.Open(this);
+        InteractionTarget target =
+            GetComponentInChildren<
+        InteractionTarget>();
 
-        //Debug.LogWarning("Vendor.OpenVendor: No VendorUI assigned and no VendorUI.Instance found in scene.");
+        if (target != null)
+        {
+            GlobalUIManager.Instance?
+                .RegisterInteractionWindow(
+                    targetUI,
+                    target.InteractionTransform,
+                    target.WindowCloseDistance);
+        }
     }
 
     public bool CanTrade(PlayerReputationManager repManager)
@@ -215,20 +232,7 @@ public class Vendor : MonoBehaviour, IInteractable
             }
         }
 
-        Debug.Log($"Bought {entry.data.item.itemName} for {price} coins.");
-    }
-
-    public void TryRightClickInteract(PlayerStats player)
-    {
-        if (!CanTrade(FindFirstObjectByType<PlayerReputationManager>()))
-            return;
-
-        float dist = Vector3.Distance(transform.position, player.transform.position);
-
-        if (dist > 3f)
-            return;
-
-        OpenVendor();
+        //Debug.Log($"Bought {entry.data.item.itemName} for {price} coins.");
     }
 
     public int GetModifiedPrice(VendorItem entry)

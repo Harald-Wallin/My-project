@@ -1,9 +1,12 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public sealed class FavourRewardEntryUI :
-    MonoBehaviour
+    MonoBehaviour,
+    IPointerEnterHandler,
+    IPointerExitHandler
 {
     [Header("Visuals")]
 
@@ -21,6 +24,14 @@ public sealed class FavourRewardEntryUI :
     [SerializeField]
     private Button button;
 
+    [SerializeField]
+    private RectTransform tooltipTarget;
+
+    [SerializeField]
+    private ItemTooltip.TooltipAnchorMode
+        tooltipAnchorMode =
+            ItemTooltip.TooltipAnchorMode.TopRight;
+
     [Header("Selection Frame")]
 
     [SerializeField]
@@ -34,6 +45,13 @@ public sealed class FavourRewardEntryUI :
     private FavourRewardChoiceOptionRuntime
         choiceOption;
 
+    private ITooltipProvider tooltipProvider;
+
+    private RectTransform CachedTooltipTarget =>
+        tooltipTarget != null
+            ? tooltipTarget
+            : transform as RectTransform;
+
     // =========================================================
     // FIXED REWARDS
     // =========================================================
@@ -41,7 +59,7 @@ public sealed class FavourRewardEntryUI :
     public void BindFixedItem(
         FavourItemReward reward)
     {
-        ClearChoiceBinding();
+        ClearBindings();
 
         if (reward == null ||
             reward.Item == null)
@@ -57,6 +75,9 @@ public sealed class FavourRewardEntryUI :
             true
         );
 
+        tooltipProvider =
+            reward.Item as ITooltipProvider;
+
         SetIcon(
             reward.Item.icon
         );
@@ -65,7 +86,12 @@ public sealed class FavourRewardEntryUI :
             reward.Amount
         );
 
-        SetSelectionFrame(
+        /*
+         * Fixed rewards är inte valbara.
+         * Selection frame ska därför inte bara vara transparent,
+         * utan helt avstängd.
+         */
+        SetSelectionFrameVisible(
             false
         );
 
@@ -75,7 +101,7 @@ public sealed class FavourRewardEntryUI :
     public void BindFixedAbility(
         FavourAbilityReward reward)
     {
-        ClearChoiceBinding();
+        ClearBindings();
 
         if (reward == null ||
             reward.Ability == null)
@@ -91,6 +117,9 @@ public sealed class FavourRewardEntryUI :
             true
         );
 
+        tooltipProvider =
+            reward.Ability as ITooltipProvider;
+
         SetIcon(
             reward.Ability.icon
         );
@@ -102,7 +131,7 @@ public sealed class FavourRewardEntryUI :
             1
         );
 
-        SetSelectionFrame(
+        SetSelectionFrameVisible(
             false
         );
 
@@ -116,7 +145,7 @@ public sealed class FavourRewardEntryUI :
     public void BindChoice(
         FavourRewardChoiceOptionRuntime option)
     {
-        ClearChoiceBinding();
+        ClearBindings();
 
         choiceOption = option;
 
@@ -133,6 +162,11 @@ public sealed class FavourRewardEntryUI :
         gameObject.SetActive(
             true
         );
+
+        tooltipProvider =
+            ResolveChoiceTooltipProvider(
+                choiceOption
+            );
 
         SetIcon(
             choiceOption.Icon
@@ -152,6 +186,10 @@ public sealed class FavourRewardEntryUI :
             );
         }
 
+        SetSelectionFrameVisible(
+            true
+        );
+
         if (button != null)
         {
             button.onClick.RemoveAllListeners();
@@ -164,20 +202,50 @@ public sealed class FavourRewardEntryUI :
         RefreshChoiceVisual();
     }
 
+    private static ITooltipProvider
+        ResolveChoiceTooltipProvider(
+            FavourRewardChoiceOptionRuntime option)
+    {
+        if (option == null)
+            return null;
+
+        switch (option.Type)
+        {
+            case FavourRewardChoiceType.Item:
+                return option.Item as
+                    ITooltipProvider;
+
+            case FavourRewardChoiceType.Ability:
+                return option.Ability as
+                    ITooltipProvider;
+
+            default:
+                return null;
+        }
+    }
+
     public void RefreshChoiceVisual()
     {
         if (choiceOption == null)
             return;
 
-        SetSelectionFrame(
+        SetSelectionFrameVisible(
+            true
+        );
+
+        SetSelectionFrameSelected(
             choiceOption.IsSelected
         );
 
         if (button != null)
         {
             /*
-             * Ett redan valt alternativ måste fortfarande
-             * kunna klickas för att avmarkeras.
+             * Ett valt alternativ måste kunna klickas för
+             * att avmarkeras.
+             *
+             * Ett annat alternativ i en "Choose 1"-grupp
+             * förblir klickbart eftersom runtime nu ersätter
+             * det gamla valet automatiskt.
              */
             button.interactable =
                 choiceOption.IsSelected
@@ -194,13 +262,51 @@ public sealed class FavourRewardEntryUI :
         choiceOption.Toggle();
 
         /*
-         * Detta ger omedelbar respons på den klickade ikonen.
-         *
-         * FavourRuntime-eventet gör därefter att hela gruppen
-         * uppdateras, så även övriga alternativ får rätt
-         * interactable-status.
+         * Runtime-eventet uppdaterar samtliga entries i gruppen.
+         * Den lokala uppdateringen ger dessutom omedelbar respons.
          */
         RefreshChoiceVisual();
+    }
+
+    // =========================================================
+    // TOOLTIP
+    // =========================================================
+
+    public void OnPointerEnter(
+        PointerEventData eventData)
+    {
+        if (tooltipProvider == null ||
+            ItemTooltip.Instance == null)
+        {
+            return;
+        }
+
+        RectTransform target =
+            CachedTooltipTarget;
+
+        if (target == null)
+            return;
+
+        ItemTooltip.Instance.Show(
+            tooltipProvider,
+            target,
+            PlayerReference.Player,
+            tooltipAnchorMode
+        );
+    }
+
+    public void OnPointerExit(
+        PointerEventData eventData)
+    {
+        HideTooltip();
+    }
+
+    private void HideTooltip()
+    {
+        if (ItemTooltip.Instance != null)
+        {
+            ItemTooltip.Instance.Hide();
+        }
     }
 
     // =========================================================
@@ -239,7 +345,18 @@ public sealed class FavourRewardEntryUI :
                 : string.Empty;
     }
 
-    private void SetSelectionFrame(
+    private void SetSelectionFrameVisible(
+        bool visible)
+    {
+        if (selectionFrame == null)
+            return;
+
+        selectionFrame.gameObject.SetActive(
+            visible
+        );
+    }
+
+    private void SetSelectionFrameSelected(
         bool selected)
     {
         if (selectionFrame == null)
@@ -269,16 +386,19 @@ public sealed class FavourRewardEntryUI :
         button.onClick.RemoveAllListeners();
 
         /*
-         * Fasta rewards visas bara.
-         * De ska inte kunna väljas eller avmarkeras.
+         * Button-komponenten behålls för raycasting/hover,
+         * men fixed rewards går inte att klicka.
          */
         button.interactable =
             false;
     }
 
-    private void ClearChoiceBinding()
+    private void ClearBindings()
     {
         choiceOption = null;
+        tooltipProvider = null;
+
+        HideTooltip();
 
         if (button != null)
         {
@@ -286,8 +406,15 @@ public sealed class FavourRewardEntryUI :
         }
     }
 
+    private void OnDisable()
+    {
+        HideTooltip();
+    }
+
     private void OnDestroy()
     {
+        HideTooltip();
+
         if (button != null)
         {
             button.onClick.RemoveAllListeners();

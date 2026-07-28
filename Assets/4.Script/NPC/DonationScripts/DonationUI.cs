@@ -2,9 +2,12 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class DonationUI : MonoBehaviour
+public class DonationUI : MonoBehaviour, IUIWindow
 {
     public static DonationUI Instance;
+    public bool IsOpen =>
+    canvasGroup != null &&
+    canvasGroup.alpha > 0f;
 
     [Header("Window")]
     [SerializeField] private CanvasGroup canvasGroup;
@@ -98,6 +101,9 @@ public class DonationUI : MonoBehaviour
         canvasGroup.blocksRaycasts = false;
 
         activeNPC = null;
+
+        GlobalUIManager.Instance?
+            .ClearInteractionWindow(this);
     }
 
     void OnSliderChanged(float value)
