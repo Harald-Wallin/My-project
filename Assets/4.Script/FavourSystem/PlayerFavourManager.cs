@@ -450,6 +450,31 @@ public sealed class PlayerFavourManager :
                FavourState.Completed;
     }
 
+    public bool HasAccepted(FavourData favour)
+    {
+        if (!TryGetRuntime(
+                favour,
+                out FavourRuntime runtime))
+        {
+            return false;
+        }
+
+        if (runtime == null)
+            return false;
+
+        /*
+         * Available betyder att favouren har upptäckts eller
+         * registrerats, men ännu inte accepterats.
+         *
+         * Alla senare states innebär att favouren någon gång
+         * har aktiverats/accepterats.
+         */
+        return runtime.State !=
+                   FavourState.Unavailable &&
+               runtime.State !=
+                   FavourState.Available;
+    }
+
     public bool TryAccept(
         FavourData favour)
     {

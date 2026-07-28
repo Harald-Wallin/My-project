@@ -3,113 +3,361 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class LootItemRow : MonoBehaviour,
+public sealed class LootItemRow :
+    MonoBehaviour,
     IPointerEnterHandler,
     IPointerExitHandler
 {
-    [SerializeField] TMP_Text itemNameText;
-    [SerializeField] Image iconImage;
-    [SerializeField] TMP_Text amountText;
-    [SerializeField] private Image border;
+    [Header("Visuals")]
 
-    //GLOW
-    Color originalBorderColor;
+    [SerializeField]
+    private TMP_Text itemNameText;
 
-    ItemData item;
-    LootContainer sourceContainer;
-    LootUI lootUI;
+    [SerializeField]
+    private Image iconImage;
 
+    [SerializeField]
+    private TMP_Text amountText;
 
-    public void Setup(ItemData newItem, LootContainer container, LootUI ui)
+    [SerializeField]
+    private Image border;
+
+    private ItemData item;
+    private CurrencyData currency;
+
+    private LootContainer sourceContainer;
+    private LootUI lootUI;
+
+    private Color originalBorderColor;
+
+    private bool IsCurrency =>
+        currency != null;
+
+    public void SetupItem(
+        ItemData newItem,
+        LootContainer container,
+        LootUI ui)
     {
         item = newItem;
-        sourceContainer = container;
-        lootUI = ui;
+        currency = null;
 
-        int quantity = sourceContainer.items.FindAll(i => i == item).Count;
+        sourceContainer =
+            container;
 
-        itemNameText.text = item.itemName;
-        border.color = ItemRarityColors.GetColor(item.rarity);
-        border.enabled = true;
+        lootUI =
+            ui;
 
-        if (amountText != null)
+        if (item == null ||
+            sourceContainer == null)
         {
-            amountText.text = quantity > 1 ? quantity.ToString() : "";
+            gameObject.SetActive(
+                false
+            );
+
+            return;
         }
 
-        itemNameText.color = ItemRarityColors.GetColor(item.rarity);
+        int quantity =
+            CountItemQuantity();
+
+        itemNameText.text =
+            item.DisplayName;
+
+        Color rarityColor =
+            ItemRarityColors.GetColor(
+                item.rarity
+            );
+
+        SetBorderColor(
+            rarityColor
+        );
+
+        itemNameText.color =
+            rarityColor;
 
         if (iconImage != null)
-            iconImage.sprite = item.icon;
+        {
+            iconImage.sprite =
+                item.icon;
 
-        //GLOW
-        border.color = ItemRarityColors.GetColor(item.rarity);
-        originalBorderColor = border.color;
+            iconImage.enabled =
+                item.icon != null;
+        }
+
+        SetAmountText(
+            quantity
+        );
+    }
+
+    public void SetupCoins(
+        CurrencyData currencyData,
+        LootContainer container,
+        LootUI ui)
+    {
+        item = null;
+        currency = currencyData;
+
+        sourceContainer =
+            container;
+
+        lootUI =
+            ui;
+
+        if (currency == null ||
+            sourceContainer == null ||
+            sourceContainer.CoinAmount <= 0)
+        {
+            gameObject.SetActive(
+                false
+            );
+
+            return;
+        }
+
+        itemNameText.text =
+            currency.DisplayName;
+
+        itemNameText.color =
+            Color.white;
+
+        SetBorderColor(
+            Color.white
+        );
+
+        if (iconImage != null)
+        {
+            iconImage.sprite =
+                currency.Icon;
+
+            iconImage.enabled =
+                currency.Icon != null;
+        }
+
+        SetAmountText(
+            sourceContainer.CoinAmount
+        );
     }
 
     public void TakeItem()
     {
-        int quantity = 0;
-
-        // Hitta alla items av samma typ i LootContainer
-        for (int i = sourceContainer.items.Count - 1; i >= 0; i--)
+        if (IsCurrency)
         {
-            if (sourceContainer.items[i] == item)
+            TakeCoins();
+            return;
+        }
+
+        TakeInventoryItem();
+    }
+
+    private void TakeInventoryItem()
+    {
+        if (item == null ||
+            sourceContainer == null ||
+            Inventory.Instance == null)
+        {
+            return;
+        }
+
+        int quantity =
+            CountItemQuantity();
+
+        if (quantity <= 0)
+            return;
+
+        /*
+         * Inventoryt modifieras först. Loot tas inte bort om
+         * inventoryt är fullt.
+         */
+        bool added =
+            Inventory.Instance.AddItem(
+                item,
+                quantity
+            );
+
+        if (!added)
+            return;
+
+        for (int i =
+                 sourceContainer.items.Count - 1;
+             i >= 0;
+             i--)
+        {
+            if (Inventory.ItemsMatch(
+                    sourceContainer.items[i],
+                    item))
             {
-                quantity++;
-                sourceContainer.items.RemoveAt(i);
+                sourceContainer.items
+                    .RemoveAt(
+                        i
+                    );
             }
         }
 
-        if (quantity == 0)
-            return;
-
-        // Lägg hela stacken i inventory
-        bool added = Inventory.Instance.AddItem(item, quantity);
-
-        if (!added)
-        {
-            Debug.Log("Inventory is full!");
-            return;
-        }
-
-        ItemTooltip.Instance.Hide();
-        lootUI.Refresh();
-
-        LootableCorpse corpse = sourceContainer.GetComponent<LootableCorpse>();
-
-        if (corpse != null)
-        {
-            corpse.RefreshVisuals();
-        }
-        Destroy(gameObject);
+        FinishTakingLoot();
     }
 
-    public void OnPointerEnter(PointerEventData eventData)
+    private void TakeCoins()
     {
-        if (sourceContainer != null && item != null)
-        {
-            var player = PlayerReference.Player;
+        if (sourceContainer == null)
+            return;
 
-            ItemTooltip.Instance.Show(
-                item,
-                iconImage.rectTransform,
-                player
+        PlayerCurrency playerCurrency =
+            PlayerCurrency.Instance;
+
+        if (playerCurrency == null)
+        {
+            Debug.LogError(
+                "Kan inte loota coins: PlayerCurrency saknas.",
+                this
             );
 
-            //GLOW
-            border.color = Color.Lerp(originalBorderColor, Color.white, 0.5f);
+            return;
+        }
+
+        int amount =
+            sourceContainer.CoinAmount;
+
+        if (amount <= 0)
+            return;
+
+        if (!playerCurrency.AddCoins(
+                amount))
+        {
+            return;
+        }
+
+        sourceContainer.SetCoins(
+            0
+        );
+
+        FinishTakingLoot();
+    }
+
+    private void FinishTakingLoot()
+    {
+        ItemTooltip.Instance?.Hide();
+
+        lootUI?.Refresh();
+
+        LootableCorpse corpse =
+            sourceContainer != null
+                ? sourceContainer.GetComponent<
+                    LootableCorpse>()
+                : null;
+
+        corpse?.RefreshVisuals();
+
+        Destroy(
+            gameObject
+        );
+    }
+
+    private int CountItemQuantity()
+    {
+        if (item == null ||
+            sourceContainer?.items == null)
+        {
+            return 0;
+        }
+
+        int quantity = 0;
+
+        foreach (ItemData containedItem
+                 in sourceContainer.items)
+        {
+            if (Inventory.ItemsMatch(
+                    containedItem,
+                    item))
+            {
+                quantity++;
+            }
+        }
+
+        return quantity;
+    }
+
+    public void OnPointerEnter(
+        PointerEventData eventData)
+    {
+        ITooltipProvider provider =
+            IsCurrency
+                ? currency
+                : item;
+
+        if (provider == null ||
+            ItemTooltip.Instance == null ||
+            iconImage == null)
+        {
+            return;
+        }
+
+        ItemTooltip.Instance.Show(
+            provider,
+            iconImage.rectTransform,
+            PlayerReference.Player
+        );
+
+        if (border != null)
+        {
+            border.color =
+                Color.Lerp(
+                    originalBorderColor,
+                    Color.white,
+                    0.5f
+                );
         }
     }
 
-    public void OnPointerExit(PointerEventData eventData)
+    public void OnPointerExit(
+        PointerEventData eventData)
     {
-        ItemTooltip.Instance.Hide();
+        ItemTooltip.Instance?.Hide();
 
-        //GLOW
-        border.color = originalBorderColor;
+        if (border != null)
+        {
+            border.color =
+                originalBorderColor;
+        }
     }
 
+    private void SetAmountText(
+        int amount)
+    {
+        if (amountText == null)
+            return;
+
+        bool show =
+            amount > 1;
+
+        amountText.gameObject
+            .SetActive(
+                show
+            );
+
+        amountText.text =
+            show
+                ? amount.ToString()
+                : string.Empty;
+    }
+
+    private void SetBorderColor(
+        Color color)
+    {
+        if (border == null)
+            return;
+
+        border.enabled =
+            true;
+
+        border.color =
+            color;
+
+        originalBorderColor =
+            color;
+    }
+
+    private void OnDisable()
+    {
+        ItemTooltip.Instance?.Hide();
+    }
 }
-
-

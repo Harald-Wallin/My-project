@@ -138,6 +138,44 @@ public sealed class FavourRewardEntryUI :
         SetFixedRewardInteraction();
     }
 
+    public void BindFixedCurrency(
+    CurrencyData currency,
+    int amount)
+    {
+        ClearBindings();
+
+        if (currency == null ||
+            amount <= 0)
+        {
+            gameObject.SetActive(
+                false
+            );
+
+            return;
+        }
+
+        gameObject.SetActive(
+            true
+        );
+
+        tooltipProvider =
+            currency;
+
+        SetIcon(
+            currency.Icon
+        );
+
+        SetStackAmount(
+            amount
+        );
+
+        SetSelectionFrameVisible(
+            false
+        );
+
+        SetFixedRewardInteraction();
+    }
+
     // =========================================================
     // CHOICE REWARDS
     // =========================================================

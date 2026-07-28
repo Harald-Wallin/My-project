@@ -72,9 +72,14 @@ public sealed class FavourData :
     [Min(0)]
     private int experienceReward;
 
+
     [SerializeField]
     [Min(0)]
-    private int currencyReward;
+    private int minimumCurrencyReward;
+
+    [SerializeField]
+    [Min(0)]
+    private int maximumCurrencyReward;
 
     [SerializeField]
     private List<FavourReputationReward>
@@ -230,10 +235,16 @@ public sealed class FavourData :
             experienceReward
         );
 
-    public int CurrencyReward =>
+    public int MinimumCurrencyReward =>
+    Mathf.Max(
+        0,
+        minimumCurrencyReward
+    );
+
+    public int MaximumCurrencyReward =>
         Mathf.Max(
-            0,
-            currencyReward
+            MinimumCurrencyReward,
+            maximumCurrencyReward
         );
 
     public IReadOnlyList<
@@ -322,10 +333,16 @@ public sealed class FavourData :
                 experienceReward
             );
 
-        currencyReward =
+        minimumCurrencyReward =
             Mathf.Max(
-                0,
-                currencyReward
+        0,
+        minimumCurrencyReward
+            );
+
+        maximumCurrencyReward =
+            Mathf.Max(
+                minimumCurrencyReward,
+                maximumCurrencyReward
             );
 
         minimumLevel =

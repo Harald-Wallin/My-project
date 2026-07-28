@@ -1,90 +1,295 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 
-public class LootUI : MonoBehaviour
+public sealed class LootUI :
+    MonoBehaviour
 {
-    public static LootUI Instance { get; private set; }
+    public static LootUI Instance
+    {
+        get;
+        private set;
+    }
 
-    [SerializeField] private GameObject lootItemRowPrefab;
-    [SerializeField] private GameObject lootWindow; // nuvarande
-    [SerializeField] private Transform contentParent;
-    [SerializeField] private TMPro.TMP_Text titleText;
+    [Header("Content")]
 
+    [SerializeField]
+    private GameObject lootItemRowPrefab;
 
-    // Nya fält (lägg in i inspector)
-    [SerializeField] private RectTransform lootWindowRect; // LootWindow RectTransform
-    [SerializeField] private RectTransform contentRect; // Content RectTransform
-    [SerializeField] private int paddingTop = 6;
-    [SerializeField] private int paddingBottom = 6;
-    [SerializeField] private float maxHeight = 0f; // 0 = ingen max
-    [SerializeField] private float titleHeight = 40f;
+    [SerializeField]
+    private GameObject lootWindow;
 
-    LootContainer currentContainer;
+    [SerializeField]
+    private Transform contentParent;
+
+    [SerializeField]
+    private TMPro.TMP_Text titleText;
+
+    [Header("Layout")]
+
+    [SerializeField]
+    private RectTransform lootWindowRect;
+
+    [SerializeField]
+    private RectTransform contentRect;
+
+    [SerializeField]
+    private int paddingTop = 6;
+
+    [SerializeField]
+    private int paddingBottom = 6;
+
+    [SerializeField]
+    private float maxHeight;
+
+    [SerializeField]
+    private float titleHeight = 40f;
+
+    private LootContainer currentContainer;
+    private string currentTitle;
 
     private void Awake()
     {
         if (Instance == null)
+        {
             Instance = this;
+        }
         else
         {
-            Destroy(gameObject);
+            Destroy(
+                gameObject
+            );
+
             return;
         }
 
-        gameObject.SetActive(false);
+        gameObject.SetActive(
+            false
+        );
     }
 
-    public void Show(LootContainer container, string title)
+    public void Show(
+        LootContainer container,
+        string title)
     {
-        titleText.text = title;
-        currentContainer = container;
-
-        foreach (Transform child in contentParent)
-            Destroy(child.gameObject);
-
-        HashSet<ItemData> shownItems = new HashSet<ItemData>();
-
-        foreach (ItemData item in container.items)
+        if (container == null)
         {
-            if (shownItems.Contains(item))
-                continue;
-
-            shownItems.Add(item);
-
-            GameObject row = Instantiate(lootItemRowPrefab, contentParent);
-            row.GetComponent<LootItemRow>().Setup(item, container, this);
+            Close();
+            return;
         }
 
-        // Om lootWindowRect är stretch-anchored kan du istället göra:
-        // Vector2 min = lootWindowRect.offsetMin; min.y = -targetHeight; lootWindowRect.offsetMin = min;
-        // (Anpassa beroende på dina anchors)
+        currentContainer =
+            container;
 
-        gameObject.SetActive(true);
+        currentTitle =
+            title;
+
+        if (titleText != null)
+        {
+            titleText.text =
+                title;
+        }
+
+        ClearRows();
+
+        BuildCoinRow(
+            container
+        );
+
+        BuildItemRows(
+            container
+        );
+
+        gameObject.SetActive(
+            true
+        );
+    }
+
+    private void BuildCoinRow(
+        LootContainer container)
+    {
+        if (container.CoinAmount <= 0 ||
+            lootItemRowPrefab == null ||
+            contentParent == null)
+        {
+            return;
+        }
+
+        PlayerCurrency playerCurrency =
+            PlayerCurrency.Instance;
+
+        CurrencyData currency =
+            playerCurrency != null
+                ? playerCurrency
+                    .CurrencyDefinition
+                : null;
+
+        if (currency == null)
+        {
+            Debug.LogWarning(
+                "Loot innehåller coins men PlayerCurrency " +
+                "saknar CurrencyData.",
+                this
+            );
+
+            return;
+        }
+
+        GameObject row =
+            Instantiate(
+                lootItemRowPrefab,
+                contentParent
+            );
+
+        LootItemRow lootRow =
+            row.GetComponent<
+                LootItemRow>();
+
+        if (lootRow == null)
+        {
+            Debug.LogError(
+                "Loot row-prefabben saknar LootItemRow.",
+                row
+            );
+
+            Destroy(
+                row
+            );
+
+            return;
+        }
+
+        lootRow.SetupCoins(
+            currency,
+            container,
+            this
+        );
+    }
+
+    private void BuildItemRows(
+        LootContainer container)
+    {
+        if (container.items == null ||
+            lootItemRowPrefab == null ||
+            contentParent == null)
+        {
+            return;
+        }
+
+        List<ItemData> shownItems =
+            new List<ItemData>();
+
+        foreach (ItemData item
+                 in container.items)
+        {
+            if (item == null ||
+                ContainsMatchingItem(
+                    shownItems,
+                    item))
+            {
+                continue;
+            }
+
+            shownItems.Add(
+                item
+            );
+
+            GameObject row =
+                Instantiate(
+                    lootItemRowPrefab,
+                    contentParent
+                );
+
+            LootItemRow lootRow =
+                row.GetComponent<
+                    LootItemRow>();
+
+            if (lootRow == null)
+            {
+                Debug.LogError(
+                    "Loot row-prefabben saknar LootItemRow.",
+                    row
+                );
+
+                Destroy(
+                    row
+                );
+
+                continue;
+            }
+
+            lootRow.SetupItem(
+                item,
+                container,
+                this
+            );
+        }
+    }
+
+    private static bool ContainsMatchingItem(
+        IReadOnlyList<ItemData> items,
+        ItemData candidate)
+    {
+        if (items == null ||
+            candidate == null)
+        {
+            return false;
+        }
+
+        foreach (ItemData item
+                 in items)
+        {
+            if (Inventory.ItemsMatch(
+                    item,
+                    candidate))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void ClearRows()
+    {
+        if (contentParent == null)
+            return;
+
+        foreach (Transform child
+                 in contentParent)
+        {
+            Destroy(
+                child.gameObject
+            );
+        }
     }
 
     public void Refresh()
     {
-        if (currentContainer == null)
+        if (currentContainer == null ||
+            !currentContainer.HasLoot)
         {
             Close();
             return;
         }
 
-        if (currentContainer.items.Count == 0)
-        {
-            Close();
-            return;
-        }
-
-        Show(currentContainer, titleText.text);
+        Show(
+            currentContainer,
+            currentTitle
+        );
     }
 
     public void Close()
     {
-        gameObject.SetActive(false);
+        currentContainer =
+            null;
+
+        currentTitle =
+            string.Empty;
+
+        ItemTooltip.Instance?.Hide();
+
+        gameObject.SetActive(
+            false
+        );
     }
 }
-
-
-

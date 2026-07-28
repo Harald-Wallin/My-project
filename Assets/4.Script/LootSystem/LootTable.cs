@@ -13,5 +13,19 @@ public class LootTable : ScriptableObject
     public LootTableMode mode = LootTableMode.SingleDrop;
 
     public List<LootEntry> entries = new List<LootEntry>();
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        entries ??=
+            new List<LootEntry>();
+
+        foreach (LootEntry entry
+                 in entries)
+        {
+            entry?.Normalize();
+        }
+    }
+#endif
 }
 

@@ -716,6 +716,7 @@ public sealed class FavourWindow :
 
         BuildFixedItemRewards();
         BuildFixedAbilityRewards();
+        BuildFixedCurrencyReward();
         BuildRewardChoices();
 
         bool hasFixedRewards =
@@ -821,6 +822,56 @@ public sealed class FavourWindow :
                 view
             );
         }
+    }
+
+    private void BuildFixedCurrencyReward()
+    {
+        if (CurrentRuntime == null ||
+            CurrentRuntime.CurrencyReward <= 0 ||
+            fixedRewardContainer == null ||
+            fixedRewardPrefab == null)
+        {
+            return;
+        }
+
+        PlayerCurrency playerCurrency =
+            CurrentRuntime.Manager != null
+                ? CurrentRuntime.Manager
+                    .PlayerCurrency
+                : PlayerCurrency.Instance;
+
+        CurrencyData currency =
+            playerCurrency != null
+                ? playerCurrency
+                    .CurrencyDefinition
+                : null;
+
+        if (currency == null)
+        {
+            Debug.LogWarning(
+                $"Kan inte visa currency reward för " +
+                $"'{CurrentRuntime.DisplayName}': " +
+                $"{nameof(CurrencyData)} saknas.",
+                this
+            );
+
+            return;
+        }
+
+        FavourRewardEntryUI view =
+            Instantiate(
+                fixedRewardPrefab,
+                fixedRewardContainer
+            );
+
+        view.BindFixedCurrency(
+            currency,
+            CurrentRuntime.CurrencyReward
+        );
+
+        fixedRewardViews.Add(
+            view
+        );
     }
 
     private void BuildRewardChoices()
@@ -946,45 +997,18 @@ public sealed class FavourWindow :
         int experience =
             CurrentRuntime.ExperienceReward;
 
-        int currency =
-            CurrentRuntime.CurrencyReward;
-
-        if (experience <= 0 &&
-            currency <= 0)
-        {
-            experienceRewardText.text =
-                string.Empty;
-
-            experienceRewardText.gameObject
-                .SetActive(
-                    false
-                );
-
-            return;
-        }
+        bool hasExperience =
+            experience > 0;
 
         experienceRewardText.gameObject
             .SetActive(
-                true
+                hasExperience
             );
 
-        if (experience > 0 &&
-            currency > 0)
-        {
-            experienceRewardText.text =
-                $"Experience: {experience}    " +
-                $"Coins: {currency}";
-        }
-        else if (experience > 0)
-        {
-            experienceRewardText.text =
-                $"Experience: {experience}";
-        }
-        else
-        {
-            experienceRewardText.text =
-                $"Coins: {currency}";
-        }
+        experienceRewardText.text =
+            hasExperience
+                ? $"Experience: {experience}"
+                : string.Empty;
     }
 
     private void RefreshRewardChoices()
@@ -1141,9 +1165,17 @@ public sealed class FavourWindow :
             return;
         }
 
-        CurrentGiver.TryAccept(
-            CurrentRuntime.Data
-        );
+        FavourData favour =
+            CurrentRuntime.Data;
+
+        bool accepted =
+            CurrentGiver.TryAccept(
+                favour);
+
+        if (accepted)
+        {
+            Close();
+        }
     }
 
     private void HandleCompleteClicked()
@@ -1154,9 +1186,17 @@ public sealed class FavourWindow :
             return;
         }
 
-        CurrentGiver.TryTurnIn(
-            CurrentRuntime.Data
-        );
+        FavourData favour =
+            CurrentRuntime.Data;
+
+        bool completed =
+            CurrentGiver.TryTurnIn(
+                favour);
+
+        if (completed)
+        {
+            Close();
+        }
     }
 
     private void ClearDynamicContent()

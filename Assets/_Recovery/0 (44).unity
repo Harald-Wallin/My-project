@@ -11769,7 +11769,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c217c664374f4a45a94e166c0db9980, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCurrency
-  currencyDefinition: {fileID: 11400000, guid: f6b0f42a251a65e409180b5c55281a1b, type: 2}
   bronzeCoins: 0
 --- !u!114 &638953998
 MonoBehaviour:
@@ -14018,7 +14017,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 175, y: 203.49997}
+  m_AnchoredPosition: {x: 175, y: -25}
   m_SizeDelta: {x: 311.378, y: 80}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &729205947
@@ -24076,7 +24075,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1775957794}
   m_HandleRect: {fileID: 1775957793}
   m_Direction: 2
-  m_Value: 1
+  m_Value: 0
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -32830,7 +32829,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1368261479}
   m_HandleRect: {fileID: 1368261478}
   m_Direction: 2
-  m_Value: 1
+  m_Value: 0.99999416
   m_Size: 0.9871669
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -36508,7 +36507,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -190, y: 220.49997}
+  m_AnchoredPosition: {x: -190, y: -8}
   m_SizeDelta: {x: 304.6964, y: 80}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!114 &1694675092
@@ -44987,7 +44986,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 2e2d7ac85d974564e93da8c3b5a5c43a, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 2109138152a4180478acae1eb7ca5d9e, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1

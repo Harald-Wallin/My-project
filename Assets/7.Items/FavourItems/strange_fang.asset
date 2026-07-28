@@ -29,10 +29,11 @@ MonoBehaviour:
   hideFeet: 0
   description: Does not look like a usual fang
   icon: {fileID: 21300000, guid: 97af673f57ced8542a8e904de70e8937, type: 3}
-  itemType: 0
+  itemType: 15
+  requiredFavour: {fileID: 11400000, guid: cb0d8b42f13697747a2da47125b2c975, type: 2}
   equippable: 0
   stackable: 1
-  maxStack: 10
+  maxStack: 3
   statModifiers: []
   useLevelRequirement: 0
   requiredLevel: 0

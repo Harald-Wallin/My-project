@@ -82,6 +82,14 @@ public class ItemData :
 
     public ItemType itemType;
 
+    [Header("Favour Item")]
+
+    [SerializeField]
+    [Tooltip(
+    "Den favour som måste ha accepterats innan detta item " +
+    "får förekomma som loot. Används endast för FavourItem.")]
+    private FavourData requiredFavour;
+
     [Header("Flags")]
 
     public bool equippable;
@@ -114,6 +122,13 @@ public class ItemData :
 
     public string Id =>
         id;
+
+    public FavourData RequiredFavour =>
+    requiredFavour;
+
+    public string ItemTypeDisplayName =>
+        GetItemTypeDisplayName(
+            itemType);
 
     public string DisplayName =>
         string.IsNullOrWhiteSpace(
@@ -160,7 +175,7 @@ public class ItemData :
             );
 
         data.subtitle =
-            itemType.ToString();
+            ItemTypeDisplayName;
 
         data.description =
             description;
@@ -305,6 +320,43 @@ public class ItemData :
         }
     }
 
+    private static string GetItemTypeDisplayName(
+    ItemType type)
+    {
+        return type switch
+        {
+            ItemType.FavourItem =>
+                "Favour item",
+
+            _ =>
+                type.ToString()
+        };
+    }
+
+    public bool CanDropForPlayer(
+    PlayerFavourManager favourManager)
+    {
+        /*
+         * Vanliga items påverkas aldrig av favour-systemet.
+         * De kan fortsätta droppa precis som tidigare.
+         */
+        if (itemType != ItemType.FavourItem)
+            return true;
+
+        /*
+         * Ett FavourItem utan konfigurerad favour betraktas som
+         * felkonfigurerat och får inte droppa.
+         */
+        if (requiredFavour == null)
+            return false;
+
+        if (favourManager == null)
+            return false;
+
+        return favourManager.HasAccepted(
+            requiredFavour);
+    }
+
 #if UNITY_EDITOR
     [UnityEditor.CustomEditor(
         typeof(ItemData)
@@ -332,19 +384,26 @@ public class ItemData :
 
     protected virtual void OnValidate()
     {
-        id =
-            id?.Trim();
+        id = id?.Trim();
 
-        maxStack =
-            stackable
+        maxStack = stackable
                 ? Mathf.Max(
                     1,
                     maxStack
                 )
                 : 1;
+        if (itemType != ItemType.FavourItem)
+        {
+            requiredFavour = null;
+        }
+        else if (requiredFavour == null)
+        {
+            Debug.LogWarning(
+                $"FavourItem '{name}' saknar Required Favour.",
+                this);
+        }
 
-        if (string.IsNullOrWhiteSpace(
-                id))
+        if (string.IsNullOrWhiteSpace(id))
         {
             Debug.LogWarning(
                 $"ItemData '{name}' saknar permanent ID.",

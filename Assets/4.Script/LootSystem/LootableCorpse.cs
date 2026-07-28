@@ -1,65 +1,104 @@
 using UnityEngine;
 
-public class LootableCorpse : MonoBehaviour
+public sealed class LootableCorpse :
+    MonoBehaviour
 {
-    [SerializeField] private string corpseName;
-    [SerializeField] private float lootRange = 2f;
-    [SerializeField] private GameObject lootShimmer;
+    [Header("Identity")]
 
-    [SerializeField] private float emptyCorpseLifetime = 10f;
-    [SerializeField] private float lootCorpseLifetime = 60f;
+    [SerializeField]
+    private string corpseName;
+
+    [Header("Interaction")]
+
+    [SerializeField]
+    private float lootRange = 2f;
+
+    [Header("Visuals")]
+
+    [SerializeField]
+    private GameObject lootShimmer;
+
+    [Header("Lifetime")]
+
+    [SerializeField]
+    private float emptyCorpseLifetime = 10f;
+
+    [SerializeField]
+    private float lootCorpseLifetime = 60f;
 
     private LootContainer loot;
     private Transform player;
     private GameObject shimmerInstance;
-    public string CorpseName => corpseName;
 
-    void Awake()
+    public string CorpseName =>
+        corpseName;
+
+    private void Awake()
     {
-        // Hämta loot på samma objekt
-        loot = GetComponent<LootContainer>();
+        loot =
+            GetComponent<
+                LootContainer>();
+
         if (loot == null)
         {
-            Debug.LogError("LootableCorpse: Missing LootContainer");
+            Debug.LogError(
+                "LootableCorpse: Missing LootContainer.",
+                this
+            );
         }
 
-        // Hitta spelaren (via PlayerMovement)
-        PlayerMovement pm = FindFirstObjectByType<PlayerMovement>();
-        if (pm != null)
+        PlayerMovement playerMovement =
+            FindFirstObjectByType<
+                PlayerMovement>();
+
+        if (playerMovement != null)
         {
-            player = pm.transform;
+            player =
+                playerMovement.transform;
         }
         else
         {
-            Debug.LogError("LootableCorpse: PlayerMovement not found");
+            Debug.LogError(
+                "LootableCorpse: PlayerMovement not found.",
+                this
+            );
         }
-
-        float lifetime = loot != null && loot.items.Count > 0
-        ? lootCorpseLifetime
-        : emptyCorpseLifetime;
-
-        Destroy(gameObject, lifetime);
     }
 
-    void Start()
+    private void Start()
     {
+        /*
+         * Loot genereras efter Instantiate har anropat Awake.
+         * Därför bestäms lifetime först i Start.
+         */
+        float lifetime =
+            loot != null &&
+            loot.HasLoot
+                ? lootCorpseLifetime
+                : emptyCorpseLifetime;
+
+        Destroy(
+            gameObject,
+            lifetime
+        );
+
         UpdateShimmer();
     }
 
-    void Update()
+    private void Update()
     {
-        if (Input.GetMouseButtonDown(1)) // 1 = högerklick
+        if (Input.GetMouseButtonDown(
+                1))
         {
             TryLoot();
         }
     }
 
-    void UpdateShimmer()
+    private void UpdateShimmer()
     {
         bool hasLoot =
             loot != null &&
-            loot.items != null &&
-            loot.items.Count > 0;
+            loot.HasLoot;
 
         if (hasLoot)
         {
@@ -72,17 +111,23 @@ public class LootableCorpse : MonoBehaviour
                         transform
                     );
 
-                shimmerInstance.transform.localPosition =
+                shimmerInstance
+                    .transform
+                    .localPosition =
                     Vector3.zero;
             }
+
+            return;
         }
-        else
+
+        if (shimmerInstance != null)
         {
-            if (shimmerInstance != null)
-            {
-                Destroy(shimmerInstance);
-                shimmerInstance = null;
-            }
+            Destroy(
+                shimmerInstance
+            );
+
+            shimmerInstance =
+                null;
         }
     }
 
@@ -91,31 +136,55 @@ public class LootableCorpse : MonoBehaviour
         UpdateShimmer();
     }
 
-    void TryLoot()
+    private void TryLoot()
     {
-        if (loot == null || player == null || LootUI.Instance == null)
-            return;
-
-        // Kolla om musen faktiskt är över detta objekt
-        Vector2 mouseWorld = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        Collider2D col = GetComponent<Collider2D>();
-
-        if (col == null || !col.OverlapPoint(mouseWorld))
-            return;
-
-        if (Vector2.Distance(transform.position, player.position) > lootRange)
-        {
-            Debug.Log("Too far away to loot");
-            return;
-        }
-
-        //Om corpse är tomt, visa inte loot UI
-        if (loot.items.Count == 0)
+        if (loot == null ||
+            player == null ||
+            LootUI.Instance == null)
         {
             return;
         }
 
-        LootUI.Instance.Show(loot, corpseName);
+        Camera mainCamera =
+            Camera.main;
+
+        if (mainCamera == null)
+            return;
+
+        Vector2 mouseWorld =
+            mainCamera.ScreenToWorldPoint(
+                Input.mousePosition
+            );
+
+        Collider2D collider =
+            GetComponent<Collider2D>();
+
+        if (collider == null ||
+            !collider.OverlapPoint(
+                mouseWorld))
+        {
+            return;
+        }
+
+        if (Vector2.Distance(
+                transform.position,
+                player.position) >
+            lootRange)
+        {
+            Debug.Log(
+                "Too far away to loot.",
+                this
+            );
+
+            return;
+        }
+
+        if (!loot.HasLoot)
+            return;
+
+        LootUI.Instance.Show(
+            loot,
+            corpseName
+        );
     }
-
 }

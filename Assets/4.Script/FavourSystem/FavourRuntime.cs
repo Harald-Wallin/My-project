@@ -38,6 +38,9 @@ public sealed class FavourRuntime
     rewardChoices =
         new();
 
+    private readonly int
+    rolledCurrencyReward;
+
     public bool AreObjectivesComplete =>
     AreAllObjectivesComplete();
 
@@ -69,17 +72,40 @@ public sealed class FavourRuntime
     private bool isFinalizingCompletion;
 
     public FavourRuntime(
-        FavourData data,
-        PlayerFavourManager manager)
+    FavourData data,
+    PlayerFavourManager manager)
     {
         Data = data;
         Manager = manager;
+
+        rolledCurrencyReward =
+            RollCurrencyReward();
 
         BuildObjectives();
         BuildRewardChoiceState();
 
         State =
             FavourState.Unavailable;
+    }
+
+    private int RollCurrencyReward()
+    {
+        if (Data == null)
+            return 0;
+
+        int minimum =
+            Data.MinimumCurrencyReward;
+
+        int maximum =
+            Data.MaximumCurrencyReward;
+
+        if (maximum <= 0)
+            return 0;
+
+        return UnityEngine.Random.Range(
+            minimum,
+            maximum + 1
+        );
     }
 
     public FavourData Data
@@ -1283,7 +1309,7 @@ public sealed class FavourRuntime
             return false;
         }
 
-        if (Data.CurrencyReward > 0 &&
+        if (CurrencyReward > 0 &&
             Manager?.PlayerCurrency == null)
         {
             Debug.LogError(
@@ -1418,11 +1444,11 @@ public sealed class FavourRuntime
 
     private void GrantCurrency()
     {
-        if (Data.CurrencyReward <= 0)
+        if (CurrencyReward <= 0)
             return;
 
         Manager.PlayerCurrency.AddCoins(
-            Data.CurrencyReward
+            CurrencyReward
         );
     }
 
@@ -1617,9 +1643,7 @@ public sealed class FavourRuntime
         : 0;
 
     public int CurrencyReward =>
-        Data != null
-            ? Data.CurrencyReward
-            : 0;
+        rolledCurrencyReward;
 
     public IReadOnlyList<
         FavourItemReward>

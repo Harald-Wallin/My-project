@@ -1,7 +1,8 @@
 using System;
 using UnityEngine;
 
-public sealed class PlayerCurrency : MonoBehaviour
+public sealed class PlayerCurrency :
+    MonoBehaviour
 {
     public static PlayerCurrency Instance
     {
@@ -11,9 +12,19 @@ public sealed class PlayerCurrency : MonoBehaviour
 
     public event Action OnCoinsChanged;
 
+    [Header("Definition")]
+
+    [SerializeField]
+    private CurrencyData currencyDefinition;
+
+    [Header("Balance")]
+
     [SerializeField]
     [Min(0)]
     private int bronzeCoins;
+
+    public CurrencyData CurrencyDefinition =>
+        currencyDefinition;
 
     public int Coins =>
         bronzeCoins;
@@ -28,7 +39,9 @@ public sealed class PlayerCurrency : MonoBehaviour
 
         if (Instance != this)
         {
-            Destroy(gameObject);
+            Destroy(
+                gameObject
+            );
         }
     }
 
@@ -51,7 +64,8 @@ public sealed class PlayerCurrency : MonoBehaviour
         if (amount < 0)
             return false;
 
-        return bronzeCoins >= amount;
+        return bronzeCoins >=
+               amount;
     }
 
     public bool AddCoins(
@@ -68,7 +82,8 @@ public sealed class PlayerCurrency : MonoBehaviour
             return false;
         }
 
-        bronzeCoins += amount;
+        bronzeCoins +=
+            amount;
 
         OnCoinsChanged?.Invoke();
 
@@ -89,10 +104,14 @@ public sealed class PlayerCurrency : MonoBehaviour
             return false;
         }
 
-        if (bronzeCoins < amount)
+        if (bronzeCoins <
+            amount)
+        {
             return false;
+        }
 
-        bronzeCoins -= amount;
+        bronzeCoins -=
+            amount;
 
         OnCoinsChanged?.Invoke();
 
@@ -128,6 +147,15 @@ public sealed class PlayerCurrency : MonoBehaviour
                 0,
                 bronzeCoins
             );
+
+        if (currencyDefinition == null)
+        {
+            Debug.LogWarning(
+                $"{nameof(PlayerCurrency)} på '{name}' saknar " +
+                $"{nameof(CurrencyData)}.",
+                this
+            );
+        }
     }
 #endif
 }

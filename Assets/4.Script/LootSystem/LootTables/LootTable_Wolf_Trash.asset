@@ -14,23 +14,33 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LootTable
   mode: 1
   entries:
-  - item: {fileID: 11400000, guid: 38d0e06a3d0ed2545969943b7d55c3dd, type: 2}
+  - type: 0
+    item: {fileID: 11400000, guid: 38d0e06a3d0ed2545969943b7d55c3dd, type: 2}
     dropChance: 0.41
-    minQuantity: 0
+    minQuantity: 1
     maxQuantity: 1
-  - item: {fileID: 11400000, guid: b7ac504ba569e4d479bb7a24c2f05bcc, type: 2}
+  - type: 0
+    item: {fileID: 11400000, guid: b7ac504ba569e4d479bb7a24c2f05bcc, type: 2}
     dropChance: 0.872
-    minQuantity: 0
+    minQuantity: 1
     maxQuantity: 1
-  - item: {fileID: 11400000, guid: a3bd8a7f7559b5947a545a93d236adbf, type: 2}
+  - type: 0
+    item: {fileID: 11400000, guid: a3bd8a7f7559b5947a545a93d236adbf, type: 2}
     dropChance: 0.67
-    minQuantity: 0
+    minQuantity: 1
     maxQuantity: 1
-  - item: {fileID: 11400000, guid: 9e9fc7b42a9352844983038aed178174, type: 2}
+  - type: 0
+    item: {fileID: 11400000, guid: 9e9fc7b42a9352844983038aed178174, type: 2}
     dropChance: 1
     minQuantity: 3
     maxQuantity: 5
-  - item: {fileID: 11400000, guid: 28401431050b2e04ca8ab2e926815c09, type: 2}
+  - type: 0
+    item: {fileID: 11400000, guid: 28401431050b2e04ca8ab2e926815c09, type: 2}
     dropChance: 1
     minQuantity: 1
     maxQuantity: 1
+  - type: 1
+    item: {fileID: 0}
+    dropChance: 1
+    minQuantity: 1
+    maxQuantity: 5

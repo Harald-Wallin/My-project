@@ -8,44 +8,64 @@ public class ReputationReward
     public int reputation;
 }
 
-    public class DeathReward : MonoBehaviour
+public class DeathReward :
+    MonoBehaviour
 {
     [Header("Experience")]
+
     public bool useDynamicExperience = true;
-    public int experience = 0;
+    public int experience;
 
     [Header("Reputation")]
-    public List<ReputationReward> reputationRewards = new();
+
+    public List<ReputationReward>
+        reputationRewards =
+            new();
 
     [Header("Loot")]
-    public GameObject corpsePrefab;
-    public List<LootTable> lootTables = new();
 
-    public int minLootRolls = 0;
+    public GameObject corpsePrefab;
+
+    public List<LootTable>
+        lootTables =
+            new();
+
+    public int minLootRolls;
     public int maxLootRolls = 3;
 
     [Header("Credit")]
 
     [SerializeField]
     [Range(0f, 1f)]
-    private float minimumPlayerDamageShare = 0.5f;
+    private float minimumPlayerDamageShare =
+        0.5f;
 
     [Header("Visuals")]
+
     public GameObject floatingExpTextPrefab;
 
     [Header("World")]
+
     public bool unlockStartZoneWolf;
 
-    public int GetExperience(int targetLevel, int playerLevel)
+    public int GetExperience(
+        int targetLevel,
+        int playerLevel)
     {
         if (useDynamicExperience)
-            return ExperienceCalculator.CalculateExp(targetLevel, playerLevel);
+        {
+            return ExperienceCalculator
+                .CalculateExp(
+                    targetLevel,
+                    playerLevel
+                );
+        }
 
         return experience;
     }
 
     public void GiveRewards(
-    CharacterDefeatedResult result)
+        CharacterDefeatedResult result)
     {
         if (result == null ||
             result.Victim == null)
@@ -73,8 +93,8 @@ public class ReputationReward
     }
 
     public void GiveRewards(
-    CharacterStats victim,
-    CharacterStats killer)
+        CharacterStats victim,
+        CharacterStats killer)
     {
         PlayerStats player =
             killer as PlayerStats;
@@ -89,8 +109,8 @@ public class ReputationReward
     }
 
     private void GiveRewardsInternal(
-    CharacterStats victim,
-    PlayerStats player)
+        CharacterStats victim,
+        PlayerStats player)
     {
         if (victim == null ||
             player == null)
@@ -110,40 +130,23 @@ public class ReputationReward
                 exp
             );
 
-            if (floatingExpTextPrefab != null)
-            {
-                GameObject text =
-                    Instantiate(
-                        floatingExpTextPrefab,
-                        victim.transform.position +
-                        Vector3.up * 1.5f,
-                        Quaternion.identity
-                    );
-
-                TMPro.TMP_Text tmp =
-                    text.GetComponentInChildren<
-                        TMPro.TMP_Text
-                    >();
-
-                if (tmp != null)
-                {
-                    tmp.text =
-                        exp + " EXP";
-                }
-            }
+            ShowFloatingExperience(
+                victim,
+                exp
+            );
         }
 
         PlayerReputationManager reputation =
             player.GetComponent<
-                PlayerReputationManager
-            >();
+                PlayerReputationManager>();
 
         if (reputation != null)
         {
             foreach (ReputationReward reward
                      in reputationRewards)
             {
-                if (reward.faction == null ||
+                if (reward == null ||
+                    reward.faction == null ||
                     reward.reputation == 0)
                 {
                     continue;
@@ -157,7 +160,8 @@ public class ReputationReward
         }
 
         if (player.murderMode &&
-            !victim.IsHostileToPlayer(player) &&
+            !victim.IsHostileToPlayer(
+                player) &&
             victim.faction != null &&
             reputation != null)
         {
@@ -168,62 +172,162 @@ public class ReputationReward
         }
     }
 
-    public void GenerateLoot(LootContainer container)
+    private void ShowFloatingExperience(
+        CharacterStats victim,
+        int amount)
+    {
+        if (floatingExpTextPrefab == null ||
+            victim == null ||
+            amount <= 0)
+        {
+            return;
+        }
+
+        GameObject text =
+            Instantiate(
+                floatingExpTextPrefab,
+                victim.transform.position +
+                Vector3.up * 1.5f,
+                Quaternion.identity
+            );
+
+        TMPro.TMP_Text tmp =
+            text.GetComponentInChildren<
+                TMPro.TMP_Text>();
+
+        if (tmp != null)
+        {
+            tmp.text =
+                amount + " EXP";
+        }
+    }
+
+    public void GenerateLoot(
+        LootContainer container)
     {
         if (container == null)
             return;
 
-        if (lootTables == null || lootTables.Count == 0)
-            return;
-
         container.items.Clear();
+        container.SetCoins(
+            0
+        );
 
-        container.items.AddRange(
-            LootGenerator.GenerateLoot(
+        if (lootTables == null ||
+            lootTables.Count == 0)
+        {
+            return;
+        }
+
+        LootGenerationResult result =
+            LootGenerator.GenerateLootResult(
                 lootTables,
                 minLootRolls,
                 maxLootRolls
-            ));
+            );
+
+        container.items.AddRange(
+            result.Items
+        );
+
+        container.SetCoins(
+            result.Coins
+        );
     }
 
-    public GameObject SpawnCorpse(Vector3 position, CharacterStats owner)
+    public GameObject SpawnCorpse(
+        Vector3 position,
+        CharacterStats owner)
     {
         if (corpsePrefab == null)
             return null;
 
         GameObject corpse =
-            Instantiate(corpsePrefab, position, Quaternion.identity);
+            Instantiate(
+                corpsePrefab,
+                position,
+                Quaternion.identity
+            );
 
         LootContainer loot =
-            corpse.GetComponent<LootContainer>();
+            corpse.GetComponent<
+                LootContainer>();
 
         if (loot != null)
         {
-            GenerateLoot(loot);
+            GenerateLoot(
+                loot
+            );
         }
 
         CharacterStats corpseStats =
-            corpse.GetComponent<CharacterStats>();
+            corpse.GetComponent<
+                CharacterStats>();
 
         if (corpseStats != null)
         {
-            corpseStats.faction = null;
+            corpseStats.faction =
+                null;
         }
 
-        // Flytta över Nameplate
-        Transform nameplate = owner.transform.Find("Nameplate");
-
-        if (nameplate != null)
+        if (owner != null)
         {
-            nameplate.SetParent(corpse.transform, true);
-
-            NameplateUI ui =
-                nameplate.GetComponentInChildren<NameplateUI>();
-
-            if (ui != null)
-                ui.SetCorpseMode();
+            MoveNameplateToCorpse(
+                owner,
+                corpse
+            );
         }
 
         return corpse;
     }
+
+    private static void MoveNameplateToCorpse(
+        CharacterStats owner,
+        GameObject corpse)
+    {
+        if (owner == null ||
+            corpse == null)
+        {
+            return;
+        }
+
+        Transform nameplate =
+            owner.transform.Find(
+                "Nameplate"
+            );
+
+        if (nameplate == null)
+            return;
+
+        nameplate.SetParent(
+            corpse.transform,
+            true
+        );
+
+        NameplateUI ui =
+            nameplate.GetComponentInChildren<
+                NameplateUI>();
+
+        if (ui != null)
+        {
+            ui.SetCorpseMode();
+        }
+    }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        minLootRolls =
+            Mathf.Max(
+                0,
+                minLootRolls
+            );
+
+        maxLootRolls =
+            Mathf.Max(
+                minLootRolls,
+                maxLootRolls
+            );
+    }
+#endif
 }
