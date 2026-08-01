@@ -1,124 +1,356 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerBuffUI : MonoBehaviour
+/// <summary>
+/// Visar spelarens aktiva buffs.
+///
+/// Komponenten väntar tills spelarens BuffSystem finns och
+/// prenumererar därefter på buff-events.
+/// </summary>
+[DisallowMultipleComponent]
+public sealed class PlayerBuffUI :
+    MonoBehaviour
 {
-    public static PlayerBuffUI Instance;
-
-    [SerializeField] private GameObject buffSlotPrefab;
-    [SerializeField] private Transform container;
-
-    private List<BuffSlotUI> activeSlots = new List<BuffSlotUI>();
-    private BuffSystem subscribedBuffSystem;
-
-    void Awake()
+    public static PlayerBuffUI Instance
     {
+        get;
+        private set;
+    }
+
+    [Header("UI")]
+
+    [SerializeField]
+    private GameObject buffSlotPrefab;
+
+    [SerializeField]
+    private Transform container;
+
+    [Header("References")]
+
+    [SerializeField]
+    private BuffSystem playerBuffSystem;
+
+    private readonly List<BuffSlotUI>
+        activeSlots =
+            new();
+
+    private bool isSubscribed;
+
+    private void Awake()
+    {
+        if (Instance != null &&
+            Instance != this)
+        {
+            Debug.LogWarning(
+                "Flera PlayerBuffUI hittades. " +
+                "Den nya komponenten stängs av.",
+                this);
+
+            enabled = false;
+            return;
+        }
+
         Instance = this;
+    }
 
-        // Try to populate existing player buffs if any were applied before UI awake
-        var player = PlayerReference.Player;
-        if (player == null)
-            player = FindFirstObjectByType<PlayerStats>();
+    private void OnEnable()
+    {
+        TryResolveAndSubscribe();
+    }
 
-        if (player != null)
+    private void Update()
+    {
+        if (playerBuffSystem == null ||
+            !isSubscribed)
         {
-            var bs = player.GetComponent<BuffSystem>();
-            if (bs != null)
+            TryResolveAndSubscribe();
+        }
+
+        RemoveDestroyedSlots();
+        SortBuffs();
+    }
+
+    private void OnDisable()
+    {
+        Unsubscribe();
+    }
+
+    private void OnDestroy()
+    {
+        Unsubscribe();
+
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+    }
+
+    private void TryResolveAndSubscribe()
+    {
+        if (playerBuffSystem == null)
+        {
+            PlayerStats player =
+                PlayerReference.Player;
+
+            if (player == null)
             {
-                subscribedBuffSystem = bs;
-
-                var list = bs.GetActiveBuffs();
-                foreach (var b in list)
-                {
-                    AddBuff(b, bs);
-                }
-
-                // subscribe to future adds/removes
-                bs.OnBuffAdded += OnBuffAdded;
-                bs.OnBuffRemoved += OnBuffRemoved;
+                player =
+                    FindFirstObjectByType<
+                        PlayerStats>();
             }
-        }
-    }
 
-    void OnDestroy()
-    {
-        if (subscribedBuffSystem != null)
-        {
-            subscribedBuffSystem.OnBuffAdded -= OnBuffAdded;
-            subscribedBuffSystem.OnBuffRemoved -= OnBuffRemoved;
-        }
-    }
-
-    private void OnBuffAdded(ActiveBuff buff, BuffSystem owner)
-    {
-        AddBuff(buff, owner);
-    }
-
-    private void OnBuffRemoved(ActiveBuff buff, BuffSystem owner)
-    {
-        // Clean up any dead slots; BuffSlotUI will self-destruct when owner.HasBuff(buff) == false
-        activeSlots.RemoveAll(s => s == null || s.GetRemainingTime() <= 0f);
-    }
-
-    public void AddBuff(ActiveBuff buff, BuffSystem owner = null)
-    {
-        //Debug.Log($"PlayerBuffUI.AddBuff: adding '{buff?.Name}' owner={(owner!=null?owner.gameObject.name:"null")}");
-        var go = Instantiate(buffSlotPrefab, container);
-        var slot = go.GetComponent<BuffSlotUI>();
-
-        // Prefer explicit owner passed by BuffSystem.ApplyEffect
-        if (owner != null)
-        {
-            slot.Setup(buff, owner);
-        }
-        else
-        {
-            // Fallback: try to get BuffSystem from the PlayerReference
-            var player = PlayerReference.Player ?? FindFirstObjectByType<PlayerStats>();
             if (player != null)
             {
-                var playerBuffSystem = player.GetComponent<BuffSystem>();
-                slot.Setup(buff, playerBuffSystem);
-            }
-            else
-            {
-                slot.Setup(buff, null);
+                playerBuffSystem =
+                    player.GetComponent<
+                        BuffSystem>();
             }
         }
 
-        activeSlots.Add(slot);
+        if (playerBuffSystem == null ||
+            isSubscribed)
+        {
+            return;
+        }
+
+        playerBuffSystem.OnBuffAdded +=
+            HandleBuffAdded;
+
+        playerBuffSystem.OnBuffRemoved +=
+            HandleBuffRemoved;
+
+        playerBuffSystem.OnBuffChanged +=
+            HandleBuffChanged;
+
+        isSubscribed = true;
+
+        RebuildFromCurrentBuffs();
+    }
+
+    private void Unsubscribe()
+    {
+        if (!isSubscribed ||
+            playerBuffSystem == null)
+        {
+            isSubscribed = false;
+            return;
+        }
+
+        playerBuffSystem.OnBuffAdded -=
+            HandleBuffAdded;
+
+        playerBuffSystem.OnBuffRemoved -=
+            HandleBuffRemoved;
+
+        playerBuffSystem.OnBuffChanged -=
+            HandleBuffChanged;
+
+        isSubscribed = false;
+    }
+
+    private void RebuildFromCurrentBuffs()
+    {
+        ClearSlots();
+
+        if (playerBuffSystem == null)
+            return;
+
+        List<ActiveBuff> buffs =
+            playerBuffSystem.GetActiveBuffs();
+
+        foreach (ActiveBuff buff
+                 in buffs)
+        {
+            AddBuffSlot(
+                buff,
+                playerBuffSystem);
+        }
+    }
+
+    private void HandleBuffAdded(
+        ActiveBuff buff,
+        BuffSystem owner)
+    {
+        AddBuffSlot(
+            buff,
+            owner);
+    }
+
+    private void HandleBuffRemoved(
+        ActiveBuff buff,
+        BuffSystem owner)
+    {
+        RemoveBuffSlot(
+            buff);
+    }
+
+    private void HandleBuffChanged(
+        ActiveBuff buff,
+        BuffSystem owner)
+    {
+        /*
+         * BuffSlotUI läser runtime-datan kontinuerligt.
+         * Vi behöver därför endast säkerställa att slotten finns.
+         */
+        if (!HasSlotForBuff(buff))
+        {
+            AddBuffSlot(
+                buff,
+                owner);
+        }
+    }
+
+    private void AddBuffSlot(
+        ActiveBuff buff,
+        BuffSystem owner)
+    {
+        if (buff == null ||
+            buffSlotPrefab == null ||
+            container == null)
+        {
+            return;
+        }
+
+        if (HasSlotForBuff(buff))
+            return;
+
+        GameObject slotObject =
+            Instantiate(
+                buffSlotPrefab,
+                container);
+
+        BuffSlotUI slot =
+            slotObject.GetComponent<
+                BuffSlotUI>();
+
+        if (slot == null)
+        {
+            Debug.LogError(
+                $"Buff-prefaben '{buffSlotPrefab.name}' " +
+                $"saknar {nameof(BuffSlotUI)}.",
+                buffSlotPrefab);
+
+            Destroy(slotObject);
+            return;
+        }
+
+        slot.Setup(
+            buff,
+            owner);
+
+        activeSlots.Add(
+            slot);
 
         SortBuffs();
     }
 
-    // Backwards-compatible overload
-    public void AddBuff(ActiveBuff buff)
+    private bool HasSlotForBuff(
+        ActiveBuff buff)
     {
-        AddBuff(buff, null);
+        if (buff == null)
+            return false;
+
+        foreach (BuffSlotUI slot
+                 in activeSlots)
+        {
+            if (slot != null &&
+                ReferenceEquals(
+                    slot.Buff,
+                    buff))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
-    void Update()
+    private void RemoveBuffSlot(
+        ActiveBuff buff)
     {
-        // Remove destroyed slots
-        activeSlots.RemoveAll(slot => slot == null);
-
-        // Sort by remaining time (longest first)
-        activeSlots.Sort((a, b) => b.GetRemainingTime().CompareTo(a.GetRemainingTime()));
-
-        // Update sibling order
-        for (int i = 0; i < activeSlots.Count; i++)
+        for (int i = activeSlots.Count - 1;
+             i >= 0;
+             i--)
         {
-            activeSlots[i].transform.SetSiblingIndex(i);
+            BuffSlotUI slot =
+                activeSlots[i];
+
+            if (slot == null)
+            {
+                activeSlots.RemoveAt(i);
+                continue;
+            }
+
+            if (!ReferenceEquals(
+                    slot.Buff,
+                    buff))
+            {
+                continue;
+            }
+
+            activeSlots.RemoveAt(i);
+
+            Destroy(
+                slot.gameObject);
         }
     }
 
-    void SortBuffs()
+    private void RemoveDestroyedSlots()
     {
-        activeSlots.Sort((a, b) => b.GetRemainingTime().CompareTo(a.GetRemainingTime()));
+        activeSlots.RemoveAll(
+            slot => slot == null);
+    }
 
-        for (int i = 0; i < activeSlots.Count; i++)
+    private void SortBuffs()
+    {
+        activeSlots.Sort(
+            (first, second) =>
+            {
+                if (first == null &&
+                    second == null)
+                {
+                    return 0;
+                }
+
+                if (first == null)
+                    return 1;
+
+                if (second == null)
+                    return -1;
+
+                return second
+                    .GetRemainingTime()
+                    .CompareTo(
+                        first.GetRemainingTime());
+            });
+
+        for (int i = 0;
+             i < activeSlots.Count;
+             i++)
         {
-            activeSlots[i].transform.SetSiblingIndex(i);
+            BuffSlotUI slot =
+                activeSlots[i];
+
+            if (slot != null)
+            {
+                slot.transform.SetSiblingIndex(
+                    i);
+            }
         }
+    }
+
+    private void ClearSlots()
+    {
+        foreach (BuffSlotUI slot
+                 in activeSlots)
+        {
+            if (slot != null)
+            {
+                Destroy(
+                    slot.gameObject);
+            }
+        }
+
+        activeSlots.Clear();
     }
 }

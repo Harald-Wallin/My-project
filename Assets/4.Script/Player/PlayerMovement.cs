@@ -2,6 +2,7 @@
 using Unity.VisualScripting.Antlr3.Runtime.Misc;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using System;
 
 public class PlayerMovement : MonoBehaviour
 
@@ -22,8 +23,13 @@ public class PlayerMovement : MonoBehaviour
     private Rigidbody2D rb;
     private Vector2 movement;
 
-    // NY RAD
     public Vector2 FacingDirection { get; private set; } = Vector2.down;
+
+    public event Action
+    MovementInputStarted;
+
+    public Vector2 MovementInput =>
+        movement;
 
     void Awake()
     {
@@ -57,7 +63,16 @@ public class PlayerMovement : MonoBehaviour
         currentMovement.y = Input.GetAxisRaw("Vertical");
         currentMovement = currentMovement.normalized;
 
-        movement = currentMovement;
+        bool movementStarted = currentMovement !=
+        Vector2.zero &&movement ==Vector2.zero;
+
+        movement =
+            currentMovement;
+
+        if (movementStarted)
+        {
+            MovementInputStarted?.Invoke();
+        }
 
         // Kolla om movement ändrades
         if (currentMovement != lastMovement)

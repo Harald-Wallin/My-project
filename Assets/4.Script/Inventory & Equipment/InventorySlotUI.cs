@@ -22,7 +22,7 @@ public class InventorySlotUI : MonoBehaviour,
     [SerializeField] private TextMeshProUGUI amountText;
     public static InventorySlotUI DraggedSlot;
 
-    
+    private PlayerConsumableController consumableController;
     private ItemData currentItem;
     private ItemTooltip tooltip;
 
@@ -46,8 +46,23 @@ public class InventorySlotUI : MonoBehaviour,
 
     private void Awake()
     {
-        tooltip = FindFirstObjectByType<ItemTooltip>();
-        rootCanvas = GetComponentInParent<Canvas>();
+        tooltip =
+            FindFirstObjectByType<
+                ItemTooltip>();
+
+        rootCanvas =
+            GetComponentInParent<
+                Canvas>();
+
+        PlayerStats player =
+            PlayerReference.Player;
+
+        if (player != null)
+        {
+            consumableController =
+                player.GetComponent<
+                    PlayerConsumableController>();
+        }
     }
 
     // ANROPAS FRÅN InventoryUI
@@ -59,10 +74,12 @@ public class InventorySlotUI : MonoBehaviour,
     // UI UPDATE
     // =========================
 
-    public void SetSlot(ItemData item, int amount)
+    public void SetSlot(
+    ItemData item,
+    int amount)
     {
-        currentItem = item;
-        border.color = ItemRarityColors.GetColor(item.rarity);
+        currentItem =
+            item;
 
         if (item == null)
         {
@@ -70,18 +87,40 @@ public class InventorySlotUI : MonoBehaviour,
             return;
         }
 
-        icon.enabled = true;
-        border.enabled = true;
-        icon.sprite = item.icon;
+        if (border != null)
+        {
+            border.color =
+                ItemRarityColors.GetColor(
+                    item.rarity
+                );
 
-        if (item.stackable && amount > 1)
-        {
-            amountText.gameObject.SetActive(true);
-            amountText.text = amount.ToString();
+            border.enabled =
+                true;
         }
-        else
+
+        if (icon != null)
         {
-            amountText.gameObject.SetActive(false);
+            icon.enabled =
+                true;
+
+            icon.sprite =
+                item.icon;
+        }
+
+        if (amountText != null)
+        {
+            bool showAmount =
+                item.stackable &&
+                amount > 1;
+
+            amountText.gameObject.SetActive(
+                showAmount
+            );
+
+            amountText.text =
+                showAmount
+                    ? amount.ToString()
+                    : string.Empty;
         }
     }
 
@@ -308,48 +347,109 @@ public class InventorySlotUI : MonoBehaviour,
         }
     }
 
-    public void OnPointerClick(PointerEventData eventData)
+    public void OnPointerClick(
+    PointerEventData eventData)
     {
         if (currentItem == null)
             return;
 
-        // =========================
-        // VENDOR OPEN → SELL
-        // =========================
+        // =====================================================
+        // VENDOR OPEN -> SELL
+        // =====================================================
 
-        if (VendorUI.Instance != null && VendorUI.Instance.IsOpen)
+        if (VendorUI.Instance != null &&
+            VendorUI.Instance.IsOpen)
         {
-            // SHIFT + Right Click = sell entire stack
-            if (eventData.button == PointerEventData.InputButton.Right &&
-                Input.GetKey(KeyCode.LeftShift))
+            if (eventData.button ==
+                    PointerEventData
+                        .InputButton.Right &&
+                Input.GetKey(
+                    KeyCode.LeftShift))
             {
-                InventorySlot slot = Inventory.Instance.slots[slotIndex];
-                int quantity = slot.amount;
+                InventorySlot slot =
+                    Inventory.Instance
+                        .slots[
+                            slotIndex
+                        ];
 
-                VendorUI.Instance.SellItem(currentItem, slotIndex, quantity);
+                int quantity =
+                    slot.amount;
+
+                VendorUI.Instance.SellItem(
+                    currentItem,
+                    slotIndex,
+                    quantity
+                );
+
                 return;
             }
 
-            // Normal right click = sell 1
-            if (eventData.button == PointerEventData.InputButton.Right)
+            if (eventData.button ==
+                PointerEventData
+                    .InputButton.Right)
             {
-                VendorUI.Instance.SellItem(currentItem, slotIndex, 1);
+                VendorUI.Instance.SellItem(
+                    currentItem,
+                    slotIndex,
+                    1
+                );
+
                 return;
             }
         }
 
-        // =========================
-        // NORMAL → EQUIP
-        // =========================
+        // =====================================================
+        // FOOD -> CONSUME
+        // =====================================================
 
-        if (!currentItem.equippable)
+        if (eventData.button ==
+                PointerEventData
+                    .InputButton.Right &&
+            currentItem.IsFood)
+        {
+            if (consumableController == null)
+            {
+                PlayerStats player =
+                    PlayerReference.Player;
+
+                if (player != null)
+                {
+                    consumableController =
+                        player.GetComponent<
+                            PlayerConsumableController>();
+                }
+            }
+
+            consumableController
+                ?.TryConsumeFoodFromSlot(
+                    slotIndex
+                );
+
             return;
+        }
 
-        EquipmentManager manager = EquipmentManager.Instance;
+        // =====================================================
+        // NORMAL -> EQUIP
+        // =====================================================
+
+        if (eventData.button !=
+                PointerEventData
+                    .InputButton.Right ||
+            !currentItem.equippable)
+        {
+            return;
+        }
+
+        EquipmentManager manager =
+            EquipmentManager.Instance;
+
         if (manager == null)
             return;
 
-        manager.TryEquipItem(currentItem, slotIndex);
+        manager.TryEquipItem(
+            currentItem,
+            slotIndex
+        );
     }
 
 }

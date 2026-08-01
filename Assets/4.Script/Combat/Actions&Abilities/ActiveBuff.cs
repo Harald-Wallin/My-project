@@ -18,33 +18,31 @@ public abstract class ActiveBuff
         sourceEffect != null
             ? Mathf.Max(
                 1,
-                sourceEffect.maxStacks
-            )
+                sourceEffect.maxStacks)
             : 1;
 
-    public bool IsFinished =>
+    public virtual bool IsFinished =>
         elapsed >= duration;
 
-    public float RemainingTime =>
+    public virtual float RemainingTime =>
         Mathf.Max(
             0f,
-            duration - elapsed
-        );
+            duration - elapsed);
 
-    public bool RemoveOnDeath =>
+    public virtual bool RemoveOnDeath =>
         sourceEffect == null ||
         sourceEffect.removeOnDeath;
 
-    public bool RemoveOnEncounterReset =>
-    sourceEffect == null ||
-    sourceEffect.removeOnEncounterReset;
+    public virtual bool RemoveOnEncounterReset =>
+        sourceEffect == null ||
+        sourceEffect.removeOnEncounterReset;
 
-    public Sprite Icon =>
+    public virtual Sprite Icon =>
         sourceEffect != null
             ? sourceEffect.icon
             : null;
 
-    public string Name =>
+    public virtual string Name =>
         sourceEffect != null
             ? sourceEffect.name
             : GetType().Name;
@@ -52,9 +50,6 @@ public abstract class ActiveBuff
     public AbilityEffect SourceEffect =>
         sourceEffect;
 
-    /// <summary>
-    /// Anropas exakt en gång när buffen läggs till.
-    /// </summary>
     public virtual void OnApplied(
         CharacterStats target)
     {
@@ -64,9 +59,6 @@ public abstract class ActiveBuff
         float deltaTime,
         CharacterStats target);
 
-    /// <summary>
-    /// Anropas innan buffen tas bort, oavsett borttagningsorsak.
-    /// </summary>
     public virtual void OnRemoved(
         CharacterStats target)
     {
@@ -82,8 +74,7 @@ public abstract class ActiveBuff
     {
         return sourceEffect != null
             ? sourceEffect.GetTooltipText(
-                viewer
-            )
+                viewer)
             : string.Empty;
     }
 
@@ -98,7 +89,6 @@ public abstract class ActiveBuff
         duration =
             Mathf.Max(
                 0f,
-                newDuration
-            );
+                newDuration);
     }
 }

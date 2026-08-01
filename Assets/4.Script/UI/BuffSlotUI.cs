@@ -46,8 +46,8 @@ public class BuffSlotUI :
         buff;
 
     public void Setup(
-        ActiveBuff activeBuff,
-        BuffSystem owner)
+    ActiveBuff activeBuff,
+    BuffSystem owner)
     {
         buff =
             activeBuff;
@@ -57,9 +57,24 @@ public class BuffSlotUI :
 
         if (icon != null)
         {
-            icon.sprite =
+            Sprite buffIcon =
                 buff?.Icon;
+
+            icon.sprite =
+                buffIcon;
+
+            icon.enabled =
+                buffIcon != null;
+
+            icon.gameObject.SetActive(
+                buffIcon != null);
         }
+
+        transform.localScale =
+            Vector3.one;
+
+        gameObject.SetActive(
+            buff != null);
 
         RefreshUI();
     }
@@ -235,4 +250,6 @@ public class BuffSlotUI :
                 Vector3.one;
         }
     }
+
+
 }

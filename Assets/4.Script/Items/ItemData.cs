@@ -28,7 +28,8 @@ public enum ItemType
     Trash,
     Offhand,
     Shield,
-    FavourItem
+    FavourItem,
+    Food
 }
 
 [CreateAssetMenu(
@@ -90,6 +91,34 @@ public class ItemData :
     "får förekomma som loot. Används endast för FavourItem.")]
     private FavourData requiredFavour;
 
+    [Header("Food")]
+
+    [SerializeField]
+    [Tooltip(
+    "Healing som delas ut vid varje lyckad tick.")]
+    [Min(1)]
+    private int foodHealingPerTick = 10;
+
+    [SerializeField]
+    [Tooltip(
+        "Sekunder mellan varje healing-tick."
+    )]
+    [Min(0.1f)]
+    private float foodTickInterval = 3f;
+
+    [SerializeField]
+    [Tooltip(
+        "Matens totala channel-tid."
+    )]
+    [Min(0.1f)]
+    private float foodChannelDuration = 9f;
+
+    [SerializeField]
+    [Tooltip(
+        "Tillåter användning när spelaren redan har full HP."
+    )]
+    private bool allowFoodAtFullHealth;
+
     [Header("Flags")]
 
     public bool equippable;
@@ -145,6 +174,31 @@ public class ItemData :
             buyPrice *
             sellMultiplier
         );
+
+    public bool IsFood =>
+    itemType ==
+    ItemType.Food;
+
+    public int FoodHealingPerTick =>
+        Mathf.Max(
+            1,
+            foodHealingPerTick
+        );
+
+    public float FoodTickInterval =>
+        Mathf.Max(
+            0.1f,
+            foodTickInterval
+        );
+
+    public float FoodChannelDuration =>
+        Mathf.Max(
+            FoodTickInterval,
+            foodChannelDuration
+        );
+
+    public bool AllowFoodAtFullHealth =>
+        allowFoodAtFullHealth;
 
     [Serializable]
     public class VendorItem
@@ -218,6 +272,19 @@ public class ItemData :
             data,
             player
         );
+
+        if (IsFood)
+        {
+            data.stats.Add(
+                $"Restores {FoodHealingPerTick} health " +
+                $"every {FoodTickInterval:0.#} seconds."
+            );
+
+            data.stats.Add(
+                $"Eating time: " +
+                $"{FoodChannelDuration:0.#} seconds."
+            );
+        }
 
         return data;
     }
@@ -410,6 +477,24 @@ public class ItemData :
                 this
             );
         }
+
+        foodHealingPerTick =
+    Mathf.Max(
+        1,
+        foodHealingPerTick
+    );
+
+        foodTickInterval =
+            Mathf.Max(
+                0.1f,
+                foodTickInterval
+            );
+
+        foodChannelDuration =
+            Mathf.Max(
+                foodTickInterval,
+                foodChannelDuration
+            );
     }
 #endif
 }

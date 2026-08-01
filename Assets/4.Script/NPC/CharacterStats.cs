@@ -108,12 +108,27 @@ public class CharacterStats : MonoBehaviour
     public event Action OnStatsChanged;
     public event Action<CharacterStats> OnDamagedBy;
     public event Action<CharacterStats> OnDied;
+    public event Action<HealingResult> OnHealed;
 
     [Header("Death Rewards")]
     public DeathReward deathReward;
 
     [Header("VFX")]
     public Transform effectPoint;
+
+    [Header("Healing Feedback")]
+
+    [SerializeField]
+    private HealingFloatingText
+    healingFloatingTextPrefab;
+
+    [SerializeField]
+    private Vector3 healingTextOffset =
+        new Vector3(
+            0f,
+            1.5f,
+            0f
+        );
 
     protected virtual void Awake()
     {
@@ -486,15 +501,64 @@ public class CharacterStats : MonoBehaviour
     public virtual int Heal(
     int amount)
     {
-        if (amount <= 0)
-            return 0;
+        HealingResult result =
+            ApplyHealing(
+                amount,
+                canCrit: false
+            );
+
+        return result.AppliedAmount;
+    }
+
+    public virtual HealingResult ApplyHealing(
+        int amount,
+        bool canCrit,
+        float criticalChance = 0f,
+        float criticalMultiplier = 1.5f)
+    {
+        if (amount <= 0 ||
+            !IsAlive)
+        {
+            return new HealingResult(
+                amount,
+                0,
+                false
+            );
+        }
+
+        bool isCritical =
+            canCrit &&
+            criticalChance > 0f &&
+            UnityEngine.Random.value <=
+            Mathf.Clamp01(
+                criticalChance
+            );
+
+        int finalAmount =
+            amount;
+
+        if (isCritical)
+        {
+            finalAmount =
+                Mathf.Max(
+                    1,
+                    Mathf.RoundToInt(
+                        amount *
+                        Mathf.Max(
+                            1f,
+                            criticalMultiplier
+                        )
+                    )
+                );
+        }
 
         int oldHealth =
             currentHP;
 
         currentHP =
             Mathf.Clamp(
-                currentHP + amount,
+                currentHP +
+                finalAmount,
                 0,
                 GetMaxHP()
             );
@@ -503,12 +567,73 @@ public class CharacterStats : MonoBehaviour
             currentHP -
             oldHealth;
 
-        if (restoredHealth > 0)
+        HealingResult result =
+            new HealingResult(
+                finalAmount,
+                restoredHealth,
+                isCritical
+            );
+
+        if (restoredHealth <= 0)
+            return result;
+
+        RaiseHealthChanged();
+
+        OnHealed?.Invoke(
+            result
+        );
+
+        SpawnHealingFloatingText(
+            result
+        );
+
+        return result;
+    }
+
+    private void SpawnHealingFloatingText(
+        HealingResult result)
+    {
+        if (!result.RestoredHealth)
+            return;
+
+        Vector3 spawnPosition =
+            effectPoint != null
+                ? effectPoint.position
+                : transform.position +
+                  healingTextOffset;
+
+        if (healingFloatingTextPrefab != null)
         {
-            RaiseHealthChanged();
+            HealingFloatingText instance =
+                Instantiate(
+                    healingFloatingTextPrefab,
+                    spawnPosition,
+                    Quaternion.identity
+                );
+
+            instance.Initialize(
+                result.AppliedAmount,
+                result.IsCritical
+            );
+
+            return;
         }
 
-        return restoredHealth;
+        /*
+         * Tillfällig fallback om det nya prefabet ännu inte
+         * har dragits in.
+         *
+         * TMP rich text gör texten grön, medan den befintliga
+         * FloatingTextSpawner sköter sin vanliga animation.
+         */
+        FloatingTextSpawner.Instance
+            ?.SpawnCustomText(
+                spawnPosition,
+                $"<color=#65FF7A>" +
+                $"+{result.AppliedAmount}" +
+                $"</color>",
+                result.IsCritical
+            );
     }
 
     public int TakeRawDamage(

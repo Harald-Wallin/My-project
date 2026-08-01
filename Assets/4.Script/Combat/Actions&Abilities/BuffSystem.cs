@@ -61,6 +61,50 @@ public sealed class BuffSystem :
         );
     }
 
+    public bool AddRuntimeBuff(
+    ActiveBuff buff)
+    {
+        if (buff == null ||
+            stats == null)
+        {
+            return false;
+        }
+
+        if (activeBuffs.Contains(buff))
+            return true;
+
+        activeBuffs.Add(
+            buff);
+
+        buff.OnApplied(
+            stats);
+
+        OnBuffAdded?.Invoke(
+            buff,
+            this);
+
+        return true;
+    }
+
+    public bool RemoveBuff(
+        ActiveBuff buff)
+    {
+        if (buff == null)
+            return false;
+
+        int index =
+            activeBuffs.IndexOf(
+                buff);
+
+        if (index < 0)
+            return false;
+
+        RemoveBuffAt(
+            index);
+
+        return true;
+    }
+
     public bool HasBuff(
         ActiveBuff buff)
     {
