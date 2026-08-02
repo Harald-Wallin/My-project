@@ -464,7 +464,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 5ba0c18f228bad749a118d57dc4c6788, type: 2}
   - {fileID: 11400000, guid: bace446e6b5a2e647a3e3fe6b614f7db, type: 2}
   minLootRolls: 0
-  maxLootRolls: 3
+  maxLootRolls: 1
   minimumPlayerDamageShare: 0.5
   floatingExpTextPrefab: {fileID: 8131224175839406369, guid: daad473c21b3e5a438a07220b6e1ac3c, type: 3}
   unlockStartZoneWolf: 0

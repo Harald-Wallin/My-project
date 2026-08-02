@@ -14,7 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StatDefinition
   stat: 16
   displayName: Hit Chanse
+  description: How high chanse attacks have to hit the target
   displayFormat: 1
+  categories: 0000000003000000
+  showInPlayerWindow: 1
+  displayOrder: 0
+  displayReferenceValue: 1
   kind: 1
   defaultValue: 0.89
   editable: 0

@@ -13,10 +13,14 @@ MonoBehaviour:
   m_Name: +1%CritChanseEffect
   m_EditorClassIdentifier: Assembly-CSharp::StatModifierEffect
   icon: {fileID: 0}
-  stackable: 0
-  maxStacks: 1
-  refreshDurationOnStack: 1
-  removeOnDeath: 1
-  stat: 4
+  executionTiming: 0
+  targetMode: 0
+  requiresCharacterTarget: 1
+  stackable: 1
+  maxStacks: 3
+  refreshDurationOnStack: 0
+  removeOnDeath: 0
+  removeOnEncounterReset: 0
+  stat: 17
   value: 0.01
   type: 1

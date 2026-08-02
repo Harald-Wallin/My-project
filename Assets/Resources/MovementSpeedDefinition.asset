@@ -14,8 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StatDefinition
   stat: 15
   displayName: Movement Speed
+  description: 
   displayFormat: 1
+  categories: 000000000200000003000000
+  showInPlayerWindow: 1
+  displayOrder: 0
+  displayReferenceValue: 1
   kind: 1
   defaultValue: 2.5
-  editable: 0
+  editable: 1
   visible: 1

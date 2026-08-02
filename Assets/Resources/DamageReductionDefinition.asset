@@ -14,6 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StatDefinition
   stat: 12
   displayName: 
+  description: Reduced damage taken
+  displayFormat: 0
+  categories: 0100000003000000
+  showInPlayerWindow: 1
+  displayOrder: 0
+  displayReferenceValue: 1
   kind: 0
   defaultValue: 0
   editable: 0

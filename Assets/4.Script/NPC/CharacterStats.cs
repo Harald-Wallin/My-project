@@ -795,8 +795,18 @@ public class CharacterStats : MonoBehaviour
     public float GetStat(
     StatType stat)
     {
-        float value =
-            GetRawStatValue(stat);
+        return GetStatValueBreakdown(
+            stat
+        ).FinalValue;
+    }
+
+    public StatValueBreakdown
+        GetStatValueBreakdown(
+            StatType stat)
+    {
+        float rawValue =
+            GetRawStatValue(
+                stat);
 
         float talentFlat = 0f;
         float talentPercent = 0f;
@@ -822,41 +832,45 @@ public class CharacterStats : MonoBehaviour
             switch (modifier.sourceType)
             {
                 case ModifierSourceType.Talent:
+
                     AddModifierValue(
                         modifier,
                         ref talentFlat,
-                        ref talentPercent
-                    );
+                        ref talentPercent);
+
                     break;
 
                 case ModifierSourceType.Equipment:
+
                     AddModifierValue(
                         modifier,
                         ref equipmentFlat,
-                        ref equipmentPercent
-                    );
+                        ref equipmentPercent);
+
                     break;
 
                 case ModifierSourceType.Buff:
+
                     AddModifierValue(
                         modifier,
                         ref buffFlat,
-                        ref buffPercent
-                    );
+                        ref buffPercent);
+
                     break;
 
                 case ModifierSourceType.Oath:
+
                     AddModifierValue(
                         modifier,
                         ref oathFlat,
-                        ref oathPercent
-                    );
+                        ref oathPercent);
+
                     break;
             }
         }
 
         float talentStage =
-            (value + talentFlat) *
+            (rawValue + talentFlat) *
             (1f + talentPercent);
 
         float equipmentStage =
@@ -871,7 +885,13 @@ public class CharacterStats : MonoBehaviour
             (buffStage + oathFlat) *
             (1f + oathPercent);
 
-        return oathStage;
+        return new StatValueBreakdown(
+            rawValue,
+            talentStage,
+            equipmentStage,
+            buffStage,
+            oathStage
+        );
     }
 
     private static void AddModifierValue(
@@ -888,6 +908,94 @@ public class CharacterStats : MonoBehaviour
         {
             percent += modifier.value;
         }
+    }
+
+    public List<StatScalingContribution>
+    GetScalingContributions(
+        StatType sourceStat)
+    {
+        List<StatScalingContribution>
+            contributions =
+                new();
+
+        StatScalingProfile profile =
+            ScalingProfile;
+
+        if (profile == null ||
+            profile.rules == null)
+        {
+            return contributions;
+        }
+
+        float sourceValue =
+            GetStat(
+                sourceStat);
+
+        foreach (StatScalingRule rule
+                 in profile.rules)
+        {
+            if (rule == null ||
+                rule.source != sourceStat ||
+                rule.outputs == null)
+            {
+                continue;
+            }
+
+            foreach (StatScalingOutput output
+                     in rule.outputs)
+            {
+                if (output == null)
+                    continue;
+
+                float contribution =
+                    sourceValue *
+                    output.value;
+
+                float totalValue =
+                    GetStat(
+                        output.stat);
+
+                contributions.Add(
+                    new StatScalingContribution(
+                        sourceStat,
+                        output.stat,
+                        contribution,
+                        totalValue
+                    )
+                );
+            }
+        }
+
+        return contributions;
+    }
+
+    public bool HasScalingContributions(
+        StatType sourceStat)
+    {
+        StatScalingProfile profile =
+            ScalingProfile;
+
+        if (profile == null ||
+            profile.rules == null)
+        {
+            return false;
+        }
+
+        foreach (StatScalingRule rule
+                 in profile.rules)
+        {
+            if (rule == null ||
+                rule.source != sourceStat ||
+                rule.outputs == null)
+            {
+                continue;
+            }
+
+            if (rule.outputs.Count > 0)
+                return true;
+        }
+
+        return false;
     }
 
     public void AddModifier(StatModifier modifier)

@@ -14,7 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StatDefinition
   stat: 15
   displayName: Haste
+  description: 
   displayFormat: 0
+  categories: 0000000003000000
+  showInPlayerWindow: 1
+  displayOrder: 0
+  displayReferenceValue: 1
   kind: 0
   defaultValue: 0
   editable: 1

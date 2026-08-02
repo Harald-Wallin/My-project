@@ -14,7 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StatDefinition
   stat: 4
   displayName: MaxHP
+  description: 
+  displayFormat: 0
+  categories: 0100000003000000
+  showInPlayerWindow: 1
+  displayOrder: 0
+  displayReferenceValue: 1
   kind: 1
   defaultValue: 0
   editable: 0
-  visible: 1
+  visible: 0

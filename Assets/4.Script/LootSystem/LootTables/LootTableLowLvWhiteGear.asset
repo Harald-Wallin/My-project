@@ -14,19 +14,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LootTable
   mode: 0
   entries:
-  - item: {fileID: 11400000, guid: e116234be2a983a449217d4813e551ba, type: 2}
+  - type: 0
+    item: {fileID: 11400000, guid: e116234be2a983a449217d4813e551ba, type: 2}
     dropChance: 0.11
-    minQuantity: 0
+    minQuantity: 1
     maxQuantity: 1
-  - item: {fileID: 11400000, guid: 05d95b9e8f5f8d64c97bdd6620999cf7, type: 2}
-    dropChance: 0.22
-    minQuantity: 0
+  - type: 0
+    item: {fileID: 11400000, guid: 05d95b9e8f5f8d64c97bdd6620999cf7, type: 2}
+    dropChance: 0.068
+    minQuantity: 1
     maxQuantity: 1
-  - item: {fileID: 11400000, guid: a11be310d6d15cd4682845b43dafe029, type: 2}
+  - type: 0
+    item: {fileID: 11400000, guid: a11be310d6d15cd4682845b43dafe029, type: 2}
+    dropChance: 0.061
+    minQuantity: 1
+    maxQuantity: 1
+  - type: 0
+    item: {fileID: 11400000, guid: bbe56c989b0edf94daec6ba9d5a00005, type: 2}
     dropChance: 0.11
-    minQuantity: 0
-    maxQuantity: 1
-  - item: {fileID: 11400000, guid: bbe56c989b0edf94daec6ba9d5a00005, type: 2}
-    dropChance: 0.11
-    minQuantity: 0
+    minQuantity: 1
     maxQuantity: 1

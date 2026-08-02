@@ -14,6 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StatDefinition
   stat: 3
   displayName: Health
+  description: How much damage you can take before you die
+  displayFormat: 0
+  categories: 0100000003000000
+  showInPlayerWindow: 1
+  displayOrder: 0
+  displayReferenceValue: 1
   kind: 0
   defaultValue: 1
   editable: 1

@@ -14,6 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StatDefinition
   stat: 0
   displayName: Strength
+  description: 
+  displayFormat: 0
+  categories: 0000000002000000
+  showInPlayerWindow: 1
+  displayOrder: 0
+  displayReferenceValue: 1
   kind: 0
   defaultValue: 5
   editable: 1

@@ -1,49 +1,102 @@
 using UnityEngine;
-using TMPro;
 
-public class PlayerStatsUI : MonoBehaviour
+public sealed class PlayerStatsUI :
+    MonoBehaviour
 {
-    [SerializeField] private PlayerStats playerStats;
+    [Header("References")]
 
-    [SerializeField] private TextMeshProUGUI strengthText;
-    [SerializeField] private TextMeshProUGUI armorText;
-    [SerializeField] private TextMeshProUGUI healthText;
-    [SerializeField] private TextMeshProUGUI damageText;
-    [SerializeField] private TextMeshProUGUI critText;
-    [SerializeField] private TextMeshProUGUI swiftnessText;
-    [SerializeField] private TextMeshProUGUI hitText;
-    [SerializeField] private TextMeshProUGUI evasionText;
+    [SerializeField]
+    private PlayerStats playerStats;
+
+    [Header("Stat Panels")]
+
+    [SerializeField]
+    private PlayerStatListPanelUI leftStatPanel;
+
+    [SerializeField]
+    private PlayerStatListPanelUI rightStatPanel;
+
+    private void Awake()
+    {
+        ResolvePlayer();
+    }
 
     private void OnEnable()
     {
-        playerStats.OnStatsChanged += UpdateUI;
-        playerStats.OnHealthChanged += UpdateUI;
-        UpdateUI();
+        ResolvePlayer();
+        Subscribe();
+        BindPanels();
+        RefreshUI();
     }
 
     private void OnDisable()
     {
-        playerStats.OnStatsChanged -= UpdateUI;
-        playerStats.OnHealthChanged -= UpdateUI;
+        Unsubscribe();
     }
 
-
-    private void UpdateUI()
+    private void ResolvePlayer()
     {
-        strengthText.text = $"Strength: {playerStats.GetStat(StatType.Strength):0}";
-        swiftnessText.text = $"Swiftness: {playerStats.GetStat(StatType.Swiftness):0}";
-        armorText.text = $"Armor: {playerStats.GetStat(StatType.Armor):0}";
-        healthText.text = $"HP: {playerStats.currentHP} / {playerStats.GetStat(StatType.MaxHP):0}";
-        damageText.text = $"Damage: {playerStats.GetAttackDamage()}";
-        critText.text = $"Crit: {playerStats.GetStat(StatType.CritChance) * 100f:0.0}%";
-        hitText.text = $"Hit: {playerStats.GetStat(StatType.HitChance) * 100:0.0}%";
-        evasionText.text = $"Evasion: {playerStats.GetStat(StatType.Evasion) * 100:0.0}%";
+        if (playerStats != null)
+            return;
+
+        playerStats =
+            PlayerReference.Player;
+
+        if (playerStats == null)
+        {
+            playerStats =
+                FindFirstObjectByType<
+                    PlayerStats>();
+        }
+    }
+
+    private void Subscribe()
+    {
+        Unsubscribe();
+
+        if (playerStats == null)
+            return;
+
+        playerStats.OnStatsChanged +=
+            RefreshUI;
+
+        playerStats.OnHealthChanged +=
+            RefreshUI;
+    }
+
+    private void Unsubscribe()
+    {
+        if (playerStats == null)
+            return;
+
+        playerStats.OnStatsChanged -=
+            RefreshUI;
+
+        playerStats.OnHealthChanged -=
+            RefreshUI;
+    }
+
+    private void BindPanels()
+    {
+        if (playerStats == null)
+            return;
+
+        leftStatPanel?.Bind(
+            playerStats);
+
+        rightStatPanel?.Bind(
+            playerStats);
+    }
+
+    private void RefreshUI()
+    {
+        leftStatPanel?.Refresh();
+        rightStatPanel?.Refresh();
     }
 
     public void Close()
     {
-        gameObject.SetActive(false);
+        gameObject.SetActive(
+            false);
     }
-
 }
-

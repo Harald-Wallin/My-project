@@ -10,17 +10,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 748bcbb5a027553409951c9e52b6a2e0, type: 3}
-  m_Name: BlockChanseDefinition
+  m_Name: CritChanseDefinition
   m_EditorClassIdentifier: Assembly-CSharp::StatDefinition
-  stat: 20
-  displayName: Block Chanse
-  description: Chanse to block an incoming attack
+  stat: 17
+  displayName: Crit Chanse
+  description: Chanse for your abilities to critially success
   displayFormat: 1
-  categories: 0100000003000000
+  categories: 0000000003000000
   showInPlayerWindow: 1
   displayOrder: 0
   displayReferenceValue: 1
-  kind: 1
+  kind: 0
   defaultValue: 0
-  editable: 0
+  editable: 1
   visible: 1
