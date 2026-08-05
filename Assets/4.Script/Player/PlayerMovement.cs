@@ -1,5 +1,4 @@
 ﻿using TMPro;
-using Unity.VisualScripting.Antlr3.Runtime.Misc;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using System;
@@ -19,6 +18,7 @@ public class PlayerMovement : MonoBehaviour
     private Vector2 lastMovement;
 
     private CharacterStateController stateController;
+    private CharacterActionController actionController;
 
     private Rigidbody2D rb;
     private Vector2 movement;
@@ -38,7 +38,7 @@ public class PlayerMovement : MonoBehaviour
         equipment = GetComponent<HumanoidEquipment>();
         stats = GetComponent<CharacterStats>();
         stateController = GetComponent<CharacterStateController>();
-
+        actionController =GetComponent<CharacterActionController>();
     }
 
     void Start()
@@ -66,8 +66,7 @@ public class PlayerMovement : MonoBehaviour
         bool movementStarted = currentMovement !=
         Vector2.zero &&movement ==Vector2.zero;
 
-        movement =
-            currentMovement;
+        movement = currentMovement;
 
         if (movementStarted)
         {
@@ -98,7 +97,18 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        bool moving = (stateController == null || stateController.CanMove) && movement != Vector2.zero;
+        bool stateAllowsMovement =
+            stateController == null ||
+            stateController.CanMove;
+
+        bool actionAllowsMovement =
+            actionController == null ||
+            !actionController.BlocksMovement;
+
+        bool moving =
+            stateAllowsMovement &&
+            actionAllowsMovement &&
+            movement != Vector2.zero;
 
         if (visual != null)
         {
@@ -159,23 +169,46 @@ public class PlayerMovement : MonoBehaviour
 
     void FixedUpdate()
     {
-        // 🔒 Stoppa ALL extern fysikpåverkan
-        rb.linearVelocity = Vector2.zero;
+        rb.linearVelocity =
+    Vector2.zero;
 
-        if (stateController != null && !stateController.CanMove)
+        if (stateController != null &&
+            !stateController.CanMove)
         {
-            rb.linearVelocity = Vector2.zero;
             return;
         }
 
-        if (movement == Vector2.zero)
-            return;
+        float actionMovementMultiplier =
+            actionController != null
+                ? actionController
+                    .CurrentMovementMultiplier
+                : 1f;
 
-        /*float speedMultiplier = GetComponent<CharacterStats>().GetFinalMoveSpeedMultiplier();*/
-        float moveSpeedStat = stats.GetStat(StatType.MovementSpeed);
+        if (actionMovementMultiplier <=
+            0.0001f)
+        {
+            return;
+        }
+
+        if (movement ==
+            Vector2.zero)
+        {
+            return;
+        }
+
+        float moveSpeedStat =
+            stats.GetStat(
+                StatType.MovementSpeed
+            );
+
+        float finalMovementSpeed =
+            moveSpeedStat *
+            actionMovementMultiplier;
 
         Vector2 desiredMove =
-         movement * moveSpeedStat * Time.fixedDeltaTime;
+            movement *
+            finalMovementSpeed *
+            Time.fixedDeltaTime;
 
         ContactFilter2D filter = new ContactFilter2D();
         filter.useLayerMask = true;

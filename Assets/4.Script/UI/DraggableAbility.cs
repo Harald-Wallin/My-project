@@ -31,6 +31,19 @@ public class DraggableAbility : MonoBehaviour, IBeginDragHandler, IDragHandler, 
             return;
         }
 
+        PlayerStats player = PlayerReference.Player;
+
+        if (player != null)
+        {
+            PlayerActionInput input =
+                player.GetComponent<
+                    PlayerActionInput>();
+
+            input?.CancelHeldAbilityInput(
+                ability
+            );
+        }
+
         wasDroppedOnSlot = false;
         sourceSlot = null;
 
@@ -77,7 +90,7 @@ public class DraggableAbility : MonoBehaviour, IBeginDragHandler, IDragHandler, 
         // ❌ Droppades inte på slot → rensa
         if (!wasDroppedOnSlot && sourceSlot != null)
         {
-            Debug.Log("Dropped outside → clearing slot");
+            //Debug.Log("Dropped outside → clearing slot");
             sourceSlot.ClearSlot();
         }
     }

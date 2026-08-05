@@ -1079,6 +1079,7 @@ GameObject:
   - component: {fileID: 6590725495921578235}
   - component: {fileID: 3834938720021624653}
   - component: {fileID: 7129992897701414318}
+  - component: {fileID: 7815612160529149873}
   m_Layer: 5
   m_Name: Nameplate
   m_TagString: Untagged
@@ -1142,6 +1143,18 @@ MonoBehaviour:
   buffDisplay: {fileID: 5344863153112816768}
   decorationRoot: {fileID: 1898625559070685448}
   passiveRefreshInterval: 0.25
+--- !u!114 &7815612160529149873
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7917476200973921693}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c76f0667030b2943a8f6e469acc0528, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WorldInputPassthroughUI
 --- !u!1 &8142559906394470532
 GameObject:
   m_ObjectHideFlags: 0

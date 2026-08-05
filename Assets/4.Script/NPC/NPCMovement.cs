@@ -5,6 +5,7 @@ public class NPCMovement : MonoBehaviour
 {
     protected CharacterStats stats;
     protected HumanoidEquipment equipment;
+    protected CharacterActionController actionController;
 
     private HumanoidVisualController visualController;
     protected HumanoidEquipment npcEquipment;
@@ -94,18 +95,12 @@ public class NPCMovement : MonoBehaviour
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-
         stats = GetComponent<CharacterStats>();
+        visualController = GetComponentInChildren<HumanoidVisualController>();
+        equipment = GetComponent<HumanoidEquipment>();
+        actionController = GetComponent<CharacterActionController>();
 
-        visualController =
-            GetComponentInChildren<HumanoidVisualController>();
-
-        equipment =
-            GetComponent<HumanoidEquipment>();
-
-        lastStuckPosition =
-            rb.position;
-
+        lastStuckPosition = rb.position;
         SpawnPosition = transform.position;
     }
 
@@ -148,10 +143,42 @@ public class NPCMovement : MonoBehaviour
         if (stats.IsStunned)
             return false;
 
-        float moveSpeed = stats.GetStat(StatType.MovementSpeed);
+        float actionMovementMultiplier =
+    actionController != null
+        ? actionController
+            .CurrentMovementMultiplier
+        : 1f;
+
+        if (actionMovementMultiplier <=
+            0.0001f)
+        {
+            visualController?.SetMoving(
+                false
+            );
+
+            wasMovingLastFrame =
+                false;
+
+            return false;
+        }
+
+        float moveSpeed =
+            stats.GetStat(
+                StatType.MovementSpeed
+            ) *
+            actionMovementMultiplier;
 
         if (moveSpeed <= 0f)
+        {
+            visualController?.SetMoving(
+                false
+            );
+
+            wasMovingLastFrame =
+                false;
+
             return false;
+        }
 
         Vector2 toTarget = (Vector2)target - rb.position;
         float distance = toTarget.magnitude;

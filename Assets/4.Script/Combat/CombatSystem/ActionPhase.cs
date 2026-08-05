@@ -1,4 +1,4 @@
-public enum ActionPhase
+/*public enum ActionPhase
 {
     Idle,
 
@@ -9,4 +9,21 @@ public enum ActionPhase
     Executing,
 
     Recovery
+}*/
+public enum ActionPhase
+{
+    Idle,
+
+    Preview,
+
+    Casting,
+
+    Charging,
+
+    Executing,
+
+    Recovery
+
+
 }
+

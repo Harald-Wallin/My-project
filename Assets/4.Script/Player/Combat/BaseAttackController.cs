@@ -1,9 +1,14 @@
 using UnityEngine;
-using UnityEngine.EventSystems;
 
-[RequireComponent(typeof(CharacterStats))]
-[RequireComponent(typeof(CharacterActionController))]
-[RequireComponent(typeof(PlayerBaseAttackCollection))]
+[RequireComponent(
+    typeof(CharacterStats)
+)]
+[RequireComponent(
+    typeof(CharacterActionController)
+)]
+[RequireComponent(
+    typeof(PlayerBaseAttackCollection)
+)]
 public sealed class BaseAttackController :
     MonoBehaviour
 {
@@ -17,15 +22,20 @@ public sealed class BaseAttackController :
 
     [SerializeField]
     [Min(0f)]
-    private float indicatorDistance = 0.6f;
+    private float indicatorDistance =
+        0.6f;
 
     private CharacterStats stats;
-    private CharacterActionController actionController;
-    private PlayerBaseAttackCollection collection;
+
+    private CharacterActionController
+        actionController;
+
+    private PlayerBaseAttackCollection
+        collection;
 
     public AbilityData CurrentAttack =>
         collection != null
-            ? collection.GetEquippedAttack()
+            ? collection.GetActiveAttack()
             : null;
 
     public bool IsReady
@@ -79,17 +89,16 @@ public sealed class BaseAttackController :
     private void Awake()
     {
         stats =
-            GetComponent<CharacterStats>();
+            GetComponent<
+                CharacterStats>();
 
         actionController =
             GetComponent<
-                CharacterActionController
-            >();
+                CharacterActionController>();
 
         collection =
             GetComponent<
-                PlayerBaseAttackCollection
-            >();
+                PlayerBaseAttackCollection>();
     }
 
     private void OnValidate()
@@ -108,38 +117,34 @@ public sealed class BaseAttackController :
 
         UpdateDirection();
         UpdateIndicator();
-        HandleInput();
-    }
 
-    private void HandleInput()
-    {
-        if (!Input.GetMouseButtonDown(0))
-            return;
-
-        if (EventSystem.current != null &&
-            EventSystem.current
-                .IsPointerOverGameObject())
-        {
-            return;
-        }
-
-        TryAttack();
+        /*
+         * Ingen attackinput här.
+         *
+         * PlayerActionInput äger nu:
+         * - mouse down
+         * - hold
+         * - charge aim
+         * - mouse up
+         * - cancel
+         */
     }
 
     /// <summary>
-    /// Startar den utrustade base attacken genom det gemensamma
-    /// actionsystemet.
+    /// Programmatisk väg för att starta den aktiva base attacken.
     ///
-    /// TargetResolver ansvarar för range, form, relationer,
-    /// line of sight och val av targets.
+    /// Spelarens normala input går genom PlayerActionInput.
     /// </summary>
     public bool TryAttack()
     {
         AbilityData attack =
             CurrentAttack;
 
-        if (!CanUseAttack(attack))
+        if (!CanUseAttack(
+                attack))
+        {
             return false;
+        }
 
         Vector2 aimPoint =
             GetAimPoint();
@@ -154,8 +159,8 @@ public sealed class BaseAttackController :
     }
 
     /// <summary>
-    /// NPC/AI-väg eller annan kod som vill utföra base attacken
-    /// mot ett uttryckligt target.
+    /// NPC/AI-väg för att använda attacken mot ett uttryckligt
+    /// target.
     /// </summary>
     public bool TryAttackTarget(
         CharacterStats target)
@@ -163,8 +168,11 @@ public sealed class BaseAttackController :
         AbilityData attack =
             CurrentAttack;
 
-        if (!CanUseAttack(attack))
+        if (!CanUseAttack(
+                attack))
+        {
             return false;
+        }
 
         if (target == null)
             return false;
@@ -244,18 +252,16 @@ public sealed class BaseAttackController :
         }
 
         return Mathf.Clamp01(
-            remaining / maximum
+            remaining /
+            maximum
         );
     }
 
-    /// <summary>
-    /// 0 när attacken precis har använts.
-    /// 1 när attacken är helt redo.
-    /// </summary>
     public float GetReadinessNormalized()
     {
-        return 1f -
-               GetCooldownNormalized();
+        return
+            1f -
+            GetCooldownNormalized();
     }
 
     public Vector2 GetAimDirection()
@@ -309,7 +315,7 @@ public sealed class BaseAttackController :
         return CurrentDirection;
     }
 
-    private Vector2 GetAimPoint()
+    public Vector2 GetAimPoint()
     {
         if (stats is PlayerStats)
         {
@@ -343,8 +349,10 @@ public sealed class BaseAttackController :
                 0.01f
             );
 
-        return (Vector2)transform.position +
-               CurrentDirection * distance;
+        return
+            (Vector2)transform.position +
+            CurrentDirection *
+            distance;
     }
 
     private void UpdateDirection()
@@ -384,7 +392,8 @@ public sealed class BaseAttackController :
             Mathf.Atan2(
                 direction.y,
                 direction.x
-            ) * Mathf.Rad2Deg;
+            ) *
+            Mathf.Rad2Deg;
 
         attackIndicator.rotation =
             Quaternion.Euler(

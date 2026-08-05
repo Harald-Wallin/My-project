@@ -49,6 +49,7 @@ public sealed class CharacterActionController :
     private float globalCooldownTimer;
     private float phaseTimer;
     private float phaseDuration;
+    private bool fullChargeReached;
 
     public ActionExecutionContext
     LastExecutionContext
@@ -82,6 +83,10 @@ public sealed class CharacterActionController :
     public bool IsCasting =>
         CurrentPhase == ActionPhase.Casting;
 
+    public bool IsCharging =>
+    CurrentPhase ==
+    ActionPhase.Charging;
+
     public bool IsExecuting =>
         CurrentPhase == ActionPhase.Executing;
 
@@ -108,6 +113,16 @@ public sealed class CharacterActionController :
 
     public event Action<ActionContext>
         OnActionCompleted;
+
+    /// <summary>
+    /// Anropas exakt en gång när den aktiva actionen når
+    /// 100 procent charge.
+    ///
+    /// Eventet innebär inte att actionen exekveras. Spelaren kan
+    /// fortsätta hålla knappen nedtryckt tills release.
+    /// </summary>
+    public event Action<ActionContext>
+        OnFullChargeReached;
 
     private void Awake()
     {
@@ -172,13 +187,18 @@ public sealed class CharacterActionController :
         if (!CanStartAction(ability))
             return false;
 
+        float initialChargeProgress =
+            ability.IsChargeAbility
+            ? 0f
+            : 1f;
+
         ActionRequest request =
-            new ActionRequest(
-                stats,
+            CreateRuntimeRequest(
                 ability,
                 requestedAimPoint,
                 explicitTarget,
-                requestedDirection
+                requestedDirection,
+                initialChargeProgress
             );
 
         TargetingResult targeting =
@@ -206,6 +226,19 @@ public sealed class CharacterActionController :
                 currentContext
             );
 
+            return true;
+        }
+
+        /*
+ * Charge-actions måste få börja även om inget target ligger
+ * inom den initiala, korta chargade räckvidden.
+ *
+ * Targetingen valideras igen kontinuerligt under charge och
+ * slutligen vid release.
+ */
+        if (ability.IsChargeAbility)
+        {
+            BeginTimingOrExecution();
             return true;
         }
 
@@ -311,12 +344,33 @@ public sealed class CharacterActionController :
             case ActionTimingType.Cast:
                 return true;
 
-            case ActionTimingType.Channel:
             case ActionTimingType.Charge:
+                if (ability.ExecutionSettings ==
+                    null)
+                {
+                    return false;
+                }
+
+                if (ability.ExecutionSettings
+                        .ActivationMode !=
+                    ActionActivationMode
+                        .HoldAndRelease)
+                {
+                    Debug.LogWarning(
+                        $"Charge-abilityn '{ability.abilityName}' " +
+                        $"bör använda Activation Mode " +
+                        $"'Hold And Release'.",
+                        ability
+                    );
+                }
+
+                return true;
+
+            case ActionTimingType.Channel:
                 Debug.LogWarning(
-                    $"Ability '{ability.abilityName}' använder " +
-                    $"{timing.TimingType}, vilket ännu inte stöds " +
-                    $"av CharacterActionController.",
+                    $"Ability '{ability.abilityName}' använder Channel, " +
+                    $"vilket ännu inte exekveras av " +
+                    $"{nameof(CharacterActionController)}.",
                     this
                 );
 
@@ -325,6 +379,49 @@ public sealed class CharacterActionController :
             default:
                 return false;
         }
+    }
+
+    private float GetChargeRangeOverride(
+    AbilityData ability,
+    float chargeProgress)
+    {
+        if (ability == null ||
+            ability.TargetingSettings == null ||
+            ability.ChargeSettings == null ||
+            !ability.ChargeSettings.ScalesRange)
+        {
+            return -1f;
+        }
+
+        float rangeMultiplier =
+            ability.ChargeSettings
+                .GetRangeMultiplier(
+                    chargeProgress
+                );
+
+        return
+            ability.TargetingSettings.Range *
+            rangeMultiplier;
+    }
+
+    private ActionRequest CreateRuntimeRequest(
+        AbilityData ability,
+        Vector2 requestedAimPoint,
+        GameObject explicitTarget,
+        Vector2 requestedDirection,
+        float chargeProgress)
+    {
+        return new ActionRequest(
+            stats,
+            ability,
+            requestedAimPoint,
+            explicitTarget,
+            requestedDirection,
+            GetChargeRangeOverride(
+                ability,
+                chargeProgress
+            )
+        );
     }
 
     // =========================================================
@@ -377,6 +474,83 @@ public sealed class CharacterActionController :
         return targeting.IsValid;
     }
 
+    public bool UpdateChargeTargeting(
+    Vector2 requestedAimPoint,
+    GameObject explicitTarget = null,
+    Vector2 requestedDirection = default)
+    {
+        if (!IsCharging ||
+            currentContext == null ||
+            currentContext.Ability == null ||
+            stats == null)
+        {
+            return false;
+        }
+
+        ActionRequest updatedRequest =
+            CreateRuntimeRequest(
+                currentContext.Ability,
+                requestedAimPoint,
+                explicitTarget,
+                requestedDirection,
+                currentContext.ChargeProgress
+            );
+
+        TargetingResult targeting =
+            targetResolver.Resolve(
+                updatedRequest
+            );
+
+        currentRequest =
+            updatedRequest;
+
+        currentContext.UpdateTargeting(
+            targeting
+        );
+
+        OnTargetingUpdated?.Invoke(
+            currentContext
+        );
+
+        return targeting.IsValid;
+    }
+
+    private void RefreshChargeTargeting()
+    {
+        if (!IsCharging ||
+            currentContext == null ||
+            currentContext.Ability == null ||
+            currentRequest == null)
+        {
+            return;
+        }
+
+        ActionRequest updatedRequest =
+            CreateRuntimeRequest(
+                currentContext.Ability,
+                currentRequest.RequestedAimPoint,
+                currentRequest.ExplicitTarget,
+                currentRequest.RequestedDirection,
+                currentContext.ChargeProgress
+            );
+
+        TargetingResult targeting =
+            targetResolver.Resolve(
+                updatedRequest
+            );
+
+        currentRequest =
+            updatedRequest;
+
+        currentContext.UpdateTargeting(
+            targeting
+        );
+
+        OnTargetingUpdated?.Invoke(
+            currentContext
+        );
+    }
+
     /// <summary>
     /// Bekräftar den aktiva targeting-previewn.
     ///
@@ -413,6 +587,64 @@ public sealed class CharacterActionController :
         return true;
     }
 
+    public bool ReleaseCurrentCharge()
+    {
+        if (!IsCharging ||
+            currentContext == null ||
+            currentRequest == null)
+        {
+            return false;
+        }
+
+        float finalChargeProgress =
+            GetNormalizedPhaseProgress();
+
+        currentContext.ChargeProgress =
+            finalChargeProgress;
+
+        currentContext.NormalizedProgress =
+            finalChargeProgress;
+
+        /*
+         * Skapa en sista request med exakt charge-progress från
+         * release-framen.
+         */
+        ActionRequest releaseRequest =
+            CreateRuntimeRequest(
+                currentContext.Ability,
+                currentRequest.RequestedAimPoint,
+                currentRequest.ExplicitTarget,
+                currentRequest.RequestedDirection,
+                finalChargeProgress
+            );
+
+        TargetingResult targeting =
+            targetResolver.Resolve(
+                releaseRequest
+            );
+
+        currentRequest =
+            releaseRequest;
+
+        currentContext.UpdateTargeting(
+            targeting
+        );
+
+        OnTargetingUpdated?.Invoke(
+            currentContext
+        );
+
+        if (!targeting.IsValid)
+        {
+            FailCurrentAction();
+            return false;
+        }
+
+        ExecuteCurrentAction();
+
+        return true;
+    }
+
     // =========================================================
     // TIMING
     // =========================================================
@@ -427,7 +659,9 @@ public sealed class CharacterActionController :
         }
 
         AbilityTimingSettings timing =
-            currentContext.Ability.TimingSettings;
+            currentContext
+                .Ability
+                .TimingSettings;
 
         switch (timing.TimingType)
         {
@@ -441,17 +675,54 @@ public sealed class CharacterActionController :
                 );
                 break;
 
-            case ActionTimingType.Channel:
             case ActionTimingType.Charge:
+                BeginCharge(
+                    timing.MaximumChargeDuration
+                );
+                break;
+
+            case ActionTimingType.Channel:
                 Debug.LogWarning(
-                    $"Timingtypen {timing.TimingType} stöds " +
-                    $"ännu inte.",
+                    "Channel-execution är ännu inte implementerad " +
+                    "i CharacterActionController.",
                     this
                 );
 
                 FailCurrentAction();
                 break;
         }
+    }
+
+    private void BeginCharge(
+    float maximumDuration)
+    {
+        if (currentContext == null)
+        {
+            FailCurrentAction();
+            return;
+        }
+
+        float safeDuration =
+            Mathf.Max(
+                0.01f,
+                maximumDuration
+            );
+
+        phaseTimer = 0f;
+        phaseDuration = safeDuration;
+
+        fullChargeReached =
+            false;
+
+        currentContext.NormalizedProgress =
+            0f;
+
+        currentContext.ChargeProgress =
+            0f;
+
+        SetPhase(
+            ActionPhase.Charging
+        );
     }
 
     private void BeginCast(
@@ -490,6 +761,10 @@ public sealed class CharacterActionController :
                 UpdateCasting();
                 break;
 
+            case ActionPhase.Charging:
+                UpdateCharging();
+                break;
+
             case ActionPhase.Recovery:
                 UpdateRecovery();
                 break;
@@ -515,6 +790,55 @@ public sealed class CharacterActionController :
         currentContext.NormalizedProgress = 1f;
 
         ExecuteCurrentAction();
+    }
+
+    private void UpdateCharging()
+    {
+        if (!CanContinueActiveAction())
+        {
+            InterruptCurrentAction();
+            return;
+        }
+
+        phaseTimer +=
+            Time.deltaTime;
+
+        float previousProgress =
+            currentContext
+                .ChargeProgress;
+
+        float progress =
+            GetNormalizedPhaseProgress();
+
+        currentContext.NormalizedProgress =
+            progress;
+
+        currentContext.ChargeProgress =
+            progress;
+
+        /*
+         * Rangen måste uppdateras även när muspekaren inte rör sig.
+         */
+        RefreshChargeTargeting();
+
+        /*
+         * Eventet skickas exakt en gång när progress först når 1.
+         *
+         * previousProgress-kontrollen gör dessutom avsikten tydlig:
+         * vi reagerar på övergången till full charge, inte varje frame
+         * medan spelaren fortsätter hålla knappen.
+         */
+        if (!fullChargeReached &&
+            previousProgress < 1f &&
+            progress >= 1f)
+        {
+            fullChargeReached =
+                true;
+
+            OnFullChargeReached?.Invoke(
+                currentContext
+            );
+        }
     }
 
     private void UpdateRecovery()
@@ -795,13 +1119,15 @@ public sealed class CharacterActionController :
                 return true;
 
             case ActionPhase.Casting:
+            case ActionPhase.Charging:
                 AbilityExecutionSettings execution =
                     currentContext
                         .Ability
                         ?.ExecutionSettings;
 
-                return execution == null ||
-                       execution.CanBeCancelled;
+                return
+                    execution == null ||
+                    execution.CanBeCancelled;
 
             case ActionPhase.Executing:
             case ActionPhase.Recovery:
@@ -866,6 +1192,8 @@ public sealed class CharacterActionController :
 
         phaseTimer = 0f;
         phaseDuration = 0f;
+
+        fullChargeReached = false;
     }
 
     private void SetPhase(
@@ -912,7 +1240,7 @@ public sealed class CharacterActionController :
         globalCooldownTimer = 0f;
         phaseTimer = 0f;
         phaseDuration = 0f;
-
+        fullChargeReached = false;
         LastExecutionContext = null;
     }
 
@@ -1108,4 +1436,35 @@ public sealed class CharacterActionController :
                 .abilityOnCooldown
         );
     }
+
+    public float CurrentMovementMultiplier
+    {
+        get
+        {
+            if (currentContext == null ||
+                currentContext.Ability == null ||
+                currentContext.Ability.TimingSettings == null)
+            {
+                return 1f;
+            }
+
+            ActionMovementSettings movementSettings =
+                currentContext
+                    .Ability
+                    .TimingSettings
+                    .GetMovementSettings(
+                        CurrentPhase
+                    );
+
+            if (movementSettings == null)
+                return 1f;
+
+            return movementSettings
+                .SpeedMultiplier;
+        }
+    }
+
+    public bool BlocksMovement =>
+        CurrentMovementMultiplier <=
+        0.0001f;
 }

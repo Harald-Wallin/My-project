@@ -24,19 +24,9 @@ public sealed class DamageEffect :
     )]
     private bool dealsRawDamage;
 
-    [SerializeField]
-    [Tooltip(
-        "Om charge-progress ska multiplicera skadan. " +
-        "Vid full charge används multiplier 1."
-    )]
-    private bool scalesWithCharge;
-
-    [SerializeField]
-    [Min(0f)]
-    private float minimumChargeMultiplier = 0.25f;
-
     public int CalculateBaseDamage(
         CharacterStats caster,
+        AbilityData ability = null,
         float chargeProgress = 1f)
     {
         float damage =
@@ -64,21 +54,17 @@ public sealed class DamageEffect :
             }
         }
 
-        if (scalesWithCharge)
+        if (ability != null &&
+            ability.ChargeSettings != null)
         {
             float chargeMultiplier =
-                Mathf.Lerp(
-                    Mathf.Max(
-                        0f,
-                        minimumChargeMultiplier
-                    ),
-                    1f,
-                    Mathf.Clamp01(
+                ability.ChargeSettings
+                    .GetDamageMultiplier(
                         chargeProgress
-                    )
-                );
+                    );
 
-            damage *= chargeMultiplier;
+            damage *=
+                chargeMultiplier;
         }
 
         return Mathf.Max(
@@ -90,7 +76,7 @@ public sealed class DamageEffect :
     }
 
     public override void Execute(
-    AbilityEffectExecutionContext context)
+        AbilityEffectExecutionContext context)
     {
         if (context == null ||
             context.Caster == null ||
@@ -105,6 +91,7 @@ public sealed class DamageEffect :
         int damage =
             CalculateBaseDamage(
                 context.Caster,
+                context.Ability,
                 context.ChargeProgress
             );
 
@@ -143,9 +130,18 @@ public sealed class DamageEffect :
     public override string GetTooltipText(
         CharacterStats caster)
     {
+        /*
+         * Tooltipen visar full-charge damage.
+         *
+         * AbilityEffect känner inte på egen hand till vilken
+         * AbilityData som äger effekten, så chargeintervallet
+         * kan senare presenteras av AbilityData-tooltipen.
+         */
         int damage =
             CalculateBaseDamage(
-                caster
+                caster,
+                null,
+                1f
             );
 
         return dealsRawDamage
@@ -162,12 +158,6 @@ public sealed class DamageEffect :
             Mathf.Max(
                 0,
                 flatDamage
-            );
-
-        minimumChargeMultiplier =
-            Mathf.Max(
-                0f,
-                minimumChargeMultiplier
             );
     }
 #endif

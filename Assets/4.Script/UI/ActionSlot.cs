@@ -4,14 +4,18 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class ActionSlot :
+public sealed class ActionSlot :
     MonoBehaviour,
     IDropHandler,
     IPointerEnterHandler,
     IPointerExitHandler,
     IPointerClickHandler,
+    IPointerDownHandler,
+    IPointerUpHandler,
     ICombatSlot
 {
+    [Header("UI")]
+
     [SerializeField]
     private Image icon;
 
@@ -30,18 +34,34 @@ public class ActionSlot :
     [SerializeField]
     private Image flashImage;
 
-    private AbilityController abilityController;
-    private CharacterActionController actionController;
-    private PlayerActionInput playerActionInput;
-    private PlayerAbilityCollection collection;
+    private AbilityController
+        abilityController;
+
+    private CharacterActionController
+        actionController;
+
+    private PlayerActionInput
+        playerActionInput;
+
+    private PlayerAbilityCollection
+        collection;
 
     public AbilityData ability;
 
     private int slotIndex;
 
+    private KeyCode Hotkey =>
+        KeyCode.Alpha1 +
+        slotIndex;
+
+    private bool UsesHoldAndRelease =>
+        ability != null &&
+        ability.UsesActionSettings &&
+        ability.UsesHoldAndRelease;
+
     public void Initialize(
         AbilityController controller,
-        AbilityData ability,
+        AbilityData initializedAbility,
         int index)
     {
         abilityController =
@@ -49,46 +69,146 @@ public class ActionSlot :
 
         collection =
             controller.GetComponent<
-                PlayerAbilityCollection
-            >();
+                PlayerAbilityCollection>();
 
         playerActionInput =
             controller.GetComponent<
-                PlayerActionInput
-            >();
+                PlayerActionInput>();
 
         actionController =
             controller.GetComponent<
-                CharacterActionController
-            >();
+                CharacterActionController>();
 
-        this.ability = ability;
-        slotIndex = index;
+        ability =
+            initializedAbility;
 
-        hotkeyText.text =
-            (index + 1).ToString();
+        slotIndex =
+            index;
+
+        if (hotkeyText != null)
+        {
+            hotkeyText.text =
+                (index + 1).ToString();
+        }
 
         RefreshVisual();
     }
 
     private void Update()
     {
+        HandleHotkeyInput();
+
         if (ability == null)
         {
             ClearCooldownUI();
             return;
         }
 
+        UpdateCooldownUI();
+    }
+
+    // =========================================================
+    // HOTKEY
+    // =========================================================
+
+    private void HandleHotkeyInput()
+    {
+        if (ability == null)
+            return;
+
         if (Input.GetKeyDown(
-                KeyCode.Alpha1 +
-                slotIndex))
+                Hotkey))
         {
             PlayClickFeedback();
+
+            if (UsesHoldAndRelease)
+            {
+                playerActionInput
+                    ?.BeginAbilityHotkeyInput(
+                        ability
+                    );
+
+                return;
+            }
+
             TryActivateAbility();
         }
 
-        UpdateCooldownUI();
+        if (UsesHoldAndRelease &&
+            Input.GetKeyUp(
+                Hotkey))
+        {
+            playerActionInput
+                ?.ReleaseAbilityHotkeyInput(
+                    ability
+                );
+        }
     }
+
+    // =========================================================
+    // POINTER
+    // =========================================================
+
+    public void OnPointerDown(
+        PointerEventData eventData)
+    {
+        if (eventData.button !=
+                PointerEventData
+                    .InputButton.Left ||
+            !UsesHoldAndRelease)
+        {
+            return;
+        }
+
+        PlayClickFeedback();
+
+        playerActionInput
+            ?.BeginAbilityPointerInput(
+                ability
+            );
+    }
+
+    public void OnPointerUp(
+        PointerEventData eventData)
+    {
+        if (eventData.button !=
+                PointerEventData
+                    .InputButton.Left ||
+            !UsesHoldAndRelease)
+        {
+            return;
+        }
+
+        playerActionInput
+            ?.ReleaseAbilityPointerInput(
+                ability
+            );
+    }
+
+    public void OnPointerClick(
+        PointerEventData eventData)
+    {
+        if (eventData.button !=
+            PointerEventData
+                .InputButton.Left)
+        {
+            return;
+        }
+
+        /*
+         * Hold-and-Release hanteras redan av PointerDown och
+         * PointerUp. OnPointerClick får inte aktivera den igen.
+         */
+        if (UsesHoldAndRelease)
+            return;
+
+        PlayClickFeedback();
+        TryActivateAbility();
+    }
+
+    // =========================================================
+    // ACTIVATION
+    // =========================================================
 
     private bool TryActivateAbility()
     {
@@ -118,21 +238,18 @@ public class ActionSlot :
             );
     }
 
-    public void OnPointerClick(
-        PointerEventData eventData)
-    {
-        if (eventData.button !=
-            PointerEventData.InputButton.Left)
-        {
-            return;
-        }
-
-        PlayClickFeedback();
-        TryActivateAbility();
-    }
+    // =========================================================
+    // COOLDOWN
+    // =========================================================
 
     private void UpdateCooldownUI()
     {
+        if (ability == null)
+        {
+            ClearCooldownUI();
+            return;
+        }
+
         float remaining;
         float maximum;
 
@@ -184,22 +301,42 @@ public class ActionSlot :
             return;
         }
 
-        cooldownOverlay.fillAmount =
-            Mathf.Clamp01(
-                remaining / maximum
-            );
+        if (cooldownOverlay != null)
+        {
+            cooldownOverlay.fillAmount =
+                Mathf.Clamp01(
+                    remaining /
+                    maximum
+                );
+        }
 
-        cooldownText.text =
-            Mathf.CeilToInt(
-                remaining
-            ).ToString();
+        if (cooldownText != null)
+        {
+            cooldownText.text =
+                Mathf.CeilToInt(
+                    remaining
+                ).ToString();
+        }
     }
 
     private void ClearCooldownUI()
     {
-        cooldownOverlay.fillAmount = 0f;
-        cooldownText.text = "";
+        if (cooldownOverlay != null)
+        {
+            cooldownOverlay.fillAmount =
+                0f;
+        }
+
+        if (cooldownText != null)
+        {
+            cooldownText.text =
+                string.Empty;
+        }
     }
+
+    // =========================================================
+    // FEEDBACK
+    // =========================================================
 
     private void PlayClickFeedback()
     {
@@ -212,14 +349,24 @@ public class ActionSlot :
 
     private IEnumerator ClickFeedbackRoutine()
     {
-        float elapsed = 0f;
-        const float duration = 0.15f;
+        if (slotTransform == null ||
+            flashImage == null)
+        {
+            yield break;
+        }
+
+        float elapsed =
+            0f;
+
+        const float duration =
+            0.15f;
 
         Vector3 originalScale =
             slotTransform.localScale;
 
         Vector3 targetScale =
-            originalScale * 1.05f;
+            originalScale *
+            1.05f;
 
         flashImage.color =
             new Color(
@@ -231,11 +378,13 @@ public class ActionSlot :
 
         while (elapsed < duration)
         {
-            elapsed += Time.deltaTime;
+            elapsed +=
+                Time.deltaTime;
 
             float progress =
                 Mathf.Clamp01(
-                    elapsed / duration
+                    elapsed /
+                    duration
                 );
 
             slotTransform.localScale =
@@ -272,14 +421,17 @@ public class ActionSlot :
             );
     }
 
+    // =========================================================
+    // DRAG AND DROP
+    // =========================================================
+
     public void OnDrop(
         PointerEventData eventData)
     {
         DraggableAbility dragged =
             eventData.pointerDrag
                 ?.GetComponent<
-                    DraggableAbility
-                >();
+                    DraggableAbility>();
 
         if (dragged == null ||
             dragged.ability == null)
@@ -290,7 +442,8 @@ public class ActionSlot :
         if (dragged.ability.IsBaseAttack)
             return;
 
-        dragged.wasDroppedOnSlot = true;
+        dragged.wasDroppedOnSlot =
+            true;
 
         AbilityData previous =
             ability;
@@ -301,7 +454,8 @@ public class ActionSlot :
 
         if (dragged.sourceSlot != null &&
             dragged.sourceSlot != this &&
-            dragged.sourceSlot is ActionSlot oldSlot)
+            dragged.sourceSlot is
+                ActionSlot oldSlot)
         {
             oldSlot.SetAbility(
                 previous
@@ -318,26 +472,38 @@ public class ActionSlot :
             return;
         }
 
+        /*
+         * Om abilityn som byts bort för närvarande hålls,
+         * avbryts dess charge först.
+         */
+        if (ability != null &&
+            ability != newAbility)
+        {
+            playerActionInput
+                ?.CancelHeldAbilityInput(
+                    ability
+                );
+        }
+
         ability =
             newAbility;
 
         RefreshVisual();
 
-        if (collection != null)
-        {
-            collection.SetEquippedAbility(
-                slotIndex,
-                ability
-            );
-        }
+        collection?.SetEquippedAbility(
+            slotIndex,
+            ability
+        );
     }
 
     private void RefreshVisual()
     {
+        if (icon == null)
+            return;
+
         DraggableAbility drag =
             icon.GetComponent<
-                DraggableAbility
-            >();
+                DraggableAbility>();
 
         if (ability != null)
         {
@@ -359,8 +525,11 @@ public class ActionSlot :
             return;
         }
 
-        icon.sprite = null;
-        icon.enabled = true;
+        icon.sprite =
+            null;
+
+        icon.enabled =
+            true;
 
         icon.color =
             new Color(
@@ -372,15 +541,21 @@ public class ActionSlot :
 
         if (drag != null)
         {
-            drag.ability = null;
+            drag.ability =
+                null;
         }
     }
+
+    // =========================================================
+    // TOOLTIP
+    // =========================================================
 
     public void OnPointerEnter(
         PointerEventData eventData)
     {
         if (ability == null ||
-            DraggableAbility.dragged)
+            DraggableAbility.dragged ||
+            ItemTooltip.Instance == null)
         {
             return;
         }
@@ -398,7 +573,7 @@ public class ActionSlot :
     public void OnPointerExit(
         PointerEventData eventData)
     {
-        ItemTooltip.Instance.Hide();
+        ItemTooltip.Instance?.Hide();
     }
 
     public void ClearSlot()
@@ -406,5 +581,18 @@ public class ActionSlot :
         SetAbility(
             null
         );
+    }
+
+    private void OnDisable()
+    {
+        if (ability != null)
+        {
+            playerActionInput
+                ?.CancelHeldAbilityInput(
+                    ability
+                );
+        }
+
+        ItemTooltip.Instance?.Hide();
     }
 }

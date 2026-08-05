@@ -120,8 +120,8 @@ public sealed class TargetResolver
     /// targetingdata.
     /// </summary>
     private static bool TryPrepareResult(
-        ActionRequest request,
-        TargetingResult result)
+    ActionRequest request,
+    TargetingResult result)
     {
         if (request == null)
         {
@@ -162,7 +162,8 @@ public sealed class TargetResolver
             return false;
         }
 
-        result.Settings = settings;
+        result.Settings =
+            settings;
 
         result.Origin =
             TargetUtility.GetTargetPosition(
@@ -183,12 +184,19 @@ public sealed class TargetResolver
                 result.RawAimPoint
             );
 
+        result.EffectiveRange =
+            GetEffectiveRange(
+                request,
+                settings
+            );
+
         result.TargetPoint =
             ResolveTargetPoint(
-                result.Origin,
-                result.RawAimPoint,
-                result.Direction,
-                settings
+            result.Origin,
+            result.RawAimPoint,
+            result.Direction,
+            settings,
+            result.EffectiveRange
             );
 
         result.Distance =
@@ -269,6 +277,29 @@ public sealed class TargetResolver
         return Vector2.down;
     }
 
+    private static float GetEffectiveRange(
+    ActionRequest request,
+    AbilityTargetingSettings settings)
+    {
+        if (settings == null)
+            return 0f;
+
+        float maximumRange =
+            settings.Range;
+
+        if (request == null ||
+            !request.HasRangeOverride)
+        {
+            return maximumRange;
+        }
+
+        return Mathf.Clamp(
+            request.RangeOverride,
+            0f,
+            maximumRange
+        );
+    }
+
     /// <summary>
     /// Begränsar den slutgiltiga targetpunkten till abilityns
     /// maximum range.
@@ -276,16 +307,59 @@ public sealed class TargetResolver
     /// Ett aim utanför range flyttas till rangegränsen i samma
     /// riktning. Den råa aim-punkten bevaras i RawAimPoint.
     /// </summary>
+    /// <summary>
+    /// Beräknar den slutgiltiga targetpunkten utifrån abilityns
+    /// effektiva runtime-range.
+    ///
+    /// För Line + FullRange bestämmer aim-punkten endast riktningen.
+    /// Linjen sträcks alltid till hela den effektiva räckvidden.
+    ///
+    /// För övriga former används aim-punkten, begränsad till den
+    /// effektiva räckvidden.
+    /// </summary>
     private static Vector2 ResolveTargetPoint(
         Vector2 origin,
         Vector2 rawAimPoint,
         Vector2 direction,
-        AbilityTargetingSettings settings)
+        AbilityTargetingSettings settings,
+        float effectiveRange)
     {
+        if (settings == null)
+            return origin;
+
         if (settings.TargetingMode ==
             TargetingMode.Self)
         {
             return origin;
+        }
+
+        float safeRange =
+            Mathf.Max(
+                0f,
+                effectiveRange
+            );
+
+        direction =
+            direction.sqrMagnitude >
+            DirectionEpsilon
+                ? direction.normalized
+                : Vector2.down;
+
+        /*
+         * FullRange-Line använder alltid hela den aktuella
+         * runtime-rangen.
+         *
+         * Charge kan alltså successivt öka linjens längd även om
+         * muspekaren står nära spelaren.
+         */
+        if (settings.TargetingMode ==
+                TargetingMode.Line &&
+            settings.LineLengthMode ==
+                LineLengthMode.FullRange)
+        {
+            return
+                origin +
+                direction * safeRange;
         }
 
         Vector2 aimDelta =
@@ -294,18 +368,15 @@ public sealed class TargetResolver
         float requestedDistance =
             aimDelta.magnitude;
 
-        float maximumDistance =
-            settings.Range;
-
         if (requestedDistance <=
-            maximumDistance)
+            safeRange)
         {
             return rawAimPoint;
         }
 
         return
             origin +
-            direction * maximumDistance;
+            direction * safeRange;
     }
 
     /// <summary>
@@ -432,7 +503,8 @@ public sealed class TargetResolver
             GetTargetRangeFailure(
                 result.Origin,
                 target,
-                result.Settings
+                result.Settings,
+                result.EffectiveRange
             );
 
         if (rangeFailure !=
@@ -460,10 +532,11 @@ public sealed class TargetResolver
     /// avstånd i stället för enbart true eller false.
     /// </summary>
     private static TargetingFailureReason
-        GetTargetRangeFailure(
-            Vector2 origin,
-            GameObject target,
-            AbilityTargetingSettings settings)
+    GetTargetRangeFailure(
+        Vector2 origin,
+        GameObject target,
+        AbilityTargetingSettings settings,
+        float effectiveRange)
     {
         Vector2 closestPoint =
             TargetUtility.GetClosestPoint(
@@ -477,7 +550,8 @@ public sealed class TargetResolver
                 closestPoint
             );
 
-        const float tolerance = 0.001f;
+        const float tolerance =
+            0.001f;
 
         if (distance + tolerance <
             settings.MinimumRange)
@@ -487,7 +561,7 @@ public sealed class TargetResolver
         }
 
         if (distance - tolerance >
-            settings.Range)
+            effectiveRange)
         {
             return
                 TargetingFailureReason.OutOfRange;

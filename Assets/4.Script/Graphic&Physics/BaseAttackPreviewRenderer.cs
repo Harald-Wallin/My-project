@@ -1,24 +1,56 @@
 using UnityEngine;
 
 /// <summary>
-/// Visar spelarens permanenta base attack-form samt attackens
-/// readiness/cooldown-fyllnad.
+/// Visar spelarens passiva base attack-form och dess
+/// cooldown/readiness.
 ///
-/// Själva formrenderingen hanteras av TargetShapeRenderer.
+/// Denna komponent renderar aldrig en aktiv action.
+///
+/// All aktiv targeting-, cast- och charge-preview hanteras
+/// exklusivt av ActionPreviewRenderer.
 /// </summary>
 [RequireComponent(typeof(BaseAttackController))]
 [RequireComponent(typeof(PlayerBaseAttackCollection))]
 [RequireComponent(typeof(CharacterStats))]
+[RequireComponent(typeof(CharacterActionController))]
 public sealed class BaseAttackPreviewRenderer :
     MonoBehaviour
 {
     [Header("Visibility")]
 
     [SerializeField]
+    [Tooltip(
+        "Om den passiva base attack-indikatorn ska visas " +
+        "även utanför combat."
+    )]
     private bool showOutsideCombat = true;
 
     [SerializeField]
-    private bool hideDuringActionPreview = true;
+    [Tooltip(
+        "Döljer den passiva base attack-indikatorn medan " +
+        "vilken action som helst är aktiv.\n\n" +
+        "Rekommenderas aktiverad eftersom ActionPreviewRenderer " +
+        "äger all aktiv targeting och charge-preview."
+    )]
+    private bool hideDuringActiveAction = true;
+
+    [SerializeField]
+    [Tooltip(
+        "Om den passiva grundformen ska följa abilityns " +
+        "Action Preview Mode.\n\n" +
+        "När detta är aktiverat döljer Preview Mode: None " +
+        "den passiva grundformen."
+    )]
+    private bool respectAbilityPreviewMode = true;
+
+    [SerializeField]
+    [Tooltip(
+        "Tillåter readiness-fyllnaden även när abilityns " +
+        "Preview Mode är None.\n\n" +
+        "Observera att readiness-fyllnaden fortfarande avslöjar " +
+        "attackens targetingform och räckvidd."
+    )]
+    private bool showReadinessWhenPreviewModeIsNone = true;
 
     [Header("Passive Colors")]
 
@@ -72,6 +104,9 @@ public sealed class BaseAttackPreviewRenderer :
         );
 
     [SerializeField]
+    [Tooltip(
+        "Döljer readiness-fyllnaden när attacken är helt redo."
+    )]
     private bool hideReadinessFillWhenReady;
 
     [Header("Shape Quality")]
@@ -98,15 +133,26 @@ public sealed class BaseAttackPreviewRenderer :
     private int sortingOrder = 90;
 
     private CharacterStats stats;
-    private BaseAttackController baseAttackController;
-    private PlayerBaseAttackCollection collection;
-    private CharacterStateController stateController;
-    private CharacterActionController actionController;
+
+    private BaseAttackController
+        baseAttackController;
+
+    private PlayerBaseAttackCollection
+        collection;
+
+    private CharacterStateController
+        stateController;
+
+    private CharacterActionController
+        actionController;
 
     private GameObject previewRoot;
 
-    private TargetShapeRenderer baseShapeRenderer;
-    private TargetShapeRenderer readinessShapeRenderer;
+    private TargetShapeRenderer
+        baseShapeRenderer;
+
+    private TargetShapeRenderer
+        readinessShapeRenderer;
 
     private void Awake()
     {
@@ -117,17 +163,20 @@ public sealed class BaseAttackPreviewRenderer :
             GetComponent<BaseAttackController>();
 
         collection =
-            GetComponent<PlayerBaseAttackCollection>();
+            GetComponent<
+                PlayerBaseAttackCollection>();
 
         stateController =
-            GetComponent<CharacterStateController>();
+            GetComponent<
+                CharacterStateController>();
 
         actionController =
-            GetComponent<CharacterActionController>();
+            GetComponent<
+                CharacterActionController>();
 
         /*
-         * Den permanenta base attack-previewn är endast
-         * spelar-UI.
+         * Den passiva base attack-indikatorn är endast
+         * avsedd för spelaren.
          */
         if (!(stats is PlayerStats))
         {
@@ -143,34 +192,22 @@ public sealed class BaseAttackPreviewRenderer :
         if (!(stats is PlayerStats))
             return;
 
-        if (collection == null)
-        {
-            collection =
-                GetComponent<
-                    PlayerBaseAttackCollection
-                >();
-        }
+        ResolveReferences();
+        Subscribe();
 
-        if (collection != null)
-        {
-            collection.OnEquippedAttackChanged +=
-                HandleEquippedAttackChanged;
-        }
+        RenderCurrentAttack();
     }
 
     private void OnDisable()
     {
-        if (collection != null)
-        {
-            collection.OnEquippedAttackChanged -=
-                HandleEquippedAttackChanged;
-        }
-
+        Unsubscribe();
         HidePreview();
     }
 
     private void OnDestroy()
     {
+        Unsubscribe();
+
         if (previewRoot != null)
         {
             Destroy(
@@ -210,6 +247,58 @@ public sealed class BaseAttackPreviewRenderer :
         RenderCurrentAttack();
     }
 
+    private void ResolveReferences()
+    {
+        if (baseAttackController == null)
+        {
+            baseAttackController =
+                GetComponent<
+                    BaseAttackController>();
+        }
+
+        if (collection == null)
+        {
+            collection =
+                GetComponent<
+                    PlayerBaseAttackCollection>();
+        }
+
+        if (stateController == null)
+        {
+            stateController =
+                GetComponent<
+                    CharacterStateController>();
+        }
+
+        if (actionController == null)
+        {
+            actionController =
+                GetComponent<
+                    CharacterActionController>();
+        }
+    }
+
+    private void Subscribe()
+    {
+        if (collection == null)
+            return;
+
+        collection.OnEquippedAttackChanged -=
+            HandleEquippedAttackChanged;
+
+        collection.OnEquippedAttackChanged +=
+            HandleEquippedAttackChanged;
+    }
+
+    private void Unsubscribe()
+    {
+        if (collection == null)
+            return;
+
+        collection.OnEquippedAttackChanged -=
+            HandleEquippedAttackChanged;
+    }
+
     private void HandleEquippedAttackChanged(
         AbilityData attack)
     {
@@ -226,7 +315,7 @@ public sealed class BaseAttackPreviewRenderer :
     {
         previewRoot =
             new GameObject(
-                "Base Attack Preview Runtime"
+                "Base Attack Readiness Runtime"
             );
 
         previewRoot.transform.SetParent(
@@ -234,9 +323,19 @@ public sealed class BaseAttackPreviewRenderer :
             false
         );
 
+        CreateBaseShapeRenderer();
+        CreateReadinessShapeRenderer();
+
+        previewRoot.SetActive(
+            false
+        );
+    }
+
+    private void CreateBaseShapeRenderer()
+    {
         GameObject baseObject =
             new GameObject(
-                "Base Shape"
+                "Passive Base Shape"
             );
 
         baseObject.transform.SetParent(
@@ -246,8 +345,7 @@ public sealed class BaseAttackPreviewRenderer :
 
         baseShapeRenderer =
             baseObject.AddComponent<
-                TargetShapeRenderer
-            >();
+                TargetShapeRenderer>();
 
         baseShapeRenderer.Initialize(
             sortingLayerName,
@@ -257,12 +355,15 @@ public sealed class BaseAttackPreviewRenderer :
             0.15f,
             0.5f,
             outlineWidth,
-            true
+            renderOutline: true
         );
+    }
 
+    private void CreateReadinessShapeRenderer()
+    {
         GameObject readinessObject =
             new GameObject(
-                "Readiness Shape"
+                "Readiness Fill Shape"
             );
 
         readinessObject.transform.SetParent(
@@ -272,8 +373,7 @@ public sealed class BaseAttackPreviewRenderer :
 
         readinessShapeRenderer =
             readinessObject.AddComponent<
-                TargetShapeRenderer
-            >();
+                TargetShapeRenderer>();
 
         readinessShapeRenderer.Initialize(
             sortingLayerName,
@@ -283,17 +383,15 @@ public sealed class BaseAttackPreviewRenderer :
             0.15f,
             0.5f,
             outlineWidth,
-            false
+            renderOutline: false
         );
     }
 
     private void RenderCurrentAttack()
     {
-        if (baseAttackController == null ||
-            collection == null ||
-            previewRoot == null ||
-            baseShapeRenderer == null ||
-            readinessShapeRenderer == null)
+        ResolveReferences();
+
+        if (!HasRequiredReferences())
         {
             HidePreview();
             return;
@@ -302,9 +400,8 @@ public sealed class BaseAttackPreviewRenderer :
         AbilityData attack =
             collection.GetEquippedAttack();
 
-        if (attack == null ||
-            !attack.IsBaseAttack ||
-            !attack.UsesActionSettings)
+        if (!CanDisplayAttack(
+                attack))
         {
             HidePreview();
             return;
@@ -312,19 +409,6 @@ public sealed class BaseAttackPreviewRenderer :
 
         AbilityTargetingSettings settings =
             attack.TargetingSettings;
-
-        if (settings == null)
-        {
-            HidePreview();
-            return;
-        }
-
-        if (!SupportsPermanentPreview(
-                settings.TargetingMode))
-        {
-            HidePreview();
-            return;
-        }
 
         bool inCombat =
             stateController != null &&
@@ -337,28 +421,51 @@ public sealed class BaseAttackPreviewRenderer :
             return;
         }
 
-        if (hideDuringActionPreview &&
+        /*
+         * Under en aktiv action är ActionPreviewRenderer den
+         * enda auktoritativa renderern.
+         *
+         * Detta gäller Preview, Cast, Charge, Execution och
+         * Recovery, inte endast ActionPhase.Preview.
+         */
+        if (hideDuringActiveAction &&
             actionController != null &&
-            actionController.IsPreviewing)
+            actionController.HasActiveAction)
         {
             HidePreview();
             return;
         }
+
+        bool previewModeIsNone =
+            attack.PreviewMode ==
+            ActionPreviewMode.None;
+
+        bool showBaseShape =
+            !respectAbilityPreviewMode ||
+            !previewModeIsNone;
+
+        bool showReadinessShape =
+            !previewModeIsNone ||
+            showReadinessWhenPreviewModeIsNone;
 
         Vector2 origin =
             transform.position;
 
         Vector2 direction =
             GetSafeDirection(
-                baseAttackController.CurrentDirection
+                baseAttackController
+                    .CurrentDirection
+            );
+
+        float range =
+            Mathf.Max(
+                0f,
+                settings.Range
             );
 
         Vector2 targetPoint =
             origin +
-            direction * settings.Range;
-
-        float distance =
-            settings.Range;
+            direction * range;
 
         float readiness =
             Mathf.Clamp01(
@@ -366,6 +473,56 @@ public sealed class BaseAttackPreviewRenderer :
                     .GetReadinessNormalized()
             );
 
+        bool renderedAnything =
+            false;
+
+        if (showBaseShape)
+        {
+            renderedAnything |=
+                RenderBaseShape(
+                    settings,
+                    origin,
+                    targetPoint,
+                    direction,
+                    range,
+                    inCombat
+                );
+        }
+        else
+        {
+            baseShapeRenderer.Clear();
+        }
+
+        if (showReadinessShape)
+        {
+            renderedAnything |=
+                RenderReadinessShape(
+                    settings,
+                    origin,
+                    targetPoint,
+                    direction,
+                    range,
+                    readiness
+                );
+        }
+        else
+        {
+            readinessShapeRenderer.Clear();
+        }
+
+        previewRoot.SetActive(
+            renderedAnything
+        );
+    }
+
+    private bool RenderBaseShape(
+        AbilityTargetingSettings settings,
+        Vector2 origin,
+        Vector2 targetPoint,
+        Vector2 direction,
+        float distance,
+        bool inCombat)
+    {
         Color fillColor =
             inCombat
                 ? combatFillColor
@@ -376,51 +533,83 @@ public sealed class BaseAttackPreviewRenderer :
                 ? combatOutlineColor
                 : passiveOutlineColor;
 
-        bool renderedBaseShape =
-            baseShapeRenderer.Render(
-                settings,
-                origin,
-                targetPoint,
-                direction,
-                distance,
-                null,
-                fillColor,
-                outlineColor,
-                1f
-            );
+        return baseShapeRenderer.Render(
+            settings,
+            origin,
+            targetPoint,
+            direction,
+            distance,
+            null,
+            fillColor,
+            outlineColor,
+            shapeScale: 1f,
+            rangeOverride: settings.Range
+        );
+    }
 
-        if (!renderedBaseShape)
-        {
-            HidePreview();
-            return;
-        }
-
-        bool showReadiness =
+    private bool RenderReadinessShape(
+        AbilityTargetingSettings settings,
+        Vector2 origin,
+        Vector2 targetPoint,
+        Vector2 direction,
+        float distance,
+        float readiness)
+    {
+        bool shouldShow =
             readiness > 0f &&
-            (!hideReadinessFillWhenReady ||
-             readiness < 0.999f);
-
-        if (showReadiness)
-        {
-            readinessShapeRenderer.Render(
-                settings,
-                origin,
-                targetPoint,
-                direction,
-                distance,
-                null,
-                readinessFillColor,
-                readinessFillColor,
-                readiness
+            (
+                !hideReadinessFillWhenReady ||
+                readiness < 0.999f
             );
-        }
-        else
+
+        if (!shouldShow)
         {
             readinessShapeRenderer.Clear();
+            return false;
         }
 
-        previewRoot.SetActive(
-            true
+        return readinessShapeRenderer.Render(
+            settings,
+            origin,
+            targetPoint,
+            direction,
+            distance,
+            null,
+            readinessFillColor,
+            Color.clear,
+            shapeScale: readiness,
+            rangeOverride: settings.Range
+        );
+    }
+
+    private bool HasRequiredReferences()
+    {
+        return
+            baseAttackController != null &&
+            collection != null &&
+            previewRoot != null &&
+            baseShapeRenderer != null &&
+            readinessShapeRenderer != null;
+    }
+
+    private static bool CanDisplayAttack(
+        AbilityData attack)
+    {
+        if (attack == null)
+            return false;
+
+        if (!attack.IsBaseAttack)
+            return false;
+
+        if (!attack.UsesActionSettings)
+            return false;
+
+        if (attack.TargetingSettings == null)
+            return false;
+
+        return SupportsPermanentPreview(
+            attack.TargetingSettings
+                .TargetingMode
         );
     }
 
@@ -441,10 +630,14 @@ public sealed class BaseAttackPreviewRenderer :
         TargetingMode targetingMode)
     {
         return
-            targetingMode == TargetingMode.Cone ||
-            targetingMode == TargetingMode.Circle ||
-            targetingMode == TargetingMode.Self ||
-            targetingMode == TargetingMode.Line;
+            targetingMode ==
+                TargetingMode.Cone ||
+            targetingMode ==
+                TargetingMode.Circle ||
+            targetingMode ==
+                TargetingMode.Self ||
+            targetingMode ==
+                TargetingMode.Line;
     }
 
     private static Vector2 GetSafeDirection(

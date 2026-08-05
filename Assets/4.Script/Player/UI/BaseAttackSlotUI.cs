@@ -3,80 +3,240 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class BaseAttackSlotUI :
+public sealed class BaseAttackSlotUI :
     MonoBehaviour,
     IDropHandler,
     IPointerEnterHandler,
     IPointerExitHandler,
+    IPointerClickHandler,
     ICombatSlot
 {
-    [SerializeField] private Image icon;
-    [SerializeField] private Image cooldownOverlay;
-    [SerializeField] private TMP_Text cooldownText;
+    [Header("Slot")]
 
-    private BaseAttackController controller;
-    private PlayerBaseAttackCollection collection;
+    [SerializeField]
+    [Range(
+        0,
+        PlayerBaseAttackCollection
+            .SlotCount - 1)]
+    private int slotIndex;
+
+    [Header("Visuals")]
+
+    [SerializeField]
+    private Image icon;
+
+    [SerializeField]
+    private Image cooldownOverlay;
+
+    [SerializeField]
+    private TMP_Text cooldownText;
+
+    [SerializeField]
+    [Tooltip(
+        "Overlay som markerar primary-slotten. " +
+        "Primary-slotten är alltid den aktiva attacken."
+    )]
+    private Image activeIndicator;
+
+    private BaseAttackController
+        baseAttackController;
+
+    private CharacterActionController
+        actionController;
+
+    private PlayerBaseAttackCollection
+        collection;
 
     private AbilityData attack;
 
+    public int SlotIndex =>
+        slotIndex;
+
+    public AbilityData Attack =>
+        attack;
+
     public void Initialize(
         BaseAttackController controller,
-        PlayerBaseAttackCollection collection
-    )
+        PlayerBaseAttackCollection
+            attackCollection,
+        int index)
     {
-        this.controller = controller;
-        this.collection = collection;
+        Unsubscribe();
 
+        baseAttackController =
+            controller;
+
+        collection =
+            attackCollection;
+
+        slotIndex =
+            Mathf.Clamp(
+                index,
+                0,
+                PlayerBaseAttackCollection
+                    .SlotCount - 1
+            );
+
+        if (baseAttackController != null)
+        {
+            actionController =
+                baseAttackController
+                    .GetComponent<
+                        CharacterActionController>();
+        }
+
+        Subscribe();
         Refresh();
     }
 
-    void Update()
+    private void OnEnable()
+    {
+        Subscribe();
+        Refresh();
+    }
+
+    private void OnDisable()
+    {
+        Unsubscribe();
+
+        ItemTooltip.Instance?.Hide();
+    }
+
+    private void OnDestroy()
+    {
+        Unsubscribe();
+    }
+
+    private void Update()
     {
         UpdateCooldown();
     }
 
-    void UpdateCooldown()
+    private void Subscribe()
     {
-        if (attack == null)
+        if (collection == null)
+            return;
+
+        collection.OnAttackSlotChanged -=
+            HandleAttackSlotChanged;
+
+        collection.OnActiveAttackChanged -=
+            HandleActiveAttackChanged;
+
+        collection.OnAttackSlotChanged +=
+            HandleAttackSlotChanged;
+
+        collection.OnActiveAttackChanged +=
+            HandleActiveAttackChanged;
+    }
+
+    private void Unsubscribe()
+    {
+        if (collection == null)
+            return;
+
+        collection.OnAttackSlotChanged -=
+            HandleAttackSlotChanged;
+
+        collection.OnActiveAttackChanged -=
+            HandleActiveAttackChanged;
+    }
+
+    private void HandleAttackSlotChanged(
+        int changedSlotIndex,
+        AbilityData changedAttack)
+    {
+        if (changedSlotIndex !=
+            slotIndex)
         {
-            cooldownOverlay.fillAmount = 0f;
-            cooldownText.text = "";
             return;
         }
 
-        float normalized =
-            controller.GetCooldownNormalized();
+        Refresh();
+    }
 
-        cooldownOverlay.fillAmount = normalized;
+    private void HandleActiveAttackChanged(
+        int activeSlotIndex,
+        AbilityData activeAttack)
+    {
+        /*
+         * Primary är alltid aktiv, men eventet kan användas
+         * för att garantera att markeringen är korrekt.
+         */
+        RefreshActiveIndicator();
+    }
 
-        if (normalized > 0f)
+    private void UpdateCooldown()
+    {
+        if (cooldownOverlay == null ||
+            cooldownText == null)
         {
-            float speed =
-                controller.GetComponent<CharacterStats>()
-                    .GetStat(StatType.AttackSpeed);
-
-            float max =
-                1f / Mathf.Max(speed, 0.01f);
-
-            cooldownText.text =
-                Mathf.CeilToInt(
-                    normalized * max
-                ).ToString();
+            return;
         }
-        else
+
+        if (attack == null ||
+            actionController == null)
         {
-            cooldownText.text = "";
+            ClearCooldown();
+            return;
+        }
+
+        float remaining =
+            actionController
+                .GetCooldownRemaining(
+                    attack
+                );
+
+        float maximum =
+            actionController
+                .GetMaxCooldown(
+                    attack
+                );
+
+        if (remaining <= 0f ||
+            maximum <= 0f)
+        {
+            ClearCooldown();
+            return;
+        }
+
+        cooldownOverlay.fillAmount =
+            Mathf.Clamp01(
+                remaining /
+                maximum
+            );
+
+        cooldownText.text =
+            Mathf.CeilToInt(
+                remaining
+            ).ToString();
+    }
+
+    private void ClearCooldown()
+    {
+        if (cooldownOverlay != null)
+        {
+            cooldownOverlay.fillAmount =
+                0f;
+        }
+
+        if (cooldownText != null)
+        {
+            cooldownText.text =
+                string.Empty;
         }
     }
 
     public void OnDrop(
-    PointerEventData eventData)
+        PointerEventData eventData)
     {
+        if (collection == null)
+            return;
+
         DraggableAbility dragged =
             eventData.pointerDrag
                 ?.GetComponent<
-                    DraggableAbility
-                >();
+                    DraggableAbility>();
 
         if (dragged == null ||
             dragged.ability == null)
@@ -87,56 +247,162 @@ public class BaseAttackSlotUI :
         if (!dragged.ability.IsBaseAttack)
             return;
 
-        if (!collection.EquipAttack(
-                dragged.ability))
+        bool equipped =
+            collection.EquipAttack(
+                slotIndex,
+                dragged.ability
+            );
+
+        if (!equipped)
+            return;
+
+        /*
+         * Förhindrar att DraggableAbility tömmer sin
+         * ursprungsslot efter en lyckad drop.
+         */
+        dragged.wasDroppedOnSlot =
+            true;
+    }
+
+    public void OnPointerClick(
+        PointerEventData eventData)
+    {
+        if (eventData.button !=
+            PointerEventData
+                .InputButton.Left)
         {
             return;
         }
 
-        dragged.wasDroppedOnSlot = true;
+        if (collection == null)
+            return;
 
-        Refresh();
+        /*
+         * Primary är redan aktiv.
+         */
+        if (slotIndex ==
+            PlayerBaseAttackCollection
+                .PrimarySlotIndex)
+        {
+            return;
+        }
+
+        /*
+         * Klick på secondary gör att dess attack kommer
+         * fram till primary-positionen.
+         */
+        collection.SwapAttacks();
     }
 
-    void Refresh()
+    private void Refresh()
     {
         attack =
-            collection.GetEquippedAttack();
+            collection != null
+                ? collection.GetAttack(
+                    slotIndex
+                )
+                : null;
+
+        RefreshIcon();
+        RefreshActiveIndicator();
+        ClearCooldown();
+    }
+
+    private void RefreshIcon()
+    {
+        if (icon == null)
+            return;
+
+        DraggableAbility draggable =
+            icon.GetComponent<
+                DraggableAbility>();
 
         if (attack == null)
         {
-            icon.sprite = null;
+            icon.sprite =
+                null;
+
+            icon.enabled =
+                true;
+
             icon.color =
-                new Color(1f, 1f, 1f, 0.2f);
+                new Color(
+                    1f,
+                    1f,
+                    1f,
+                    0.2f
+                );
+
+            if (draggable != null)
+            {
+                draggable.ability =
+                    null;
+            }
 
             return;
         }
 
-        icon.sprite = attack.icon;
-        icon.color = Color.white;
+        icon.sprite =
+            attack.icon;
+
+        icon.enabled =
+            true;
+
+        icon.color =
+            Color.white;
+
+        if (draggable != null)
+        {
+            draggable.ability =
+                attack;
+        }
     }
 
-    public void OnPointerEnter(PointerEventData eventData)
+    private void RefreshActiveIndicator()
     {
-        if (attack == null)
+        if (activeIndicator == null)
             return;
+
+        /*
+         * Den visuellt främre primary-slotten är alltid aktiv.
+         */
+        activeIndicator.enabled =
+            slotIndex ==
+            PlayerBaseAttackCollection
+                .PrimarySlotIndex;
+    }
+
+    public void OnPointerEnter(
+        PointerEventData eventData)
+    {
+        if (attack == null ||
+            DraggableAbility.dragged ||
+            ItemTooltip.Instance == null ||
+            icon == null)
+        {
+            return;
+        }
 
         ItemTooltip.Instance.Show(
             attack,
             icon.rectTransform,
             PlayerReference.Player,
-            ItemTooltip.TooltipAnchorMode.TopRight
+            ItemTooltip
+                .TooltipAnchorMode
+                .TopRight
         );
     }
 
-    public void OnPointerExit(PointerEventData eventData)
+    public void OnPointerExit(
+        PointerEventData eventData)
     {
-        ItemTooltip.Instance.Hide();
+        ItemTooltip.Instance?.Hide();
     }
 
     public void ClearSlot()
     {
-        collection.EquipAttack(null);
-        Refresh();
+        collection?.ClearAttack(
+            slotIndex
+        );
     }
 }

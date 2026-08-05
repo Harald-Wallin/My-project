@@ -4,9 +4,8 @@ using UnityEngine;
 /// <summary>
 /// Återanvändbar runtime-renderer för targetingformer.
 ///
-/// Klassen innehåller ingen gameplaylogik och avgör inte om en
-/// targeting är giltig. Den visualiserar endast redan beräknad
-/// targetingdata.
+/// Klassen innehåller ingen gameplaylogik.
+/// Den visualiserar endast redan beräknad targetingdata.
 ///
 /// Stöder:
 /// - Self
@@ -15,6 +14,11 @@ using UnityEngine;
 /// - Circle
 /// - Cone
 /// - Line
+///
+/// Renderern kan även:
+/// - skala hela formen
+/// - rendera med eller utan outline
+/// - använda en runtime-override för range
 /// </summary>
 public sealed class TargetShapeRenderer :
     MonoBehaviour
@@ -36,7 +40,6 @@ public sealed class TargetShapeRenderer :
     private float outlineWidth = 0.04f;
 
     private bool showOutline = true;
-
     private bool initialized;
 
     private readonly List<Vector3> vertices =
@@ -51,7 +54,7 @@ public sealed class TargetShapeRenderer :
     /// <summary>
     /// Skapar renderer-komponenter och runtime-material.
     ///
-    /// Ska anropas exakt en gång efter att komponenten har
+    /// Ska normalt anropas exakt en gång efter att komponenten
     /// skapats.
     /// </summary>
     public bool Initialize(
@@ -115,15 +118,20 @@ public sealed class TargetShapeRenderer :
                 this
             );
 
-            gameObject.SetActive(false);
+            gameObject.SetActive(
+                false
+            );
+
             return false;
         }
 
         meshFilter =
-            gameObject.AddComponent<MeshFilter>();
+            gameObject.AddComponent<
+                MeshFilter>();
 
         meshRenderer =
-            gameObject.AddComponent<MeshRenderer>();
+            gameObject.AddComponent<
+                MeshRenderer>();
 
         shapeMesh =
             new Mesh
@@ -133,7 +141,8 @@ public sealed class TargetShapeRenderer :
             };
 
         fillMaterial =
-            new Material(spriteShader)
+            new Material(
+                spriteShader)
             {
                 name =
                     $"{gameObject.name} Fill Material Runtime"
@@ -154,10 +163,12 @@ public sealed class TargetShapeRenderer :
         if (showOutline)
         {
             outlineRenderer =
-                gameObject.AddComponent<LineRenderer>();
+                gameObject.AddComponent<
+                    LineRenderer>();
 
             outlineMaterial =
-                new Material(spriteShader)
+                new Material(
+                    spriteShader)
                 {
                     name =
                         $"{gameObject.name} Outline Material Runtime"
@@ -191,26 +202,53 @@ public sealed class TargetShapeRenderer :
                 outlineWidth;
         }
 
-        initialized = true;
+        initialized =
+            true;
 
         Clear();
-        gameObject.SetActive(false);
 
         return true;
     }
 
     /// <summary>
-    /// Renderar ett färdigt targetingresultat.
+    /// Renderar ett färdigt TargetingResult.
+    ///
+    /// EffectiveRange används så att charge-baserad runtime-range
+    /// även syns korrekt för exempelvis Cone och Line.
     /// </summary>
     public bool Render(
         TargetingResult targeting,
         Color fillColor,
         Color outlineColor)
     {
+        return Render(
+            targeting,
+            fillColor,
+            outlineColor,
+            1f
+        );
+    }
+
+    /// <summary>
+    /// Renderar ett färdigt TargetingResult med en skalfaktor.
+    ///
+    /// shapeScale:
+    /// - 0 = nästan ingen form
+    /// - 0.5 = halva formen
+    /// - 1 = hela formen
+    /// </summary>
+    public bool Render(
+    TargetingResult targeting,
+    Color fillColor,
+    Color outlineColor,
+    float shapeScale,
+    Vector2 terminalOffset = default)
+    {
         if (targeting == null ||
             targeting.Settings == null)
         {
             Clear();
+
             return false;
         }
 
@@ -223,16 +261,21 @@ public sealed class TargetShapeRenderer :
             targeting.PrimaryTarget,
             fillColor,
             outlineColor,
-            1f
+            shapeScale,
+            targeting.EffectiveRange,
+            terminalOffset
         );
     }
 
     /// <summary>
-    /// Renderar en targetingform utan att kräva ett
-    /// TargetingResult.
+    /// Renderar en targetingform utan ett TargetingResult.
     ///
-    /// shapeScale används exempelvis av base attackens
-    /// cooldown/readiness-visualisering.
+    /// rangeOverride används exempelvis för att visa abilityns
+    /// maximala range samtidigt som den verkliga chargade formen
+    /// använder en lägre EffectiveRange.
+    ///
+    /// Ett negativt rangeOverride innebär att settings.Range
+    /// används.
     /// </summary>
     public bool Render(
         AbilityTargetingSettings settings,
@@ -243,12 +286,15 @@ public sealed class TargetShapeRenderer :
         GameObject primaryTarget,
         Color fillColor,
         Color outlineColor,
-        float shapeScale = 1f)
+        float shapeScale = 1f,
+        float rangeOverride = -1f,
+        Vector2 terminalOffset = default)
     {
         if (!initialized ||
             settings == null)
         {
             Clear();
+
             return false;
         }
 
@@ -257,32 +303,49 @@ public sealed class TargetShapeRenderer :
                 shapeScale
             );
 
+        float effectiveRange =
+            rangeOverride >= 0f
+                ? rangeOverride
+                : settings.Range;
+
+        effectiveRange =
+            Mathf.Max(
+                0f,
+                effectiveRange
+            );
+
         ClearGeometry();
 
         bool shapeBuilt =
             BuildShape(
-                settings,
-                origin,
-                targetPoint,
-                direction,
-                distance,
-                primaryTarget,
-                shapeScale
-            );
+            settings,
+            origin,
+            targetPoint,
+            direction,
+            distance,
+            primaryTarget,
+            shapeScale,
+            effectiveRange,
+            terminalOffset
+                );
 
         if (!shapeBuilt)
         {
             Clear();
+
             return false;
         }
 
         ApplyGeometry();
+
         ApplyColors(
             fillColor,
             outlineColor
         );
 
-        gameObject.SetActive(true);
+        gameObject.SetActive(
+            true
+        );
 
         return true;
     }
@@ -304,7 +367,9 @@ public sealed class TargetShapeRenderer :
 
         if (gameObject != null)
         {
-            gameObject.SetActive(false);
+            gameObject.SetActive(
+                false
+            );
         }
     }
 
@@ -315,14 +380,17 @@ public sealed class TargetShapeRenderer :
         Vector2 direction,
         float distance,
         GameObject primaryTarget,
-        float shapeScale)
+        float shapeScale,
+        float effectiveRange,
+        Vector2 terminalOffset)
     {
         switch (settings.TargetingMode)
         {
             case TargetingMode.Self:
                 BuildCircle(
                     origin,
-                    selfRadius * shapeScale
+                    selfRadius *
+                    shapeScale
                 );
 
                 return true;
@@ -339,7 +407,8 @@ public sealed class TargetShapeRenderer :
             case TargetingMode.Point:
                 BuildCircle(
                     targetPoint,
-                    pointRadius * shapeScale
+                    pointRadius *
+                    shapeScale
                 );
 
                 return true;
@@ -347,7 +416,8 @@ public sealed class TargetShapeRenderer :
             case TargetingMode.Circle:
                 BuildCircle(
                     targetPoint,
-                    settings.Radius * shapeScale
+                    settings.Radius *
+                    shapeScale
                 );
 
                 return true;
@@ -356,26 +426,41 @@ public sealed class TargetShapeRenderer :
                 BuildCone(
                     origin,
                     direction,
-                    settings.Range * shapeScale,
+                    effectiveRange *
+                    shapeScale,
                     settings.ConeAngle
                 );
 
                 return true;
 
             case TargetingMode.Line:
-                float resolvedDistance =
-                    distance > 0.001f
-                        ? distance
-                        : settings.Range;
+                {
+                    float resolvedDistance =
+                        distance > 0.001f
+                            ? distance
+                            : effectiveRange;
 
-                BuildLine(
-                    origin,
-                    direction,
-                    resolvedDistance * shapeScale,
-                    settings.LineWidth
-                );
+                    /*
+                     * En Line får aldrig renderas längre än dess
+                     * aktuella EffectiveRange.
+                     */
+                    resolvedDistance =
+                        Mathf.Min(
+                            resolvedDistance,
+                            effectiveRange
+                        );
 
-                return true;
+                    BuildLine(
+                        origin,
+                        direction,
+                        resolvedDistance *
+                        shapeScale,
+                        settings.LineWidth,
+                        terminalOffset
+                    );
+
+                    return true;
+                }
 
             default:
                 return false;
@@ -394,7 +479,8 @@ public sealed class TargetShapeRenderer :
         {
             BuildCircle(
                 targetPoint,
-                pointRadius * shapeScale
+                pointRadius *
+                shapeScale
             );
 
             return;
@@ -409,7 +495,9 @@ public sealed class TargetShapeRenderer :
 
         BuildCircle(
             bounds.center,
-            radius * 1.1f * shapeScale
+            radius *
+            1.1f *
+            shapeScale
         );
     }
 
@@ -447,7 +535,8 @@ public sealed class TargetShapeRenderer :
                 new Vector2(
                     Mathf.Cos(angle),
                     Mathf.Sin(angle)
-                ) * radius;
+                ) *
+                radius;
 
             Vector3 localPoint =
                 WorldToLocal(
@@ -474,8 +563,11 @@ public sealed class TargetShapeRenderer :
                 i + 1;
 
             int next =
-                ((i + 1) %
-                 circleSegments) + 1;
+                (
+                    (i + 1) %
+                    circleSegments
+                ) +
+                1;
 
             triangles.Add(0);
             triangles.Add(current);
@@ -521,11 +613,13 @@ public sealed class TargetShapeRenderer :
             Mathf.Atan2(
                 direction.y,
                 direction.x
-            ) * Mathf.Rad2Deg;
+            ) *
+            Mathf.Rad2Deg;
 
         float startAngle =
             centerAngle -
-            totalAngle * 0.5f;
+            totalAngle *
+            0.5f;
 
         Vector3 localOrigin =
             WorldToLocal(
@@ -554,7 +648,8 @@ public sealed class TargetShapeRenderer :
             float angleDegrees =
                 Mathf.Lerp(
                     startAngle,
-                    startAngle + totalAngle,
+                    startAngle +
+                    totalAngle,
                     progress
                 );
 
@@ -565,9 +660,12 @@ public sealed class TargetShapeRenderer :
             Vector2 worldPoint =
                 worldOrigin +
                 new Vector2(
-                    Mathf.Cos(angleRadians),
-                    Mathf.Sin(angleRadians)
-                ) * range;
+                    Mathf.Cos(
+                        angleRadians),
+                    Mathf.Sin(
+                        angleRadians)
+                ) *
+                range;
 
             Vector3 localPoint =
                 WorldToLocal(
@@ -597,10 +695,11 @@ public sealed class TargetShapeRenderer :
     }
 
     private void BuildLine(
-        Vector2 worldOrigin,
-        Vector2 direction,
-        float length,
-        float width)
+    Vector2 worldOrigin,
+    Vector2 direction,
+    float length,
+    float width,
+    Vector2 terminalOffset)
     {
         length =
             Mathf.Max(
@@ -619,51 +718,110 @@ public sealed class TargetShapeRenderer :
                 direction
             );
 
-        Vector2 perpendicular =
+        float halfWidth =
+            width * 0.5f;
+
+        /*
+         * Starten använder abilityns fasta aim-riktning.
+         */
+        Vector2 startPerpendicular =
             new Vector2(
                 -direction.y,
                 direction.x
             );
 
-        float halfWidth =
-            width * 0.5f;
-
+        /*
+         * Endast linjens terminal flyttas av charge-effekten.
+         */
         Vector2 worldEnd =
             worldOrigin +
-            direction * length;
+            direction * length +
+            terminalOffset;
+
+        /*
+         * När terminalen skakar åt sidan förändras den visuella
+         * centerlinjen en liten aning.
+         *
+         * Ändkantens perpendicular räknas därför från den faktiska
+         * linjen mellan origin och terminal. Det håller fillens
+         * ytterände symmetrisk.
+         */
+        Vector2 visualDirection =
+            worldEnd -
+            worldOrigin;
+
+        if (visualDirection.sqrMagnitude <=
+            0.0001f)
+        {
+            visualDirection =
+                direction;
+        }
+        else
+        {
+            visualDirection.Normalize();
+        }
+
+        Vector2 endPerpendicular =
+            new Vector2(
+                -visualDirection.y,
+                visualDirection.x
+            );
 
         Vector2 point0 =
             worldOrigin +
-            perpendicular * halfWidth;
+            startPerpendicular *
+            halfWidth;
 
         Vector2 point1 =
             worldEnd +
-            perpendicular * halfWidth;
+            endPerpendicular *
+            halfWidth;
 
         Vector2 point2 =
             worldEnd -
-            perpendicular * halfWidth;
+            endPerpendicular *
+            halfWidth;
 
         Vector2 point3 =
             worldOrigin -
-            perpendicular * halfWidth;
+            startPerpendicular *
+            halfWidth;
 
         Vector3 local0 =
-            WorldToLocal(point0);
+            WorldToLocal(
+                point0
+            );
 
         Vector3 local1 =
-            WorldToLocal(point1);
+            WorldToLocal(
+                point1
+            );
 
         Vector3 local2 =
-            WorldToLocal(point2);
+            WorldToLocal(
+                point2
+            );
 
         Vector3 local3 =
-            WorldToLocal(point3);
+            WorldToLocal(
+                point3
+            );
 
-        vertices.Add(local0);
-        vertices.Add(local1);
-        vertices.Add(local2);
-        vertices.Add(local3);
+        vertices.Add(
+            local0
+        );
+
+        vertices.Add(
+            local1
+        );
+
+        vertices.Add(
+            local2
+        );
+
+        vertices.Add(
+            local3
+        );
 
         triangles.Add(0);
         triangles.Add(1);
@@ -676,10 +834,21 @@ public sealed class TargetShapeRenderer :
         if (!showOutline)
             return;
 
-        outlinePoints.Add(local0);
-        outlinePoints.Add(local1);
-        outlinePoints.Add(local2);
-        outlinePoints.Add(local3);
+        outlinePoints.Add(
+            local0
+        );
+
+        outlinePoints.Add(
+            local1
+        );
+
+        outlinePoints.Add(
+            local2
+        );
+
+        outlinePoints.Add(
+            local3
+        );
     }
 
     private void ApplyGeometry()
@@ -714,7 +883,8 @@ public sealed class TargetShapeRenderer :
         }
 
         outlineRenderer.loop =
-            outlinePoints.Count >= 3;
+            outlinePoints.Count >=
+            3;
     }
 
     private void ApplyColors(
@@ -759,13 +929,14 @@ public sealed class TargetShapeRenderer :
     private Vector3 WorldToLocal(
         Vector2 worldPoint)
     {
-        return transform.InverseTransformPoint(
-            new Vector3(
-                worldPoint.x,
-                worldPoint.y,
-                0f
-            )
-        );
+        return
+            transform.InverseTransformPoint(
+                new Vector3(
+                    worldPoint.x,
+                    worldPoint.y,
+                    0f
+                )
+            );
     }
 
     private static Vector2 GetSafeDirection(
@@ -792,10 +963,12 @@ public sealed class TargetShapeRenderer :
 
         SpriteRenderer[] spriteRenderers =
             target.GetComponentsInChildren<
-                SpriteRenderer
-            >(true);
+                SpriteRenderer>(
+                true
+            );
 
-        bool hasBounds = false;
+        bool hasBounds =
+            false;
 
         for (int i = 0;
              i < spriteRenderers.Length;
@@ -815,7 +988,8 @@ public sealed class TargetShapeRenderer :
                 bounds =
                     spriteRenderer.bounds;
 
-                hasBounds = true;
+                hasBounds =
+                    true;
             }
             else
             {
@@ -830,8 +1004,9 @@ public sealed class TargetShapeRenderer :
 
         Collider2D[] colliders =
             target.GetComponentsInChildren<
-                Collider2D
-            >(true);
+                Collider2D>(
+                true
+            );
 
         for (int i = 0;
              i < colliders.Length;
@@ -848,7 +1023,8 @@ public sealed class TargetShapeRenderer :
                 bounds =
                     targetCollider.bounds;
 
-                hasBounds = true;
+                hasBounds =
+                    true;
             }
             else
             {

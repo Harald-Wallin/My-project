@@ -5,7 +5,8 @@ public enum AbilityType
     Melee,
     Spell,
     Buff,
-    Curse
+    Curse,
+    Ranged
 }
 
 [CreateAssetMenu(menuName = "RPG/Ability")]
@@ -39,15 +40,24 @@ public class AbilityData :
     // =========================================================
     // NEW ACTION SYSTEM
     // =========================================================
+    private bool useActionSettings = true;
 
-    [Header("New Action System")]
+    [Header("Target Preview")]
 
     [SerializeField]
     [Tooltip(
-        "När detta är aktiverat använder abilityn den nya " +
-        "action-pipelinen med Targeting, Timing och Execution."
-    )]
-    private bool useActionSettings;
+    "Bestämmer hur abilityns targeting visas visuellt. " +
+    "Påverkar inte targeting, target selection eller execution."
+)]
+    private ActionPreviewMode previewMode =
+    ActionPreviewMode.FullGeometry;
+
+    public ActionPreviewMode PreviewMode =>
+        previewMode;
+
+    public bool ShowsTargetingPreview =>
+        previewMode !=
+        ActionPreviewMode.None;
 
     [SerializeField]
     private AbilityTargetingSettings targetingSettings =
@@ -59,6 +69,25 @@ public class AbilityData :
 
     [SerializeField]
     private AbilityExecutionSettings executionSettings =
+        new();
+
+    [Header("Charge")]
+
+    [SerializeField]
+    private AbilityChargeSettings chargeSettings =
+    new();
+
+    public ChargeCompletionPreviewEffect
+    ChargeCompletionPreviewEffect =>
+        chargeCompletionPreviewEffect;
+
+    [SerializeField]
+    [Tooltip(
+    "Visuell effekt som visas när abilityn når full charge. " +
+    "Påverkar aldrig gameplay eller targeting.")]
+
+    private ChargeCompletionPreviewEffect
+    chargeCompletionPreviewEffect =
         new();
 
     // =========================================================
@@ -123,10 +152,39 @@ public class AbilityData :
     public AbilityExecutionSettings ExecutionSettings =>
         executionSettings;
 
+    public AbilityChargeSettings ChargeSettings =>
+    chargeSettings;
+
     public float EffectiveCooldown =>
         useActionSettings
             ? executionSettings.Cooldown
             : Mathf.Max(0f, cooldown);
+
+    public bool IsChargeAbility =>
+    useActionSettings &&
+    timingSettings != null &&
+    timingSettings.TimingType ==
+    ActionTimingType.Charge;
+
+    public bool ChargeScalesDamage =>
+    IsChargeAbility &&
+    chargeSettings != null &&
+    chargeSettings.ScalesDamage;
+
+    public bool ChargeScalesRange =>
+        IsChargeAbility &&
+        chargeSettings != null &&
+        chargeSettings.ScalesRange;
+
+    public bool ChargeScalesDamageAndRange =>
+        ChargeScalesDamage &&
+        ChargeScalesRange;
+
+    public bool UsesHoldAndRelease =>
+        useActionSettings &&
+        executionSettings != null &&
+        executionSettings.ActivationMode ==
+        ActionActivationMode.HoldAndRelease;
 
     public float EffectiveGlobalCooldown
     {
@@ -526,6 +584,19 @@ public class AbilityData :
 
         executionSettings ??=
             new AbilityExecutionSettings();
+
+        chargeSettings ??=
+            new AbilityChargeSettings();
+
+        chargeSettings.Validate(
+            this
+        );
+
+        chargeCompletionPreviewEffect ??=
+            new ChargeCompletionPreviewEffect();
+
+        chargeCompletionPreviewEffect.Validate();
+        timingSettings.Validate();
     }
 #endif
 }

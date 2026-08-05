@@ -186,7 +186,7 @@ public sealed class TargetGeometry
         float range =
             Mathf.Max(
                 0f,
-                result.Settings.Range
+                result.EffectiveRange
             );
 
         if (range <= 0f)
@@ -277,13 +277,48 @@ public sealed class TargetGeometry
     /// Distance bestämmer dess längd.
     /// </summary>
     private void BuildLine(
-        TargetingResult result)
+    TargetingResult result)
     {
-        float length =
+        if (result == null ||
+            result.Settings == null)
+        {
+            return;
+        }
+
+        Vector2 direction =
+            GetSafeDirection(
+                result.Direction
+            );
+
+        /*
+         * Distance är avståndet från Origin till den slutliga
+         * TargetPoint.
+         *
+         * För FullRange är detta alltid abilityns Range.
+         * För ToCursor kan det vara kortare.
+         */
+        float endDistance =
             Mathf.Max(
                 0f,
                 result.Distance
             );
+
+        /*
+         * MinimumRange skapar en tom lucka närmast castern.
+         */
+        float startDistance =
+            Mathf.Clamp(
+                result.Settings.MinimumRange,
+                0f,
+                endDistance
+            );
+
+        float lineLength =
+            endDistance -
+            startDistance;
+
+        if (lineLength <= 0f)
+            return;
 
         float width =
             Mathf.Max(
@@ -291,21 +326,22 @@ public sealed class TargetGeometry
                 result.Settings.LineWidth
             );
 
-        if (length <= 0f)
-            return;
-
-        Vector2 direction =
-            GetSafeDirection(
-                result.Direction
-            );
+        Vector2 lineStart =
+            result.Origin +
+            direction *
+            startDistance;
 
         Vector2 center =
-            result.Origin +
-            direction * (length * 0.5f);
+            lineStart +
+            direction *
+            (
+                lineLength *
+                0.5f
+            );
 
         Vector2 size =
             new Vector2(
-                length,
+                lineLength,
                 width
             );
 
@@ -313,7 +349,8 @@ public sealed class TargetGeometry
             Mathf.Atan2(
                 direction.y,
                 direction.x
-            ) * Mathf.Rad2Deg;
+            ) *
+            Mathf.Rad2Deg;
 
         int hitCount =
             Physics2D.OverlapBoxNonAlloc(

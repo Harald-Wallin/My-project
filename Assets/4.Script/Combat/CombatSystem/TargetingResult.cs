@@ -115,6 +115,18 @@ public sealed class TargetingResult
     /// Efter targeturvalet är detta normalt det första objektet
     /// i AffectedTargets.
     /// </summary>
+    /// 
+    /// <summary>
+    /// Den maximala range som användes i just denna
+    /// targetingberäkning.
+    ///
+    /// Kan vara kortare än abilityns vanliga range vid charge.
+    /// </summary>
+    public float EffectiveRange
+    {
+        get;
+        internal set;
+    }
     public GameObject PrimaryTarget
     {
         get;
@@ -167,6 +179,7 @@ public sealed class TargetingResult
         TargetPoint = Vector2.zero;
         Direction = Vector2.down;
         Distance = 0f;
+        EffectiveRange = 0f;
 
         PrimaryTarget = null;
 

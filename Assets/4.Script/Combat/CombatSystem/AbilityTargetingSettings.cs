@@ -27,7 +27,7 @@ public sealed class AbilityTargetingSettings
     [Min(0f)]
     [Tooltip(
         "Minsta tillåtna avstånd från castern. " +
-        "Lämna 0 för abilities utan minimum range."
+        "För Line skapar detta ett tomt område närmast castern."
     )]
     private float minimumRange;
 
@@ -42,13 +42,27 @@ public sealed class AbilityTargetingSettings
 
     [SerializeField]
     [Range(0f, 360f)]
-    [Tooltip("Konens totala vinkel i grader.")]
+    [Tooltip(
+        "Konens totala vinkel i grader."
+    )]
     private float coneAngle = 90f;
 
     [SerializeField]
     [Min(0f)]
-    [Tooltip("Bredden på Line-targeting.")]
+    [Tooltip(
+        "Bredden på Line-targeting."
+    )]
     private float lineWidth = 0.5f;
+
+    [SerializeField]
+    [Tooltip(
+        "To Cursor: linjen slutar vid muspekaren, begränsad " +
+        "av Range.\n\n" +
+        "Full Range: muspekaren bestämmer endast riktningen " +
+        "och linjen använder alltid full Range."
+    )]
+    private LineLengthMode lineLengthMode =
+        LineLengthMode.ToCursor;
 
     [Header("Target selection")]
 
@@ -90,19 +104,39 @@ public sealed class AbilityTargetingSettings
         allowedRelations;
 
     public float Range =>
-        Mathf.Max(0f, range);
+        Mathf.Max(
+            0f,
+            range
+        );
 
     public float MinimumRange =>
-        Mathf.Clamp(minimumRange, 0f, Range);
+        Mathf.Clamp(
+            minimumRange,
+            0f,
+            Range
+        );
 
     public float Radius =>
-        Mathf.Max(0f, radius);
+        Mathf.Max(
+            0f,
+            radius
+        );
 
     public float ConeAngle =>
-        Mathf.Clamp(coneAngle, 0f, 360f);
+        Mathf.Clamp(
+            coneAngle,
+            0f,
+            360f
+        );
 
     public float LineWidth =>
-        Mathf.Max(0f, lineWidth);
+        Mathf.Max(
+            0f,
+            lineWidth
+        );
+
+    public LineLengthMode LineLengthMode =>
+        lineLengthMode;
 
     public TargetSelectionMode SelectionMode =>
         selectionMode;
@@ -111,7 +145,10 @@ public sealed class AbilityTargetingSettings
     /// Noll betyder obegränsat antal.
     /// </summary>
     public int MaximumTargets =>
-        Mathf.Max(0, maximumTargets);
+        Mathf.Max(
+            0,
+            maximumTargets
+        );
 
     public bool HasTargetLimit =>
         MaximumTargets > 0;
@@ -130,6 +167,9 @@ public sealed class AbilityTargetingSettings
     {
         return
             relation != TargetRelation.None &&
-            (allowedRelations & relation) != 0;
+            (
+                allowedRelations &
+                relation
+            ) != 0;
     }
 }
