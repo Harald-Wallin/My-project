@@ -53,6 +53,19 @@ public class NPCMovement : MonoBehaviour
 
     private bool wasMovingLastFrame;
 
+    private bool isFleeing;
+
+    private CharacterStats fleeSource;
+
+    private float fleeDistance;
+    private float safeDistance;
+
+    private Vector2 fleeStartPosition;
+    private Vector2 fleeTargetPosition;
+    private bool hasReachedMinimumFleeDistance;
+
+    private float fleeSpeedMultiplier = 1f;
+
     [Header("Wander Settings")]
     [SerializeField] float wanderRadius = 3f;
     [SerializeField] float wanderMoveTime = 2f;
@@ -62,12 +75,6 @@ public class NPCMovement : MonoBehaviour
     private float wanderTimer;
     private bool isWandering;
     private bool isPausing;
-
-    //[Header("Flee Settings")]
-    private bool isFleeing;
-    private CharacterStats fleeSource;
-    private float fleeDistance;
-    private float safeDistance;
 
     [Header("Patrol Settings")]
     [SerializeField] protected float patrolSpeedMultiplier = 0.75f;
@@ -370,26 +377,123 @@ public class NPCMovement : MonoBehaviour
     public void BeginFlee(
     CharacterStats source,
     float fleeDistance,
-    float safeDistance)
+    float safeDistance,
+    float speedMultiplier = 1f)
     {
         if (source == null)
             return;
 
-        fleeSource = source;
+        fleeSource =
+            source;
 
-        this.fleeDistance = fleeDistance;
-        this.safeDistance = safeDistance;
+        this.fleeDistance =
+            Mathf.Max(
+                0.1f,
+                fleeDistance
+            );
 
-        isFleeing = true;
+        this.safeDistance =
+            Mathf.Max(
+                0f,
+                safeDistance
+            );
 
-        SetMovementMode(NPCMovementMode.Flee);
+        fleeSpeedMultiplier =
+            Mathf.Max(
+                0f,
+                speedMultiplier
+            );
+
+        fleeStartPosition =
+            rb.position;
+
+        Vector2 threatPosition =
+            TargetUtility.GetTargetPosition(
+                source.gameObject
+            );
+
+        Vector2 fleeDirection =
+            rb.position -
+            threatPosition;
+
+        /*
+         * Om hotet och NPC:n står exakt på samma position
+         * använder vi NPC:ns nuvarande facing som fallback.
+         */
+        if (fleeDirection.sqrMagnitude <=
+            0.0001f)
+        {
+            fleeDirection =
+                CurrentFacingDirection.sqrMagnitude >
+                0.0001f
+                    ? CurrentFacingDirection
+                    : Vector2.right;
+        }
+
+        fleeDirection.Normalize();
+
+        /*
+         * Destinationen låses när flykten börjar.
+         *
+         * Spelaren kan därför inte råka avsluta flykten genom
+         * att själv röra sig bort från NPC:n.
+         */
+        fleeTargetPosition =
+            rb.position +
+            fleeDirection *
+            this.fleeDistance;
+
+        isFleeing =
+            true;
+
+        SetMovementMode(
+            NPCMovementMode.Flee
+        );
     }
 
     public void EndFlee()
     {
-        isFleeing = false;
+        isFleeing =
+            false;
 
-        fleeSource = null;
+        fleeSource =
+            null;
+
+        fleeSpeedMultiplier =
+            1f;
+
+        fleeStartPosition =
+            Vector2.zero;
+
+        fleeTargetPosition =
+            Vector2.zero;
+    }
+
+    private void ClearNavigationMemory()
+    {
+        hasTemporaryAvoidanceTarget =
+            false;
+
+        temporaryAvoidanceTarget =
+            Vector3.zero;
+
+        hasObstacleMemory =
+            false;
+
+        rememberedAvoidanceDirection =
+            Vector2.zero;
+
+        obstacleMemoryTimer =
+            0f;
+
+        stuckTimer =
+            0f;
+
+        if (rb != null)
+        {
+            lastStuckPosition =
+                rb.position;
+        }
     }
 
     public bool UpdateFlee()
@@ -397,28 +501,39 @@ public class NPCMovement : MonoBehaviour
         if (!isFleeing)
             return true;
 
-        if (fleeSource == null)
-            return true;
-
-        float distance =
+        float remainingDistance =
             Vector2.Distance(
-                transform.position,
-                fleeSource.transform.position);
+                rb.position,
+                fleeTargetPosition
+            );
 
-        if (distance >= safeDistance)
+        float travelledDistance =
+            Vector2.Distance(
+                fleeStartPosition,
+                rb.position
+            );
+
+        bool reachedDestination =
+            remainingDistance <=
+            DefaultStopDistance;
+
+        bool travelledRequiredDistance =
+            travelledDistance >=
+            fleeDistance * 0.95f;
+
+        if (reachedDestination ||
+            travelledRequiredDistance)
+        {
+            Stop();
+
             return true;
+        }
 
-        Vector2 fleeDirection =
-            (
-                (Vector2)transform.position -
-                (Vector2)fleeSource.transform.position
-            ).normalized;
-
-        Vector3 fleeTarget =
-            transform.position +
-            (Vector3)(fleeDirection * fleeDistance);
-
-        MoveTowards(fleeTarget);
+        MoveTowards(
+            fleeTargetPosition,
+            fleeSpeedMultiplier,
+            DefaultStopDistance
+        );
 
         return false;
     }
@@ -917,29 +1032,13 @@ public class NPCMovement : MonoBehaviour
 
     public void Stop()
     {
-        rb.linearVelocity =
-            Vector2.zero;
+        if (rb != null)
+        {
+            rb.linearVelocity =
+                Vector2.zero;
+        }
 
-        hasTemporaryAvoidanceTarget =
-            false;
-
-        temporaryAvoidanceTarget =
-            Vector3.zero;
-
-        hasObstacleMemory =
-            false;
-
-        rememberedAvoidanceDirection =
-            Vector2.zero;
-
-        obstacleMemoryTimer =
-            0f;
-
-        stuckTimer =
-            0f;
-
-        lastStuckPosition =
-            rb.position;
+        ClearNavigationMemory();
 
         visualController
             ?.SetMoving(

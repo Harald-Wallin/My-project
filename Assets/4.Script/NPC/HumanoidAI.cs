@@ -1,4 +1,4 @@
-using UnityEngine;
+/*using UnityEngine;
 
 public class HumanoidAI : NPCBehavior
 {
@@ -17,46 +17,86 @@ public class HumanoidAI : NPCBehavior
             maxDistanceFromSpawn = customLeashDistance;
     }
 
-    protected override void HandleDamaged(CharacterStats attacker)
+    protected override void HandleDamaged(
+     CharacterStats attacker)
     {
-        base.HandleDamaged(attacker);
+        base.HandleDamaged(
+            attacker
+        );
 
         if (!useReputationAggro)
             return;
 
-        PlayerStats playerStats =
-            attacker as PlayerStats;
-
-        if (playerStats == null)
+        if (attacker is not PlayerStats playerStats)
             return;
 
-        if (selfStats.faction == null)
+        if (selfStats == null ||
+            selfStats.faction == null)
+        {
             return;
+        }
 
-        currentTargetStats = playerStats;
-        player = playerStats.transform;
-        isAggro = true;
+        ForceAggro(
+            playerStats
+        );
 
         Collider2D[] hits =
             Physics2D.OverlapCircleAll(
                 transform.position,
-                aggroRange
+                assistRadius
             );
 
-        foreach (var hit in hits)
+        for (int i = 0;
+             i < hits.Length;
+             i++)
         {
-            GuardAI guard =
-                hit.GetComponent<GuardAI>();
+            Collider2D hit =
+                hits[i];
 
-            if (guard != null &&
-                guard.selfStats.faction ==
+            if (hit == null)
+                continue;
+
+            GuardAI guard =
+                hit.GetComponentInParent<
+                    GuardAI>();
+
+            if (guard == null ||
+                guard == this ||
+                guard.selfStats == null)
+            {
+                continue;
+            }
+
+            if (guard.selfStats.faction !=
                 selfStats.faction)
             {
-                guard.ForceAggro(playerStats);
+                continue;
             }
+
+            guard.ForceAggro(
+                playerStats
+            );
         }
     }
 
+    protected virtual void TriggerCombatPhrase()
+    {
+    }
+}*/
+using UnityEngine;
+
+/// <summary>
+/// Bas för humanoid-specifik AI.
+///
+/// All generell NPC-logik ligger i NPCBehavior och
+/// NPCReactionController.
+///
+/// Lägg endast funktionalitet här som verkligen ska skilja
+/// humanoider från djur, monster och andra NPC-typer.
+/// </summary>
+public class HumanoidAI :
+    NPCBehavior
+{
     protected virtual void TriggerCombatPhrase()
     {
     }

@@ -979,7 +979,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6810676288775379224, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: m_Enabled
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6810676288775379224, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: moveSpeed
@@ -1035,7 +1035,6 @@ PrefabInstance:
       objectReference: {fileID: 1283417070}
     m_RemovedComponents:
     - {fileID: 558947386393904139, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
-    - {fileID: 6810676288775379224, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
@@ -15678,7 +15677,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 175, y: 203.50003}
+  m_AnchoredPosition: {x: 175, y: -25}
   m_SizeDelta: {x: 311.378, y: 80}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &729205947
@@ -21990,29 +21989,9 @@ PrefabInstance:
       propertyPath: 'equippedAbilities.Array.data[0]'
       value: 
       objectReference: {fileID: 11400000, guid: cc5f6feac6284a64d869a218961e8499, type: 2}
-    - target: {fileID: 5554398571828178578, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
-      propertyPath: alertsNearbyNPCs
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5554398571828178578, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
-      propertyPath: alertedRadiusMultiplier
-      value: 1.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 5554398571828178578, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
-      propertyPath: propagatesReceivedAlerts
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5554398571828178578, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
-      propertyPath: createsFactionHostilityWhenAttacked
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 6810676288775379224, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: canPatrol
       value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6810676288775379224, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
-      propertyPath: m_Enabled
-      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6810676288775379224, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: aggroRange
@@ -22076,7 +22055,6 @@ PrefabInstance:
       objectReference: {fileID: 92933916}
     m_RemovedComponents:
     - {fileID: 558947386393904139, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
-    - {fileID: 6810676288775379224, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
@@ -32615,9 +32593,6 @@ MonoBehaviour:
   stopDistanceDefault: 1
   canAggro: 0
   aggroRange: 4
-  threatDetectionLayers:
-    serializedVersion: 2
-    m_Bits: 0
   canWander: 1
   canPatrol: 0
   patrolPath: {fileID: 0}
@@ -36227,9 +36202,6 @@ MonoBehaviour:
   stopDistanceDefault: 1
   canAggro: 1
   aggroRange: 4
-  threatDetectionLayers:
-    serializedVersion: 2
-    m_Bits: 0
   canWander: 0
   canPatrol: 1
   patrolPath: {fileID: 631374185}
@@ -36435,8 +36407,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1368261479}
   m_HandleRect: {fileID: 1368261478}
   m_Direction: 2
-  m_Value: 0.99998826
-  m_Size: 0.9871668
+  m_Value: 1
+  m_Size: 0.98716664
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -40028,7 +40000,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -190, y: 220.50003}
+  m_AnchoredPosition: {x: -190, y: -8}
   m_SizeDelta: {x: 304.6964, y: 80}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!114 &1694675092
@@ -48684,9 +48656,6 @@ MonoBehaviour:
   stopDistanceDefault: 1
   canAggro: 0
   aggroRange: 4
-  threatDetectionLayers:
-    serializedVersion: 2
-    m_Bits: 0
   canWander: 0
   canPatrol: 0
   patrolPath: {fileID: 0}

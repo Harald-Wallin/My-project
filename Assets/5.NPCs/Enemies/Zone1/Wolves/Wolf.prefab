@@ -264,6 +264,10 @@ MonoBehaviour:
     value: 14
   - stat: 12
     value: 0
+  - stat: 17
+    value: 0
+  - stat: 18
+    value: 0
   derivedStats:
   - stat: 15
     value: 2.5
@@ -278,7 +282,7 @@ MonoBehaviour:
   - stat: 20
     value: 0
   _currentHP: 1
-  deathReward: {fileID: 0}
+  deathReward: {fileID: 6584142422350811442}
   effectPoint: {fileID: 1917358144810171706}
   healingFloatingTextPrefab: {fileID: 0}
   healingTextOffset: {x: 0, y: 1.5, z: 0}
@@ -295,11 +299,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WolfAI
   player: {fileID: 0}
-  maxDistanceFromSpawn: 10
+  maxDistanceFromSpawn: 15
   abilityDelayAfterAggro: 3
   stopDistanceDefault: 1
   canAggro: 1
-  aggroRange: 4
+  aggroRange: 6
   canWander: 1
   canPatrol: 0
   patrolPath: {fileID: 0}
@@ -361,11 +365,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCReactionController
   awarenessRadius: 5
-  alertedRadiusMultiplier: 3
+  alertedRadiusMultiplier: 1.5
   drawGizmos: 1
-  reactionType: 0
-  hostilityDuration: 300
+  reactionType: 2
+  fleeAtLowHealth: 1
+  lowHealthFleeThreshold: 0.251
+  lowHealthFleeSpeedMultiplier: 0.059
+  lowHealthFleeTriggersOnce: 1
+  alertsNearbyNPCs: 0
+  propagatesReceivedAlerts: 0
+  alertSameFactionOnly: 1
   alertDuration: 10
+  hostilityDuration: 300
+  createsFactionHostilityWhenAttacked: 0
 --- !u!114 &1898894088392311568
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -409,7 +421,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerBaseAttackCollection
   learnedAttacks:
   - {fileID: 11400000, guid: 83d5314be1a2a9a4697b658f29a26d08, type: 2}
-  equippedAttack: {fileID: 11400000, guid: 83d5314be1a2a9a4697b658f29a26d08, type: 2}
+  primaryAttack: {fileID: 11400000, guid: 83d5314be1a2a9a4697b658f29a26d08, type: 2}
+  secondaryAttack: {fileID: 0}
 --- !u!114 &4693989535447528578
 MonoBehaviour:
   m_ObjectHideFlags: 0

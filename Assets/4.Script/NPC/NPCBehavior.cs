@@ -36,6 +36,12 @@ public class NPCBehavior : MonoBehaviour
     protected CharacterStats currentTargetStats;
     public bool HasTarget => currentTargetStats != null;
     public CharacterStats CurrentTarget => currentTargetStats;
+    [SerializeField]
+    [Tooltip(
+    "Collider-lager som används när NPC:n söker efter hot. " +
+    "Ska normalt inkludera Hitbox."
+)]
+    private LayerMask threatDetectionLayers;
 
     [Header("Wander")]
     [SerializeField] protected bool canWander = true;
@@ -45,6 +51,7 @@ public class NPCBehavior : MonoBehaviour
     [SerializeField] protected PatrolPath patrolPath;
 
     [Header("Flee")]
+    private float activeFleeSpeedMultiplier = 1f;
     [SerializeField] protected float fleeDistance = 12f; //Första panic-jumpen
     [SerializeField] protected float safeDistanceFromThreat = 18f; //När NPC slutar springa
     [SerializeField] protected float resumeFleeDistance = 12f; //Om spelaren kommer närmre än detta > fly igen
@@ -61,9 +68,9 @@ public class NPCBehavior : MonoBehaviour
     private bool wasPatrollingBeforeCombat;
     private bool restartPatrolOnNextEnter;
     private Vector3 combatAnchorPosition;
-private Vector3 encounterReturnPosition;
+    private Vector3 encounterReturnPosition;
 
-private bool hasCombatAnchor;
+    private bool hasCombatAnchor;
 
     public bool IsInCombat => currentState == AIState.Aggro;
     protected AIState currentState = AIState.Idle;
@@ -117,12 +124,34 @@ private bool hasCombatAnchor;
 
         if (selfStats != null)
         {
-            selfStats.OnDamagedBy += HandleDamaged;
-            selfStats.OnDied += HandleDeath;
+            /*
+             * NPCReactionController hanterar den generella
+             * Aggro/Flee/None-reaktionen.
+             *
+             * Denna hook används av specialiserade AI-klasser,
+             * exempelvis HumanoidAI och GuardAI.
+             */
+            selfStats.OnDamagedBy +=
+                HandleDamaged;
+
+            selfStats.OnDied +=
+                HandleDeath;
         }
 
         currentAggroRange =
             aggroRange;
+    }
+
+    /// <summary>
+    /// Utökningspunkt för specialiserade NPC-typer.
+    ///
+    /// Den generella damage-reaktionen styrs av
+    /// NPCReactionController. Den här metoden ska därför inte
+    /// starta vanlig Aggro/Flee-logik i basklassen.
+    /// </summary>
+    protected virtual void HandleDamaged(
+        CharacterStats attacker)
+    {
     }
 
     protected virtual void Start()
@@ -354,18 +383,37 @@ private bool hasCombatAnchor;
         currentTargetStats = null;
     }
 
-    void SetupFlee(CharacterStats threat)
+    private void SetupFlee(
+    CharacterStats threat,
+    float speedMultiplier)
     {
-        fleeSource = threat;
-        isAggro = false;
-        isReturning = false;
+        if (threat == null)
+            return;
 
-        currentTargetStats = null;
+        fleeSource =
+            threat;
+
+        isAggro =
+            false;
+
+        isReturning =
+            false;
+
+        currentTargetStats =
+            null;
+
+        activeFleeSpeedMultiplier =
+            Mathf.Max(
+                0f,
+                speedMultiplier
+            );
 
         movement.BeginFlee(
             threat,
             fleeDistance,
-            safeDistanceFromThreat);
+            safeDistanceFromThreat,
+            activeFleeSpeedMultiplier
+        );
     }
 
 
@@ -623,11 +671,10 @@ private bool hasCombatAnchor;
 
         movement.Stop();
 
-        encounterResetInProgress = false;
-        hasCombatAnchor = false;
+        CompleteEncounterReset();
 
         bool shouldResumePatrol =
-            wasPatrollingBeforeCombat &&
+                    wasPatrollingBeforeCombat &&
             canPatrol &&
             patrolPath != null &&
             patrolPath.points.Count > 0;
@@ -659,14 +706,21 @@ private bool hasCombatAnchor;
         ChangeState(AIState.Returning);
     }
 
-    protected virtual void EnterFleeState(CharacterStats threat)
+    protected virtual void EnterFleeState(
+    CharacterStats threat,
+    float speedMultiplier = 1f)
     {
         if (threat == null)
             return;
 
-        SetupFlee(threat);
+        SetupFlee(
+            threat,
+            speedMultiplier
+        );
 
-        ChangeState(AIState.Fleeing);
+        ChangeState(
+            AIState.Fleeing
+        );
     }
 
     protected virtual void EnterHoldingState()
@@ -717,46 +771,41 @@ private bool hasCombatAnchor;
         if (!wasInEncounter)
             return;
 
-        encounterResetInProgress = true;
+        encounterResetInProgress =
+            true;
 
-        bool shouldResumePatrol =
-            wasPatrollingBeforeCombat &&
-            canPatrol &&
-            patrolPath != null &&
-            patrolPath.points.Count > 0;
-
+        /*
+         * Avsluta aktiva actions omedelbart.
+         *
+         * HP, encounter-buffs och reaction-memory återställs däremot
+         * först när NPC:n faktiskt har nått sin return-position.
+         */
         actionController
             ?.ResetRuntimeState();
 
         abilityController
             ?.ResetRuntimeState();
 
-        buffSystem
-            ?.RemoveEncounterResetBuffs();
-
-        selfStats
-            ?.ResetEncounterState();
-
-        reactionController
-            ?.ResetEncounterState();
-
         movement?.Stop();
 
-        fleeSource = null;
-        currentTargetStats = null;
+        fleeSource =
+            null;
+
+        currentTargetStats =
+            null;
+
+        activeFleeSpeedMultiplier =
+            1f;
 
         if (subscribedPlayer != null)
         {
             subscribedPlayer.OnDied -=
                 HandleTargetDied;
 
-            subscribedPlayer = null;
+            subscribedPlayer =
+                null;
         }
 
-        /*
-         * Hindrar NPC:n från att omedelbart kedje-aggra ett nytt mål
-         * på nästa FixedUpdate.
-         */
         aggroDisableTimer =
             Mathf.Max(
                 aggroDisableTimer,
@@ -766,34 +815,61 @@ private bool hasCombatAnchor;
         lastReturnTime =
             Time.time;
 
-        isAggro = false;
-        isReturning = false;
+        isAggro =
+            false;
 
-        encounterResetInProgress = false;
-        hasCombatAnchor = false;
+        isReturning =
+            true;
 
-        if (shouldResumePatrol)
-        {
-            wasPatrollingBeforeCombat = false;
-
-            EnterPatrolState(
-                false
-            );
-
-            return;
-        }
-
-        wasPatrollingBeforeCombat = false;
-
-        encounterResetInProgress = true;
-
-        encounterReturnPosition =
-            spawnPosition;
-
+        /*
+         * Behåll encounterReturnPosition som sattes när encounter
+         * startade.
+         *
+         * En patrullerande NPC går därmed tillbaka till sin
+         * encounter-anchor. En stationär NPC använder spawnpunkten.
+         */
         EnterReturnState();
     }
 
-    void HandleAggroDetection()
+    private void CompleteEncounterReset()
+    {
+        /*
+         * Detta är den riktiga fulla encounter-resetten.
+         *
+         * Den körs först när NPC:n faktiskt har återvänt.
+         */
+        buffSystem
+            ?.RemoveEncounterResetBuffs();
+
+        selfStats
+            ?.ResetEncounterState();
+
+        reactionController
+            ?.ResetEncounterState();
+
+        fleeSource =
+            null;
+
+        currentTargetStats =
+            null;
+
+        activeFleeSpeedMultiplier =
+            1f;
+
+        isAggro =
+            false;
+
+        isReturning =
+            false;
+
+        hasCombatAnchor =
+            false;
+
+        encounterResetInProgress =
+            false;
+    }
+
+    private void HandleAggroDetection()
     {
         if (!canAggro)
             return;
@@ -801,51 +877,109 @@ private bool hasCombatAnchor;
         if (aggroDisableTimer > 0f)
             return;
 
-        if (Time.time - lastReturnTime < reaggroCooldown)
-            return;
-
-        if (isAggro)
-            return;
-
-        NPCReactionController reaction = GetComponent<NPCReactionController>();
-
-        bool isTemporaryHostile =
-            reaction != null &&
-            reaction.IsTemporarilyHostile;
-
-        if (isReturning)
-            return;
-
-        Collider2D[] hits = Physics2D.OverlapCircleAll(
-        transform.position,
-        currentAggroRange,
-        LayerMask.GetMask(
-            "Player",
-            "NPC",
-            "HostileMob"
-        ));
-
-        foreach (var hit in hits)
+        if (Time.time - lastReturnTime <
+            reaggroCooldown)
         {
-            CharacterStats target =hit.GetComponentInParent<CharacterStats>();
+            return;
+        }
 
-            if (target == null)
+        if (IsEncounterResetting ||
+            isReturning)
+        {
+            return;
+        }
+
+        if (currentState == AIState.Aggro ||
+            currentState == AIState.Fleeing ||
+            currentState == AIState.Holding)
+        {
+            return;
+        }
+
+        if (reactionController == null)
+        {
+            reactionController =
+                GetComponent<
+                    NPCReactionController>();
+        }
+
+        if (reactionController == null ||
+            reactionController.ReactionType ==
+            NPCReactionType.None)
+        {
+            return;
+        }
+
+
+
+        /*
+         * Vi söker alla colliders och resolve:ar därefter deras
+         * CharacterStats från parent-hierarkin.
+         *
+         * Det gör proximity detection oberoende av om karaktärens
+         * collider ligger på NPC, HostileMob, Hitbox eller ett
+         * annat child-layer.
+         */
+        Collider2D[] hits =
+            Physics2D.OverlapCircleAll(
+                transform.position,
+                currentAggroRange
+            );
+
+
+        HashSet<CharacterStats>
+            checkedCharacters =
+                new();
+
+        for (int i = 0;
+             i < hits.Length;
+             i++)
+        {
+            Collider2D hit =
+                hits[i];
+
+            if (hit == null)
                 continue;
 
-            if (target == selfStats)
-                continue;
+            CharacterStats threat =
+                hit.GetComponentInParent<
+                    CharacterStats>();
 
-            if (target == selfStats)
-                continue;
-
-            if (!ShouldAggro(target))
-                continue;
-
-            if (ShouldAggro(target))
+            if (threat == null ||
+                threat == selfStats)
             {
-                EnterAggroState(target);
-                break;
+                continue;
             }
+
+            /*
+             * En karaktär kan ha flera colliders.
+             * Den ska bara valideras en gång per scan.
+             */
+            if (!checkedCharacters.Add(
+                    threat))
+            {
+                continue;
+            }
+
+            if (!threat.IsAlive)
+                continue;
+
+            if (!LineOfSightUtility
+                    .HasLineOfSight(
+                        transform.position,
+                        threat.transform.position))
+            {
+                continue;
+            }
+
+            bool reacted =
+                reactionController
+                    .TryReactToProximityThreat(
+                        threat
+                    );
+
+            if (reacted)
+                return;
         }
     }
 
@@ -877,7 +1011,10 @@ private bool hasCombatAnchor;
 
         if (distanceToThreat <= resumeFleeDistance)
         {
-            EnterFleeState(fleeSource);
+            EnterFleeState(
+                fleeSource,
+                activeFleeSpeedMultiplier
+            );
             return;
         }
 
@@ -1238,11 +1375,6 @@ private bool hasCombatAnchor;
         );
     }
 
-    protected virtual void HandleDamaged(CharacterStats attacker)
-    {
-        // NPCReactionController styr reaktionen istället
-    }
-
     protected virtual bool ShouldAggro(CharacterStats potentialTarget)
     {
         if (potentialTarget == null)
@@ -1281,32 +1413,53 @@ private bool hasCombatAnchor;
         EnterAggroState(target);
     }
 
-    public void StartFleeing(CharacterStats threat)
+    public void StartFleeing(
+    CharacterStats threat,
+    float speedMultiplier = 1f)
     {
         if (threat == null)
             return;
 
-        EnterFleeState(threat);
+        EnterFleeState(
+            threat,
+            speedMultiplier
+        );
     }
 
     public void ResetAggro()
     {
-        fleeSource = null;
+        fleeSource =
+            null;
 
-        isAggro = false;
-        isReturning = false;
-        currentTargetStats = null;
+        activeFleeSpeedMultiplier =
+            1f;
+
+        isAggro =
+            false;
+
+        isReturning =
+            false;
+
+        currentTargetStats =
+            null;
 
         if (subscribedPlayer != null)
         {
-            subscribedPlayer.OnDied -= HandleTargetDied;
-            subscribedPlayer = null;
+            subscribedPlayer.OnDied -=
+                HandleTargetDied;
+
+            subscribedPlayer =
+                null;
         }
 
         if (canWander)
+        {
             EnterWanderState();
+        }
         else
+        {
             EnterIdleState();
+        }
     }
 
     public void ReturnToSpawn()
@@ -1339,8 +1492,11 @@ private bool hasCombatAnchor;
     {
         if (selfStats != null)
         {
-            selfStats.OnDamagedBy -= HandleDamaged;
-            selfStats.OnDied -= HandleDeath;
+            selfStats.OnDamagedBy -=
+                HandleDamaged;
+
+            selfStats.OnDied -=
+                HandleDeath;
         }
 
         if (subscribedPlayer != null)

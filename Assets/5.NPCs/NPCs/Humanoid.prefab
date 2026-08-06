@@ -217,6 +217,10 @@ MonoBehaviour:
     value: 1
   - stat: 12
     value: 0
+  - stat: 17
+    value: 0
+  - stat: 18
+    value: 0
   derivedStats:
   - stat: 15
     value: 2.5
@@ -233,6 +237,8 @@ MonoBehaviour:
   _currentHP: 0
   deathReward: {fileID: 0}
   effectPoint: {fileID: 5155013851662899411}
+  healingFloatingTextPrefab: {fileID: 0}
+  healingTextOffset: {x: 0, y: 1.5, z: 0}
 --- !u!114 &3520048928441293711
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -412,7 +418,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerBaseAttackCollection
   learnedAttacks:
   - {fileID: 0}
-  equippedAttack: {fileID: 11400000, guid: ef961514809aaa741a1d92d2f70b0c6b, type: 2}
+  primaryAttack: {fileID: 11400000, guid: ef961514809aaa741a1d92d2f70b0c6b, type: 2}
+  secondaryAttack: {fileID: 0}
 --- !u!114 &-1018831399304009737
 MonoBehaviour:
   m_ObjectHideFlags: 0
