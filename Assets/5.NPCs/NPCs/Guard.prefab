@@ -82,7 +82,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ee7bad02aaa8e74d9b5c3a78bbfffb9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatHitbox
-  owner: {fileID: 558947386393904139}
+  owner: {fileID: 0}
 --- !u!1 &3459725347379031730
 GameObject:
   m_ObjectHideFlags: 0
@@ -96,8 +96,6 @@ GameObject:
   - component: {fileID: 7822651416676372334}
   - component: {fileID: 9192460204285460516}
   - component: {fileID: 4847994093137756465}
-  - component: {fileID: 558947386393904139}
-  - component: {fileID: 6810676288775379224}
   - component: {fileID: 8316761676699160559}
   - component: {fileID: 7329415641710369564}
   - component: {fileID: 7937148959269716275}
@@ -108,6 +106,8 @@ GameObject:
   - component: {fileID: 3706294627332642803}
   - component: {fileID: 4287925351190680984}
   - component: {fileID: 8581354136658360309}
+  - component: {fileID: 788226862973081087}
+  - component: {fileID: 2430686843897917415}
   m_Layer: 8
   m_Name: Guard
   m_TagString: Enemy
@@ -270,77 +270,6 @@ CapsuleCollider2D:
   m_Offset: {x: 0, y: 0.05}
   m_Size: {x: 0.75, y: 0.3}
   m_Direction: 1
---- !u!114 &558947386393904139
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3459725347379031730}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c01ceffb458c3d047acfeeac3ef4ded7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Enemy
-  faction: {fileID: 11400000, guid: c5488bdfa9793df41979c93540acac0b, type: 2}
-  reputationLossOnHit: 20
-  reputationLossOnDeath: 100
-  displayName: Guardsman
-  maxHP: 120
-  currentHP: 0
-  strength: 12
-  swiftness: 0
-  armor: 6
-  movementSpeed: 2.5
-  attackSpeed: 1
-  weaponDamage: 10
-  hitChance: 0.85
-  evasion: 0.08
-  blockChance: 0
-  blockValue: 0
-  critChance: 0.2
-  critMultiplier: 1.5
-  effectPoint: {fileID: 1792558990087046968}
-  enemyName: Humanoid
-  monsterLevel: 55
-  corpsePrefab: {fileID: 0}
-  lootTables: []
-  levelText: {fileID: 7387533257812019833}
-  floatingExpTextPrefab: {fileID: 8131224175839406369, guid: daad473c21b3e5a438a07220b6e1ac3c, type: 3}
-  spawner: {fileID: 0}
-  reputationRewardFaction: {fileID: 0}
-  reputationRewardAmount: 0
-  isStartZoneWolf: 0
---- !u!114 &6810676288775379224
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3459725347379031730}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2ed7b006f8b24434bb646da2e2d7b642, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GuardAI
-  player: {fileID: 0}
-  maxDistanceFromSpawn: 8
-  abilityDelayAfterAggro: 3
-  stopDistanceDefault: 1
-  canAggro: 1
-  aggroRange: 4
-  canWander: 0
-  canPatrol: 1
-  patrolPath: {fileID: 0}
-  fleeDistance: 12
-  safeDistanceFromThreat: 18
-  resumeFleeDistance: 12
-  maxHoldDistanceFromSpawn: 50
-  selfStats: {fileID: 0}
-  reaggroCooldown: 3
-  assistRadius: 10
-  useReputationAggro: 1
-  customLeashDistance: 20
 --- !u!114 &8316761676699160559
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -448,8 +377,18 @@ MonoBehaviour:
   alertedRadiusMultiplier: 3
   drawGizmos: 1
   reactionType: 2
-  hostilityDuration: 300
+  fleeAtLowHealth: 0
+  lowHealthFleeThreshold: 0.15
+  lowHealthFleeSpeedMultiplier: 0.5
+  lowHealthFleeDistance: 10
+  lowHealthFleeTriggersOnce: 1
+  lowHealthFleeCooldown: 20
+  alertsNearbyNPCs: 0
+  propagatesReceivedAlerts: 0
+  alertSameFactionOnly: 1
   alertDuration: 10
+  hostilityDuration: 300
+  createsFactionHostilityWhenAttacked: 0
 --- !u!114 &822371957010129274
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -464,7 +403,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerBaseAttackCollection
   learnedAttacks:
   - {fileID: 11400000, guid: ef961514809aaa741a1d92d2f70b0c6b, type: 2}
-  equippedAttack: {fileID: 11400000, guid: ef961514809aaa741a1d92d2f70b0c6b, type: 2}
+  primaryAttack: {fileID: 11400000, guid: ef961514809aaa741a1d92d2f70b0c6b, type: 2}
+  secondaryAttack: {fileID: 0}
 --- !u!114 &3706294627332642803
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -506,6 +446,71 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterStateController
   combatDuration: 5
+--- !u!114 &788226862973081087
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e26a59024476db64a9324782f5c12c54, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterStats
+  faction: {fileID: 0}
+  reputationLossOnHit: 20
+  reputationLossOnDeath: 100
+  displayName: NPC
+  role: 0
+  level: 1
+  stats:
+  - stat: 0
+    value: 5
+  - stat: 1
+    value: 20
+  - stat: 2
+    value: 0
+  - stat: 3
+    value: 1
+  - stat: 12
+    value: 0
+  - stat: 17
+    value: 0
+  - stat: 18
+    value: 0
+  derivedStats:
+  - stat: 15
+    value: 2.5
+  - stat: 4
+    value: 1
+  - stat: 5
+    value: 3.4
+  - stat: 21
+    value: 2.5
+  - stat: 16
+    value: 0.89
+  - stat: 20
+    value: 0
+  _currentHP: 0
+  deathReward: {fileID: 0}
+  effectPoint: {fileID: 0}
+  healingFloatingTextPrefab: {fileID: 0}
+  healingTextOffset: {x: 0, y: 1.5, z: 0}
+--- !u!114 &2430686843897917415
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4461167aa926de244b9f2bb82a335ea1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterActionController
+  defaultGlobalCooldown: 0.8
+  targetingBufferSize: 128
 --- !u!1 &5967507019914542932
 GameObject:
   m_ObjectHideFlags: 0
@@ -701,14 +706,3 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 6590725495921578235, guid: 7fae102c0907cb54680287d363a1299e, type: 3}
   m_PrefabInstance: {fileID: 5635623269549750492}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &7387533257812019833 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 2931856389744964261, guid: 7fae102c0907cb54680287d363a1299e, type: 3}
-  m_PrefabInstance: {fileID: 5635623269549750492}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI

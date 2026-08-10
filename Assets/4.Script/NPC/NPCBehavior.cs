@@ -39,8 +39,8 @@ public class NPCBehavior : MonoBehaviour
     [SerializeField]
     [Tooltip(
     "Collider-lager som används när NPC:n söker efter hot. " +
-    "Ska normalt inkludera Hitbox."
-)]
+    "Ska normalt inkludera Hitbox.")]
+
     private LayerMask threatDetectionLayers;
 
     [Header("Wander")]
@@ -58,6 +58,12 @@ public class NPCBehavior : MonoBehaviour
     [SerializeField] protected float maxHoldDistanceFromSpawn = 50f; //Förhindrar oändlig flykt
     protected Vector3 fleeTargetPosition;
     protected CharacterStats fleeSource;
+
+ //Low-health retreat är INTE samma sak som vanlig Flee.
+ //Den är en tillfällig ompositionering inom samma encounter.
+    private bool lowHealthRetreatActive;
+    private CharacterStats lowHealthRetreatThreat;
+    private Vector3 lowHealthRetreatStartPosition;
 
     [Header("Death & Respawn")]
     private bool isDead = false;
@@ -755,6 +761,8 @@ public class NPCBehavior : MonoBehaviour
             return;
         }
 
+        encounterReturnPosition = spawnPosition;
+
         BeginEncounterResetAndReturn();
     }
 
@@ -787,6 +795,15 @@ public class NPCBehavior : MonoBehaviour
             ?.ResetRuntimeState();
 
         movement?.Stop();
+
+        lowHealthRetreatActive =
+            false;
+
+        lowHealthRetreatThreat =
+            null;
+
+        lowHealthRetreatStartPosition =
+            Vector3.zero;
 
         fleeSource =
             null;
@@ -852,6 +869,15 @@ public class NPCBehavior : MonoBehaviour
 
         currentTargetStats =
             null;
+
+        lowHealthRetreatActive =
+            false;
+
+        lowHealthRetreatThreat =
+            null;
+
+        lowHealthRetreatStartPosition =
+            Vector3.zero;
 
         activeFleeSpeedMultiplier =
             1f;
@@ -983,15 +1009,139 @@ public class NPCBehavior : MonoBehaviour
         }
     }
 
-    void UpdateFleeState()
+    private void UpdateFleeState()
     {
-        if (currentState != AIState.Fleeing)
+        if (currentState !=
+            AIState.Fleeing)
+        {
+            return;
+        }
+
+        bool fleeFinished =
+            movement.UpdateFlee();
+
+        if (!fleeFinished)
             return;
 
-        if (movement.UpdateFlee())
+        movement.EndFlee();
+
+        /*
+         * LOW HEALTH RETREAT
+         *
+         * Detta är bara en taktisk ompositionering.
+         * NPC:n ska INTE:
+         *
+         * - resetta HP
+         * - resetta cooldowns
+         * - lämna encounter
+         * - återvända till spawn
+         */
+        if (lowHealthRetreatActive)
         {
-            movement.EndFlee();
-            EnterHoldingState();
+            CompleteLowHealthRetreat();
+
+            return;
+        }
+
+        /*
+         * Vanlig Flee-reaction behåller det gamla beteendet.
+         */
+        EnterHoldingState();
+    }
+
+    private void CompleteLowHealthRetreat()
+    {
+        CharacterStats threat =
+            lowHealthRetreatThreat;
+
+        lowHealthRetreatActive =
+            false;
+
+        lowHealthRetreatThreat =
+            null;
+
+        fleeSource =
+            null;
+
+        activeFleeSpeedMultiplier =
+            1f;
+
+        /*
+         * Om target dog medan NPC:n retirerade finns inget encounter
+         * kvar att återgå till.
+         *
+         * Då går NPC:n tillbaka till ORIGINAL spawn och gör en riktig
+         * encounter-reset där.
+         */
+        if (threat == null ||
+            !threat.IsAlive)
+        {
+            encounterReturnPosition =
+                spawnPosition;
+
+            BeginEncounterResetAndReturn();
+
+            return;
+        }
+
+        /*
+         * Återgå till samma encounter utan att skapa ett nytt
+         * combat-anchor.
+         *
+         * combatAnchorPosition är redan retreatens startpunkt.
+         */
+        ResumeAggroAfterLowHealthRetreat(
+            threat
+        );
+    }
+
+    private void ResumeAggroAfterLowHealthRetreat(
+    CharacterStats threat)
+    {
+        if (threat == null ||
+            !threat.IsAlive)
+        {
+            encounterReturnPosition =
+                spawnPosition;
+
+            BeginEncounterResetAndReturn();
+
+            return;
+        }
+
+        currentTargetStats =
+            threat;
+
+        player =
+            threat.transform;
+
+        isAggro =
+            true;
+
+        isReturning =
+            false;
+
+        /*
+         * VIKTIGT:
+         *
+         * Vi anropar INTE EnterAggroState här.
+         *
+         * EnterAggroState skapar normalt ett nytt encounter-anchor.
+         * Efter retreat ska ankaret däremot fortsätta vara platsen
+         * där retreaten började.
+         */
+        ChangeState(
+            AIState.Aggro
+        );
+
+        PlayerStats playerTarget =
+            threat as PlayerStats;
+
+        if (playerTarget != null)
+        {
+            SubscribeToPlayerDeath(
+                playerTarget
+            );
         }
     }
 
@@ -1426,6 +1576,105 @@ public class NPCBehavior : MonoBehaviour
         );
     }
 
+    /// <summary>
+    /// Startar en taktisk low-health retreat.
+    ///
+    /// NPC:n flyr en låst sträcka bort från threat men lämnar
+    /// INTE sitt encounter.
+    ///
+    /// Punkten där retreaten började blir därefter encounterts
+    /// nya leash-center.
+    /// </summary>
+    public void StartLowHealthRetreat(
+        CharacterStats threat,
+        float retreatDistance,
+        float speedMultiplier)
+    {
+        if (threat == null ||
+            movement == null)
+        {
+            return;
+        }
+
+        if (!threat.IsAlive)
+            return;
+
+        /*
+         * Avbryt eventuell attack/cast som pågår när NPC:n
+         * bestämmer sig för att retirera.
+         *
+         * Vi använder CancelCurrentAction i stället för
+         * ResetRuntimeState eftersom cooldowns INTE ska
+         * återställas av en taktisk retreat.
+         */
+        if (actionController != null &&
+            actionController.HasActiveAction)
+        {
+            actionController
+                .CancelCurrentAction();
+        }
+
+        lowHealthRetreatActive =
+            true;
+
+        lowHealthRetreatThreat =
+            threat;
+
+        /*
+         * DENNA punkt blir encounterts nya leash-center.
+         */
+        lowHealthRetreatStartPosition =
+            transform.position;
+
+        combatAnchorPosition =
+            lowHealthRetreatStartPosition;
+
+        hasCombatAnchor =
+            true;
+
+        /*
+         * Efter en low-health retreat ska en riktig encounter-reset
+         * alltid ta NPC:n tillbaka till dess ursprungliga spawn.
+         */
+        encounterReturnPosition =
+            spawnPosition;
+
+        fleeSource =
+            threat;
+
+        activeFleeSpeedMultiplier =
+            Mathf.Max(
+                0f,
+                speedMultiplier
+            );
+
+        
+         //NPC:n slåss inte medan retreat-rörelsen pågår.
+   
+        isAggro =
+            false;
+
+        isReturning =
+            false;
+
+        currentTargetStats =
+            null;
+
+        movement.BeginFlee(
+            threat,
+            Mathf.Max(
+                0.1f,
+                retreatDistance
+            ),
+            0f,
+            activeFleeSpeedMultiplier
+        );
+
+        ChangeState(
+            AIState.Fleeing
+        );
+    }
+
     public void ResetAggro()
     {
         fleeSource =
@@ -1525,6 +1774,9 @@ public class NPCBehavior : MonoBehaviour
     private void HandleTargetDied(
     CharacterStats deadTarget)
     {
+        encounterReturnPosition =
+            spawnPosition;
+
         BeginEncounterResetAndReturn();
     }
 

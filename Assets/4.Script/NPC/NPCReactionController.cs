@@ -49,9 +49,7 @@ public sealed class NPCReactionController :
     [Header("Reaction")]
 
     [SerializeField]
-    [Tooltip(
-        "Hur NPC:n reagerar på ett giltigt hot."
-    )]
+    [Tooltip("Hur NPC:n reagerar på ett giltigt hot.")]
     private NPCReactionType reactionType;
 
     public NPCReactionType ReactionType =>
@@ -66,8 +64,7 @@ public sealed class NPCReactionController :
     [SerializeField]
     [Tooltip(
         "Om NPC:n ska övergå till Flee när dess HP når " +
-        "den konfigurerade gränsen."
-    )]
+        "den konfigurerade gränsen.")]
     private bool fleeAtLowHealth;
 
     [SerializeField]
@@ -89,14 +86,34 @@ public sealed class NPCReactionController :
         0.5f;
 
     [SerializeField]
+    [Min(0.1f)]
+    [Tooltip(
+    "Hur långt NPC:n försöker retirera från sitt threat " +
+    "när Low Health Flee aktiveras."
+)]
+    private float lowHealthFleeDistance =
+    10f;
+
+    [SerializeField]
     [Tooltip(
         "Om låg-HP-flykt endast får aktiveras en gång " +
         "per encounter."
     )]
     private bool lowHealthFleeTriggersOnce =
         true;
-
     private bool lowHealthFleeTriggered;
+
+    [SerializeField]
+    [Min(0f)]
+    [Tooltip(
+    "Om 'Triggers Once Per Encounter' är avstängd måste " +
+    "denna tid gå innan NPC:n kan göra ytterligare en " +
+    "low-health retreat."
+)]
+    private float lowHealthFleeCooldown =
+    20f;
+
+    private float lowHealthFleeCooldownTimer;
 
     // =========================================================
     // ALERTS
@@ -260,6 +277,7 @@ public sealed class NPCReactionController :
     private void Update()
     {
         ResolvePlayerReference();
+        UpdateLowHealthFleeCooldown();
         UpdateLocalHostility();
         UpdatePlayerDetection();
         HandlePassiveHostility();
@@ -310,6 +328,18 @@ public sealed class NPCReactionController :
             Mathf.Max(
                 0f,
                 lowHealthFleeSpeedMultiplier
+            );
+
+        lowHealthFleeDistance =
+            Mathf.Max(
+                0.1f,
+                lowHealthFleeDistance
+            );
+
+        lowHealthFleeCooldown =
+            Mathf.Max(
+                0f,
+                lowHealthFleeCooldown
             );
     }
 
@@ -629,7 +659,7 @@ public sealed class NPCReactionController :
     // =========================================================
 
     private bool TryTriggerLowHealthFlee(
-        CharacterStats threat)
+    CharacterStats threat)
     {
         if (!fleeAtLowHealth ||
             selfStats == null ||
@@ -639,11 +669,31 @@ public sealed class NPCReactionController :
             return false;
         }
 
-        if (!selfStats.IsAlive)
+        if (!selfStats.IsAlive ||
+            !threat.IsAlive)
+        {
             return false;
+        }
 
-        if (lowHealthFleeTriggersOnce &&
-            lowHealthFleeTriggered)
+        /*
+         * Variant A:
+         *
+         * Får bara ske en gång under hela encountert.
+         */
+        if (lowHealthFleeTriggersOnce)
+        {
+            if (lowHealthFleeTriggered)
+            {
+                return false;
+            }
+        }
+        /*
+         * Variant B:
+         *
+         * Får ske flera gånger, men endast efter cooldown.
+         */
+        else if (
+            lowHealthFleeCooldownTimer > 0f)
         {
             return false;
         }
@@ -669,18 +719,49 @@ public sealed class NPCReactionController :
         lowHealthFleeTriggered =
             true;
 
+        lowHealthFleeCooldownTimer =
+            Mathf.Max(
+                0f,
+                lowHealthFleeCooldown
+            );
+
         lastThreatSource =
             threat;
 
         RefreshAlert();
 
-        ai.StartFleeing(
+        /*
+         * VIKTIGT:
+         *
+         * Low-health flee använder INTE längre vanlig StartFleeing.
+         *
+         * Den använder en särskild retreat-väg som behåller encountert
+         * och flyttar combat/leash-anchor till retreatens startpunkt.
+         */
+        ai.StartLowHealthRetreat(
             threat,
+            lowHealthFleeDistance,
             lowHealthFleeSpeedMultiplier
         );
 
         return true;
     }
+    private void UpdateLowHealthFleeCooldown()
+    {
+        if (lowHealthFleeCooldownTimer <=
+            0f)
+        {
+            return;
+        }
+
+        lowHealthFleeCooldownTimer =
+            Mathf.Max(
+                0f,
+                lowHealthFleeCooldownTimer -
+                Time.deltaTime
+            );
+    }
+
 
     // =========================================================
     // ALERT SENDING
@@ -1091,6 +1172,9 @@ public sealed class NPCReactionController :
 
         lowHealthFleeTriggered =
             false;
+
+        lowHealthFleeCooldownTimer =
+            0f;
 
         alertTimer =
             0f;

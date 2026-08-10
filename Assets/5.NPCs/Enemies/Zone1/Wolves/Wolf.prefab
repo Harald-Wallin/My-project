@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 5499205553152416821}
   - component: {fileID: 2886530027763505694}
   - component: {fileID: 8975386141034840058}
-  m_Layer: 9
+  m_Layer: 8
   m_Name: GraphicsRoot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -132,7 +132,8 @@ GameObject:
   - component: {fileID: 1327340354901553847}
   - component: {fileID: 2430686843897917415}
   - component: {fileID: 6351350600522376679}
-  m_Layer: 9
+  - component: {fileID: 3005642618300060603}
+  m_Layer: 8
   m_Name: Wolf
   m_TagString: Enemy
   m_Icon: {fileID: 0}
@@ -304,6 +305,9 @@ MonoBehaviour:
   stopDistanceDefault: 1
   canAggro: 1
   aggroRange: 6
+  threatDetectionLayers:
+    serializedVersion: 2
+    m_Bits: 0
   canWander: 1
   canPatrol: 0
   patrolPath: {fileID: 0}
@@ -370,8 +374,10 @@ MonoBehaviour:
   reactionType: 2
   fleeAtLowHealth: 1
   lowHealthFleeThreshold: 0.251
-  lowHealthFleeSpeedMultiplier: 0.059
-  lowHealthFleeTriggersOnce: 1
+  lowHealthFleeSpeedMultiplier: 0.3
+  lowHealthFleeDistance: 10
+  lowHealthFleeTriggersOnce: 0
+  lowHealthFleeCooldown: 20
   alertsNearbyNPCs: 0
   propagatesReceivedAlerts: 0
   alertSameFactionOnly: 1
@@ -436,20 +442,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
   stopDistance: 0.8
-  avoidanceProbeDistance: 1.2
-  avoidanceAngle: 35
-  avoidanceMemoryDuration: 1.5
-  stuckCheckTime: 0.5
-  stuckMovementThreshold: 0.1
-  avoidanceTargetDistance: 2
-  targetWeight: 1
-  obstacleWeight: 2
-  separationWeight: 1.2
+  skinWidth: 0.02
   separationRadius: 1.2
-  obstacleMemoryDuration: 2
-  avoidanceLayers:
-    serializedVersion: 2
-    m_Bits: 1408
+  separationWeight: 1.2
   wanderRadius: 10
   wanderMoveTime: 2
   wanderPauseTime: 2
@@ -522,6 +517,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CreatureIdentity
   definition: {fileID: 11400000, guid: fce0968aa55d6aa4a8cfed87ad1c6fd6, type: 2}
+--- !u!114 &3005642618300060603
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 365970455f826da45a59d9ef78b1dfd7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCNavigationAgent
+  navigationRegion: {fileID: 0}
+  waypointReachDistance: 0.35
+  repathInterval: 0.5
+  targetMoveThreshold: 2
+  preferDirectMovement: 1
+  drawCurrentPath: 1
+  drawRawPath: 0
+  drawCurrentWaypoint: 1
 --- !u!1 &5964683598601086679
 GameObject:
   m_ObjectHideFlags: 0
@@ -531,7 +546,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1917358144810171706}
-  m_Layer: 9
+  m_Layer: 8
   m_Name: EffectPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -644,6 +659,38 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4234482838763025597}
     m_Modifications:
+    - target: {fileID: 266238838312315254, guid: 7fae102c0907cb54680287d363a1299e, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 1864996105920084584, guid: 7fae102c0907cb54680287d363a1299e, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 1898625559070685448, guid: 7fae102c0907cb54680287d363a1299e, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 2722296054167345424, guid: 7fae102c0907cb54680287d363a1299e, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 3549829941184842167, guid: 7fae102c0907cb54680287d363a1299e, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 3944806037855951948, guid: 7fae102c0907cb54680287d363a1299e, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 5471636976128149095, guid: 7fae102c0907cb54680287d363a1299e, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 5683245569780574930, guid: 7fae102c0907cb54680287d363a1299e, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
     - target: {fileID: 6590725495921578235, guid: 7fae102c0907cb54680287d363a1299e, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -728,9 +775,29 @@ PrefabInstance:
       propertyPath: target
       value: 
       objectReference: {fileID: 788226862973081087}
+    - target: {fileID: 7548118659459080807, guid: 7fae102c0907cb54680287d363a1299e, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 7843631943541838579, guid: 7fae102c0907cb54680287d363a1299e, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
     - target: {fileID: 7917476200973921693, guid: 7fae102c0907cb54680287d363a1299e, type: 3}
       propertyPath: m_Name
       value: Nameplate
+      objectReference: {fileID: 0}
+    - target: {fileID: 7917476200973921693, guid: 7fae102c0907cb54680287d363a1299e, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 8142559906394470532, guid: 7fae102c0907cb54680287d363a1299e, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 9013994213659377400, guid: 7fae102c0907cb54680287d363a1299e, type: 3}
+      propertyPath: m_Layer
+      value: 8
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
