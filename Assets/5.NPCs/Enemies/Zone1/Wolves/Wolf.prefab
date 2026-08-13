@@ -534,6 +534,8 @@ MonoBehaviour:
   repathInterval: 0.5
   targetMoveThreshold: 2
   preferDirectMovement: 1
+  stuckCheckDuration: 0.75
+  minimumProgressDistance: 0.12
   drawCurrentPath: 1
   drawRawPath: 0
   drawCurrentWaypoint: 1

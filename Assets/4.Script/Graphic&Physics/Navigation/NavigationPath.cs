@@ -28,8 +28,16 @@ public sealed class NavigationPath
         Points =>
             points;
 
+    /*
+     * En användbar path måste innehålla minst:
+     *
+     * 0 = start
+     * 1 = destination
+     *
+     * En ensam punkt är INTE en faktisk route.
+     */
     public bool IsValid =>
-        points.Count > 0;
+        points.Count >= 2;
 
     public int PointCount =>
         points.Count;

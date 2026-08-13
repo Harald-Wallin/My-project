@@ -178,6 +178,57 @@ public sealed class CharacterActionController :
     /// För Immediate-actions går actionen direkt vidare till
     /// timing/execution om targetingen är giltig.
     /// </summary>
+
+    // =========================================================
+    // TARGETING QUERY
+    // =========================================================
+
+    /// <summary>
+    /// Validerar hur en ability skulle targeta ett explicit target
+    /// från karaktärens NUVARANDE position.
+    ///
+    /// Metoden:
+    /// - startar ingen action
+    /// - betalar ingen cost
+    /// - startar ingen cooldown
+    /// - ändrar ingen runtime action-state
+    ///
+    /// Den är främst avsedd för AI som behöver veta om dess
+    /// nuvarande position faktiskt är användbar för en ability.
+    /// </summary>
+    public TargetingResult EvaluateTargeting(
+        AbilityData ability,
+        CharacterStats explicitTarget)
+    {
+        if (ability == null ||
+            explicitTarget == null ||
+            stats == null ||
+            targetResolver == null)
+        {
+            return null;
+        }
+
+        GameObject targetObject =
+            explicitTarget.gameObject;
+
+        Vector2 aimPoint =
+            TargetUtility.GetTargetPosition(
+                targetObject
+            );
+
+        ActionRequest request =
+            new ActionRequest(
+                stats,
+                ability,
+                aimPoint,
+                targetObject
+            );
+
+        return targetResolver.Resolve(
+            request
+        );
+    }
+
     public bool TryStartAction(
         AbilityData ability,
         Vector2 requestedAimPoint,

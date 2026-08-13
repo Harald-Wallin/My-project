@@ -570,7 +570,8 @@ public static class AStarPathfinder
     public static NavigationPath FindPath(
         NavigationRegion region,
         Vector2 startWorldPosition,
-        Vector2 targetWorldPosition)
+        Vector2 targetWorldPosition,
+        bool allowDirectFastPath = true)
     {
         NavigationPath path =
             new();
@@ -586,9 +587,10 @@ public static class AStarPathfinder
          * Om destinationen redan går att nå direkt behövs
          * varken grid-search eller heap.
          */
-        if (region.IsDirectPathClear(
-                startWorldPosition,
-                targetWorldPosition))
+        if (allowDirectFastPath &&
+            region.IsDirectPathClear(
+            startWorldPosition,
+            targetWorldPosition))
         {
             Vector2[] directPoints =
             {
@@ -769,15 +771,43 @@ public static class AStarPathfinder
         // -----------------------------------------------------
 
         List<Vector2> smoothed =
-            NavigationPathSmoother
-                .Smooth(
-                    region,
-                    rawPoints
-                );
+    NavigationPathSmoother.Smooth(
+        region,
+        rawPoints
+    );
 
-        path.SetPoints(
-            smoothed
-        );
+        /*
+         * En special situation kan uppstå när NPC:n fysiskt står
+         * närmare World-geometri än regionens NavigationRadius.
+         *
+         * A* kan då fortfarande hitta en korrekt grid-path från
+         * närmaste walkable startcell, men path-smoothing kan inte
+         * verifiera segmentet från NPC:ns exakta position till den
+         * första gridcellen med full navigation-clearance.
+         *
+         * Smoothern får då inte förvandla en fungerande rå A*-path
+         * till en oanvändbar enpunkts-path.
+         */
+        if (smoothed == null ||
+            smoothed.Count < 2)
+        {
+            /*
+             * Behåll den råa grid-pathen.
+             *
+             * NPCMovement står fortfarande för den slutliga fysiska
+             * Rigidbody-kollisionskontrollen, så NPC:n kan aldrig
+             * klippa genom World bara för att smoothing misslyckades.
+             */
+            path.SetPoints(
+                rawPoints
+            );
+        }
+        else
+        {
+            path.SetPoints(
+                smoothed
+            );
+        }
 
         return path;
     }
@@ -1141,16 +1171,10 @@ public static class AStarPathfinder
                 1
             ];
 
-        if ((exactTarget - lastPoint)
-                .sqrMagnitude >
-            0.0001f &&
-            region.IsDirectPathClear(
-                lastPoint,
-                exactTarget))
+        if ((exactTarget - lastPoint).sqrMagnitude > 0.0001f &&
+            region.IsDirectPathClear(lastPoint,exactTarget))
         {
-            result.Add(
-                exactTarget
-            );
+            result.Add(exactTarget);
         }
 
         return result;

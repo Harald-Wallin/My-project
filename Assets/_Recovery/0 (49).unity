@@ -16130,7 +16130,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 174.99998, y: 203.50003}
+  m_AnchoredPosition: {x: 175, y: -25}
   m_SizeDelta: {x: 311.378, y: 80}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &729205947
@@ -26382,7 +26382,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 652871694}
   m_HandleRect: {fileID: 652871693}
   m_Direction: 2
-  m_Value: 0
+  m_Value: 1
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -33007,6 +33007,8 @@ MonoBehaviour:
   repathInterval: 0.25
   targetMoveThreshold: 0.75
   preferDirectMovement: 1
+  stuckCheckDuration: 0.75
+  minimumProgressDistance: 0.12
   drawCurrentPath: 1
   drawRawPath: 0
   drawCurrentWaypoint: 1
@@ -33250,6 +33252,8 @@ MonoBehaviour:
   repathInterval: 0.25
   targetMoveThreshold: 0.75
   preferDirectMovement: 1
+  stuckCheckDuration: 0.75
+  minimumProgressDistance: 0.12
   drawCurrentPath: 1
   drawRawPath: 0
   drawCurrentWaypoint: 1
@@ -36842,6 +36846,8 @@ MonoBehaviour:
   repathInterval: 0.25
   targetMoveThreshold: 0.75
   preferDirectMovement: 1
+  stuckCheckDuration: 0.75
+  minimumProgressDistance: 0.12
   drawCurrentPath: 1
   drawRawPath: 0
   drawCurrentWaypoint: 1
@@ -37041,8 +37047,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1368261479}
   m_HandleRect: {fileID: 1368261478}
   m_Direction: 2
-  m_Value: 1.0000058
-  m_Size: 0.9871667
+  m_Value: 0.99999416
+  m_Size: 0.98716664
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -38990,8 +38996,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NavigationRegion
   width: 100
   height: 100
-  cellSize: 0.1
-  agentRadius: 0.8
+  cellSize: 0.4
+  agentRadius: 0.4
+  obstacleClearancePadding: 0.25
   obstacleLayers:
     serializedVersion: 2
     m_Bits: 1024
@@ -40721,7 +40728,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -190.00002, y: 220.50003}
+  m_AnchoredPosition: {x: -190, y: -8}
   m_SizeDelta: {x: 304.6964, y: 80}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!114 &1694675092
@@ -44647,7 +44654,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1218412526}
   m_HandleRect: {fileID: 1218412525}
   m_Direction: 2
-  m_Value: 0
+  m_Value: 1
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -49489,6 +49496,8 @@ MonoBehaviour:
   repathInterval: 0.25
   targetMoveThreshold: 0.75
   preferDirectMovement: 1
+  stuckCheckDuration: 0.75
+  minimumProgressDistance: 0.12
   drawCurrentPath: 1
   drawRawPath: 0
   drawCurrentWaypoint: 1

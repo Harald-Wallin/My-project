@@ -13,10 +13,9 @@ GameObject:
   - component: {fileID: 1272829702256894267}
   - component: {fileID: 7866905134662663318}
   - component: {fileID: -2103519575472252477}
-  - component: {fileID: 1380420264869046125}
-  - component: {fileID: 3787696299808974523}
-  - component: {fileID: 8320047315240416081}
-  m_Layer: 0
+  - component: {fileID: -3305340238987320378}
+  - component: {fileID: 905474163279696691}
+  m_Layer: 10
   m_Name: Wolf_Corpse
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -156,6 +155,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LootContainer
   items: []
+  coinAmount: 0
 --- !u!114 &-2103519575472252477
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -173,45 +173,30 @@ MonoBehaviour:
   lootShimmer: {fileID: 3561173082310592701, guid: a0ab880cb1ec0f34fb9522ef019ddebd, type: 3}
   emptyCorpseLifetime: 10
   lootCorpseLifetime: 60
---- !u!114 &1380420264869046125
+--- !u!210 &-3305340238987320378
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2601435471124028453}
+  m_Enabled: 1
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_SortAtRoot: 0
+  m_Sort3DAs2D: 0
+--- !u!114 &905474163279696691
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2601435471124028453}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 03c884423d03f50439cf02565b212f21, type: 3}
+  m_Script: {fileID: 11500000, guid: 30721642fa7cc7f4589cb9c3b81b9415, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CorpseFade
-  lifetime: 10
-  fadeDuration: 2
---- !u!114 &3787696299808974523
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2601435471124028453}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a9ad8f1006ac0f9439fb20f70274df57, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CorpseGlow
-  pulseSpeed: 2
-  minAlpha: 0.6
-  maxAlpha: 1
---- !u!114 &8320047315240416081
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2601435471124028453}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 226b4f07a9d8e504aa4fc33560b1015a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CorpseLabel
-  label: {fileID: 0}
+  m_EditorClassIdentifier: Assembly-CSharp::YSorter
+  sortingOrderOffset: 0
+  yOffset: 0

@@ -41,6 +41,20 @@ public sealed class NavigationRegion :
     private float agentRadius =
         0.3f;
 
+    [SerializeField]
+    [Min(0f)]
+    [Tooltip(
+    "Extra säkerhetsmarginal mellan navigation-pathen " +
+    "och World-geometri. " +
+    "Påverkar navigation men inte NPC:ns fysiska collider."
+)]
+    private float obstacleClearancePadding =
+    0.2f;
+
+    public float NavigationRadius =>
+        agentRadius +
+        obstacleClearancePadding;
+
     [Header("Obstacles")]
 
     [SerializeField]
@@ -98,6 +112,12 @@ public sealed class NavigationRegion :
     public float AgentRadius =>
         agentRadius;
 
+    public float Width =>
+    width;
+
+    public float Height =>
+        height;
+
     public int Columns =>
         columns;
 
@@ -126,6 +146,25 @@ public sealed class NavigationRegion :
         }
     }
 
+    public void SetDimensions(
+    float newWidth,
+    float newHeight)
+    {
+        width =
+            Mathf.Max(
+                1f,
+                newWidth
+            );
+
+        height =
+            Mathf.Max(
+                1f,
+                newHeight
+            );
+
+        RecalculateDimensions();
+    }
+
     public Bounds RegionBounds
     {
         get
@@ -147,6 +186,27 @@ public sealed class NavigationRegion :
         {
             Bake();
         }
+    }
+
+    private void OnEnable()
+    {
+        NavigationWorld
+            .Instance
+            .RegisterRegion(
+                this
+            );
+    }
+
+    private void OnDisable()
+    {
+        if (!NavigationWorld.HasInstance)
+            return;
+
+        NavigationWorld
+            .Instance
+            .UnregisterRegion(
+                this
+            );
     }
 
     private void OnValidate()
@@ -173,6 +233,12 @@ public sealed class NavigationRegion :
             Mathf.Max(
                 0f,
                 agentRadius
+            );
+
+        obstacleClearancePadding =
+            Mathf.Max(
+                0f,
+                obstacleClearancePadding
             );
 
         RecalculateDimensions();
@@ -241,9 +307,12 @@ public sealed class NavigationRegion :
     }
 
     private bool IsWorldPositionBlocked(
-        Vector2 worldPosition)
+    Vector2 worldPosition)
     {
-        if (agentRadius <= 0f)
+        float navigationRadius =
+            NavigationRadius;
+
+        if (navigationRadius <= 0f)
         {
             Collider2D overlap =
                 Physics2D.OverlapPoint(
@@ -257,7 +326,7 @@ public sealed class NavigationRegion :
         Collider2D hit =
             Physics2D.OverlapCircle(
                 worldPosition,
-                agentRadius,
+                navigationRadius,
                 obstacleLayers
             );
 
@@ -508,14 +577,14 @@ public sealed class NavigationRegion :
     }
 
     public bool IsDirectPathClear(
-        Vector2 from,
-        Vector2 to,
-        float radiusOverride = -1f)
+    Vector2 from,
+    Vector2 to,
+    float radiusOverride = -1f)
     {
         float radius =
             radiusOverride >= 0f
                 ? radiusOverride
-                : agentRadius;
+                : NavigationRadius;
 
         Vector2 direction =
             to -
@@ -546,7 +615,7 @@ public sealed class NavigationRegion :
                    null;
         }
 
-        RaycastHit2D circleHit =
+        RaycastHit2D hitWithClearance =
             Physics2D.CircleCast(
                 from,
                 radius,
@@ -555,7 +624,7 @@ public sealed class NavigationRegion :
                 obstacleLayers
             );
 
-        return circleHit.collider ==
+        return hitWithClearance.collider ==
                null;
     }
 

@@ -401,11 +401,15 @@ public class NPCMovement : MonoBehaviour
         {
             if (navigationAgent != null)
             {
-                /*
-                 * Agenten finns men kunde inte hitta någon path.
-                 *
-                 * Försök inte springa rakt genom World-geometri.
-                 */
+                Debug.Log(
+                $"[NAV DEBUG] {name} NO DIRECTION | " +
+                $"pos={rb.position} | " +
+                $"target={targetPosition} | " +
+                $"distance={targetDistance:F2} | " +
+                $"hasDestination={navigationAgent.HasDestination} | " +
+                $"hasPath={navigationAgent.HasPath}",
+                this);
+
                 StopVisualMovement();
 
                 return false;
@@ -433,7 +437,7 @@ public class NPCMovement : MonoBehaviour
 
         Vector2 movementDirection =
             ApplyLocalSeparation(
-                navigationDirection
+            navigationDirection
             );
 
         if (movementDirection.sqrMagnitude <=
@@ -444,6 +448,37 @@ public class NPCMovement : MonoBehaviour
         }
 
         movementDirection.Normalize();
+
+        if (navigationAgent != null &&
+            navigationAgent.CurrentRegion != null)
+        {
+            float probeDistance =
+                Mathf.Max(
+                    0.4f,
+                    moveSpeed *
+                    Time.fixedDeltaTime *
+                    3f
+                );
+
+            Vector2 probeEnd =
+                rb.position +
+                movementDirection *
+                probeDistance;
+
+            bool separationDirectionClear =
+                navigationAgent
+                    .CurrentRegion
+                    .IsDirectPathClear(
+                        rb.position,
+                        probeEnd
+                    );
+
+            if (!separationDirectionClear)
+            {
+                movementDirection =
+                    navigationDirection.normalized;
+            }
+        }
 
         // -----------------------------------------------------
         // PHYSICAL MOVEMENT
@@ -456,12 +491,25 @@ public class NPCMovement : MonoBehaviour
 
         Vector2 safeMove =
             ResolveWorldCollision(
-                desiredMove
+            desiredMove
             );
 
         if (safeMove.sqrMagnitude <=
             0.0000001f)
         {
+            /*
+             * Navigationen trodde att NPC:n hade en användbar
+             * färdriktning, men den riktiga Rigidbody-collidern
+             * kunde inte röra sig.
+             *
+             * Rapportera detta tillbaka till NavigationAgent så att
+             * Direct Movement tillfälligt överges och A* tvingas fram.
+             */
+            navigationAgent
+                ?.NotifyPhysicalMovementBlocked(
+                    targetPosition
+                );
+
             StopVisualMovement();
 
             return false;
@@ -508,10 +556,12 @@ public class NPCMovement : MonoBehaviour
             new ContactFilter2D
             {
                 useLayerMask = true,
+
                 layerMask =
                     LayerMask.GetMask(
                         "World"
                     ),
+
                 useTriggers = false
             };
 
@@ -530,46 +580,46 @@ public class NPCMovement : MonoBehaviour
                 skinWidth
             );
 
-        /*
-         * Ingen World-collision.
-         * Följ navigationen exakt.
-         */
         if (hitCount == 0)
         {
             return desiredMove;
         }
 
-        Vector2 hitNormal =
-            hits[0].normal;
+        RaycastHit2D hit =
+            hits[0];
 
-        float normalDot =
+        Vector2 hitNormal =
+            hit.normal;
+
+        float normalMovement =
             Vector2.Dot(
                 desiredMove,
                 hitNormal
             );
 
         /*
-         * Positiv dot betyder att movement redan pekar
-         * bort från ytan.
+         * Positiv dotprodukt:
          *
-         * Då ska vi inte försöka korrigera den.
+         * Rörelsen går bort från ytan.
+         *
+         * Vi ska då INTE blockera rörelsen bara för att casten
+         * började väldigt nära colliderkanten.
          */
-        if (normalDot > 0f)
+        if (normalMovement >= 0f)
         {
             return desiredMove;
         }
 
         /*
-         * Negativ dot betyder att en del av movementen
-         * går in i World-ytan.
+         * Negativ dotprodukt betyder att en del av rörelsen går
+         * in i väggen.
          *
-         * Ta bort just den komponenten och behåll
-         * tangentiell movement längs hindret.
+         * Ta bort just den komponenten och behåll tangent-rörelsen.
          */
         Vector2 slideMove =
             desiredMove -
             hitNormal *
-            normalDot;
+            normalMovement;
 
         if (slideMove.sqrMagnitude <=
             0.0000001f)
@@ -577,10 +627,6 @@ public class NPCMovement : MonoBehaviour
             return Vector2.zero;
         }
 
-        /*
-         * Säkerställ även att själva slide-rörelsen
-         * inte går in i ett annat World-objekt.
-         */
         int slideHitCount =
             rb.Cast(
                 slideMove.normalized,
@@ -590,12 +636,19 @@ public class NPCMovement : MonoBehaviour
                 skinWidth
             );
 
-        if (slideHitCount > 0)
+        if (slideHitCount <= 0)
         {
-            return Vector2.zero;
+            return slideMove;
         }
 
-        return slideMove;
+        /*
+         * Om även slide är blockerad gör vi ingen fysisk
+         * improvisation här.
+         *
+         * NavigationAgent upptäcker utebliven progress och
+         * begär istället en ny A*-path.
+         */
+        return Vector2.zero;
     }
 
     // =========================================================
@@ -1029,17 +1082,48 @@ public class NPCMovement : MonoBehaviour
     // =========================================================
 
     public void UpdateAggroMovement(
-        CharacterStats target,
-        float attackRange)
+    CharacterStats target,
+    float attackRange,
+    bool forceApproach = false)
     {
         if (target == null)
             return;
 
+        Vector2 targetPosition =
+            TargetUtility.GetTargetPosition(
+                target.gameObject
+            );
+
+
+        float desiredStopDistance =
+            Mathf.Max(
+                0f,
+                attackRange *
+                0.9f
+            );
+
+        if (forceApproach)
+        {
+            desiredStopDistance =
+                0.05f;
+        }
+
+        MoveTowards(
+            targetPosition,
+            1f,
+            desiredStopDistance
+        );
+    }
+
+    public void UpdateAggroReposition(
+    CharacterStats target)
+    {
+        if (target == null)
+            return;
         MoveTowards(
             target.transform.position,
             1f,
-            attackRange *
-            0.9f
+            0f
         );
     }
 
@@ -1239,10 +1323,21 @@ public class NPCMovement : MonoBehaviour
     }
 
     // =========================================================
-    // STOP
+    // MOVEMENT STOP / HOLD
     // =========================================================
 
-    public void Stop()
+    /// <summary>
+    /// Pausar den fysiska rörelsen utan att kasta bort
+    /// NPC:ns navigation.
+    ///
+    /// Används exempelvis:
+    /// - under attack/cast/recovery
+    /// - medan NPC:n väntar på cooldown
+    /// - när NPC:n tillfälligt står i en giltig combat-position
+    ///
+    /// Den aktuella A*-pathen och destinationen behålls.
+    /// </summary>
+    public void HoldPosition()
     {
         if (rb != null)
         {
@@ -1250,10 +1345,25 @@ public class NPCMovement : MonoBehaviour
                 Vector2.zero;
         }
 
+        StopVisualMovement();
+    }
+
+    /// <summary>
+    /// Full movement-reset.
+    ///
+    /// NPC:n stannar och den nuvarande navigationen kastas bort.
+    ///
+    /// Används när:
+    /// - AI-state faktiskt avslutas
+    /// - NPC:n börjar return/reset
+    /// - patrol/flee/navigation ska avbrytas helt
+    /// </summary>
+    public void Stop()
+    {
+        HoldPosition();
+
         navigationAgent
             ?.ClearDestination();
-
-        StopVisualMovement();
     }
 
     private void StopVisualMovement()

@@ -477,31 +477,53 @@ public class NPCBehavior : MonoBehaviour
 
     void UpdateAggroState()
     {
-        if (currentTargetStats == null || currentTargetStats.currentHP <= 0)
+        // =====================================================
+        // TARGET VALIDATION
+        // =====================================================
+
+        if (currentTargetStats == null ||
+            !currentTargetStats.IsAlive)
         {
             BeginEncounterResetAndReturn();
+
             return;
         }
 
         if (actionController == null)
         {
             movement.Stop();
+
             return;
         }
 
+        // =====================================================
+        // ACTIVE ACTION
+        // =====================================================
+
         /*
-         * NPC:n startar inte en ny förflyttning eller action medan
-         * en action redan castas, exekveras eller återhämtar sig.
+         * En action pågår redan.
          *
-         * Detta förhindrar att AI:n försöker starta samma ability
-         * varje FixedUpdate.
+         * NPC:n ska stå still under den actionfas som
+         * CharacterActionController just nu styr.
+         *
+         * VIKTIGT:
+         * navigationen får INTE raderas här.
+         *
+         * När actionen är färdig kan NPC:n fortsätta på sin
+         * gamla path eller repatha mot targetets nya position.
          */
         if (actionController.HasActiveAction)
         {
-            movement.Stop();
+            movement.HoldPosition();
+
             FaceCurrentTarget();
+
             return;
         }
+
+        // =====================================================
+        // DISTANCE
+        // =====================================================
 
         float distance =
             Vector2.Distance(
@@ -514,6 +536,17 @@ public class NPCBehavior : MonoBehaviour
                 distance
             );
 
+        // =====================================================
+        // NO CURRENTLY AVAILABLE ACTION
+        // =====================================================
+
+        /*
+         * Detta kan exempelvis ske medan base attack ligger
+         * på cooldown.
+         *
+         * NPC:n ska fortfarande bibehålla sitt combat state
+         * och sin navigation.
+         */
         if (desiredAction == null)
         {
             float fallbackRange =
@@ -522,38 +555,57 @@ public class NPCBehavior : MonoBehaviour
                         .CurrentAttackRange
                     : movement.DefaultStopDistance;
 
-            if (distance > fallbackRange * 0.9f)
+            /*
+             * Är target faktiskt för långt bort fortsätter vi
+             * approach.
+             */
+            if (distance >
+                fallbackRange * 0.9f)
             {
                 movement.UpdateAggroMovement(
                     currentTargetStats,
-                    fallbackRange
+                    fallbackRange,
+                    forceApproach: false
                 );
+
+                return;
             }
-            else
-            {
-                movement.Stop();
-                FaceCurrentTarget();
-            }
+
+            /*
+             * Vi står ungefär där vi vill vara medan vi väntar
+             * på nästa tillgängliga action.
+             *
+             * Behåll navigationen.
+             */
+            movement.HoldPosition();
+
+            FaceCurrentTarget();
 
             return;
         }
+
+        // =====================================================
+        // TARGETING SETTINGS
+        // =====================================================
 
         AbilityTargetingSettings targeting =
             desiredAction.TargetingSettings;
 
         if (targeting == null)
         {
-            movement.Stop();
+            movement.HoldPosition();
+
             return;
         }
 
-        bool isSelfTargeted =
-            targeting.TargetingMode ==
-            TargetingMode.Self;
+        // =====================================================
+        // SELF-TARGETED ACTION
+        // =====================================================
 
-        if (isSelfTargeted)
+        if (targeting.TargetingMode ==
+            TargetingMode.Self)
         {
-            movement.Stop();
+            movement.HoldPosition();
 
             TryStartNPCAction(
                 desiredAction
@@ -562,29 +614,150 @@ public class NPCBehavior : MonoBehaviour
             return;
         }
 
+        // =====================================================
+        // APPROACH RANGE
+        // =====================================================
+
         float desiredRange =
             Mathf.Max(
                 targeting.Range,
                 movement.DefaultStopDistance
             );
 
-        if (distance > desiredRange * 0.9f)
+        /*
+         * Target befinner sig utanför abilityns räckvidd.
+         *
+         * Här behövs ingen targeting-query ännu.
+         * Vi vet redan att NPC:n måste närmare.
+         */
+        if (distance >
+            desiredRange * 0.9f)
         {
             movement.UpdateAggroMovement(
                 currentTargetStats,
-                desiredRange
+                desiredRange,
+                forceApproach: false
             );
 
             return;
         }
 
-        movement.Stop();
+        // =====================================================
+        // MINIMUM RANGE
+        // =====================================================
+
+        /*
+         * Target ligger för nära den önskade abilityn.
+         *
+         * För närvarande försöker vi fallback-base-attack.
+         *
+         * Ranged repositioning kan läggas till separat senare.
+         */
+        if (distance <
+            targeting.MinimumRange)
+        {
+            movement.HoldPosition();
+
+            FaceCurrentTarget();
+
+            HandleAttack(
+                desiredAction,
+                distance
+            );
+
+            return;
+        }
+
+        // =====================================================
+        // CAN THE ACTION ACTUALLY HIT FROM HERE?
+        // =====================================================
+
+        /*
+         * RANGE är inte samma sak som en giltig combat-position.
+         *
+         * Exempel:
+         *
+         * WOLF
+         *   |
+         * TREE
+         *   |
+         * PLAYER
+         *
+         * Vargen kan matematiskt vara inom 2 meter,
+         * men trädet gör attacken ogiltig.
+         *
+         * Abilityns egna targetingregler avgör detta.
+         */
+        TargetingResult targetingResult =
+            actionController
+                .EvaluateTargeting(
+                    desiredAction,
+                    currentTargetStats
+                );
+
+        bool canAttackFromCurrentPosition =
+            targetingResult != null &&
+            targetingResult.IsValid;
+
+        // =====================================================
+        // INVALID COMBAT POSITION
+        // =====================================================
+
+        if (!canAttackFromCurrentPosition)
+        {
+            /*
+             * Detta är den viktiga combat-navigation-regeln:
+             *
+             * NPC:n HAR redan aggro.
+             *
+             * Därför ska förlorad LoS INTE få den att glömma
+             * target eller stå still.
+             *
+             * Den fortsätter istället pathfinding mot target
+             * tills en användbar combat-position hittas.
+             *
+             * 0.05-ish stop distance används genom forceApproach
+             * eftersom vanlig attack-range annars skulle stoppa
+             * NPC:n på fel sida av ett hinder.
+             */
+            movement.UpdateAggroMovement(
+                currentTargetStats,
+                desiredRange,
+                forceApproach: true
+            );
+
+            return;
+        }
+
+        // =====================================================
+        // VALID COMBAT POSITION
+        // =====================================================
+
+        movement.HoldPosition();
+
         FaceCurrentTarget();
 
-        HandleAttack(
-            desiredAction,
-            distance
-        );
+        bool attackStarted =
+            HandleAttack(
+                desiredAction,
+                distance
+            );
+
+        if (attackStarted)
+        {
+            return;
+        }
+
+        /*
+         * Targetingen var giltig men actionen kunde inte startas.
+         *
+         * Exempel:
+         * - någon kort runtime-lock
+         * - resource/cost
+         * - timing/state
+         *
+         * NPC:n får stå kvar utan att dess navigation förstörs.
+         */
     }
 
     void SetupAggro(
@@ -1195,40 +1368,42 @@ public class NPCBehavior : MonoBehaviour
         }
     }
 
-    void HandleAttack(
+    private bool HandleAttack(
     AbilityData desiredAction,
     float distanceToTarget)
     {
         if (desiredAction == null)
-            return;
+            return false;
 
         if (actionController == null)
-            return;
+            return false;
 
         if (selfStats == null ||
             !selfStats.CanAct())
         {
-            return;
+            return false;
         }
 
         if (!isAggro ||
             isReturning ||
             currentTargetStats == null)
         {
-            return;
+            return false;
         }
 
-        if (currentState == AIState.Fleeing ||
-            currentState == AIState.Holding)
+        if (currentState ==
+                AIState.Fleeing ||
+            currentState ==
+                AIState.Holding)
         {
-            return;
+            return false;
         }
 
         AbilityTargetingSettings targeting =
             desiredAction.TargetingSettings;
 
         if (targeting == null)
-            return;
+            return false;
 
         bool isSelfTargeted =
             targeting.TargetingMode ==
@@ -1239,17 +1414,15 @@ public class NPCBehavior : MonoBehaviour
             if (distanceToTarget >
                 targeting.Range)
             {
-                return;
+                return false;
             }
 
             if (distanceToTarget <
                 targeting.MinimumRange)
             {
-                TryFallbackBaseAttack(
+                return TryFallbackBaseAttack(
                     distanceToTarget
                 );
-
-                return;
             }
         }
 
@@ -1258,13 +1431,28 @@ public class NPCBehavior : MonoBehaviour
                 desiredAction
             );
 
-        if (!started &&
-            !desiredAction.IsBaseAttack)
+        if (started)
+            return true;
+
+        /*
+         * Abilityn gick inte att använda från nuvarande position.
+         *
+         * Exempel:
+         * - World blockerar Line of Sight
+         * - targetingen är spatialt ogiltig
+         * - abilityn kan inte påverka target härifrån
+         *
+         * NPCBehavior får då fortsätta navigationen istället för
+         * att fastna i "inom range = stå still".
+         */
+        if (!desiredAction.IsBaseAttack)
         {
-            TryFallbackBaseAttack(
+            return TryFallbackBaseAttack(
                 distanceToTarget
             );
         }
+
+        return false;
     }
 
     bool TryStartNPCAction(

@@ -8,12 +8,11 @@ using UnityEngine;
 public static class NavigationPathSmoother
 {
     public static List<Vector2> Smooth(
-        NavigationRegion region,
-        IReadOnlyList<Vector2> rawPoints)
+    NavigationRegion region,
+    IReadOnlyList<Vector2> rawPoints)
     {
-        List<Vector2>
-            result =
-                new();
+        List<Vector2> result =
+            new();
 
         if (region == null ||
             rawPoints == null ||
@@ -22,16 +21,11 @@ public static class NavigationPathSmoother
             return result;
         }
 
-        if (rawPoints.Count <= 2)
+        if (rawPoints.Count == 1)
         {
-            for (int i = 0;
-                 i < rawPoints.Count;
-                 i++)
-            {
-                result.Add(
-                    rawPoints[i]
-                );
-            }
+            result.Add(
+                rawPoints[0]
+            );
 
             return result;
         }
@@ -49,16 +43,19 @@ public static class NavigationPathSmoother
                rawPoints.Count - 1)
         {
             int furthestVisible =
-                anchorIndex + 1;
+                -1;
 
+            /*
+             * Börja från slutet och hitta den längsta waypoint
+             * som verkligen går att nå med full navigation-clearance.
+             */
             for (int candidate =
                      rawPoints.Count - 1;
                  candidate >
-                     anchorIndex + 1;
+                     anchorIndex;
                  candidate--)
             {
-                bool clear =
-                    region
+                if (!region
                         .IsDirectPathClear(
                             rawPoints[
                                 anchorIndex
@@ -66,14 +63,25 @@ public static class NavigationPathSmoother
                             rawPoints[
                                 candidate
                             ]
-                        );
-
-                if (!clear)
+                        ))
+                {
                     continue;
+                }
 
                 furthestVisible =
                     candidate;
 
+                break;
+            }
+
+            /*
+             * Om inte ens nästa råa waypoint går att nå är
+             * pathen geometriskt inkonsekvent.
+             *
+             * Vi bryter istället för att skapa en unsafe segment.
+             */
+            if (furthestVisible < 0)
+            {
                 break;
             }
 
@@ -82,13 +90,16 @@ public static class NavigationPathSmoother
                     furthestVisible
                 ];
 
+            Vector2 previousPoint =
+                result[
+                    result.Count -
+                    1
+                ];
+
             if (
                 (
                     nextPoint -
-                    result[
-                        result.Count -
-                        1
-                    ]
+                    previousPoint
                 ).sqrMagnitude >
                 0.0001f
             )
