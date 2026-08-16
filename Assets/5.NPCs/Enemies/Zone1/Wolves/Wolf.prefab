@@ -133,6 +133,7 @@ GameObject:
   - component: {fileID: 2430686843897917415}
   - component: {fileID: 6351350600522376679}
   - component: {fileID: 3005642618300060603}
+  - component: {fileID: -7217729489899146503}
   m_Layer: 8
   m_Name: Wolf
   m_TagString: Enemy
@@ -473,7 +474,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: bace446e6b5a2e647a3e3fe6b614f7db, type: 2}
   minLootRolls: 0
   maxLootRolls: 1
-  minimumPlayerDamageShare: 0.5
+  allowTiedTopContribution: 1
   floatingExpTextPrefab: {fileID: 8131224175839406369, guid: daad473c21b3e5a438a07220b6e1ac3c, type: 3}
   unlockStartZoneWolf: 0
 --- !u!114 &1327340354901553847
@@ -534,11 +535,30 @@ MonoBehaviour:
   repathInterval: 0.5
   targetMoveThreshold: 2
   preferDirectMovement: 1
+  portalReachDistance: 0.35
   stuckCheckDuration: 0.75
   minimumProgressDistance: 0.12
+  physicalBlockPathDuration: 1.5
   drawCurrentPath: 1
   drawRawPath: 0
   drawCurrentWaypoint: 1
+  drawWorldRoute: 1
+  navigationDebugLogs: 0
+--- !u!114 &-7217729489899146503
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f709dd2aa833dfc4593ced1e4d6f873a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCThreatTracker
+  damageThreatMultiplier: 1
+  initialAggroThreat: 1
+  targetSwitchThreatMultiplier: 1.2
 --- !u!1 &5964683598601086679
 GameObject:
   m_ObjectHideFlags: 0

@@ -195,4 +195,113 @@ public sealed class DamageContributionSnapshot
 
         return topContributor;
     }
+
+    public int GetHighestAppliedDamage()
+    {
+        if (entries == null ||
+            entries.Length == 0)
+        {
+            return 0;
+        }
+
+        int highestDamage =
+            0;
+
+        for (int i = 0;
+             i < entries.Length;
+             i++)
+        {
+            DamageContributionEntry entry =
+                entries[i];
+
+            if (entry == null ||
+                entry.CreditOwner == null)
+            {
+                continue;
+            }
+
+            highestDamage =
+                Mathf.Max(
+                    highestDamage,
+                    entry.AppliedDamage
+                );
+        }
+
+        return highestDamage;
+    }
+
+    /// <summary>
+    /// Returnerar true om creditOwner delar eller ensam har
+    /// den högsta damage contribution.
+    ///
+    /// Detta är avsiktligt INTE samma sak som att ha >= 50 %
+    /// av all damage.
+    ///
+    /// Exempel:
+    ///
+    /// Player 40
+    /// Guard A 30
+    /// Guard B 30
+    ///
+    /// Player är top contributor.
+    /// </summary>
+    public bool IsTopContributor(
+        CharacterStats creditOwner,
+        bool allowTies = true)
+    {
+        if (creditOwner == null)
+            return false;
+
+        int ownerDamage =
+            GetAppliedDamage(
+                creditOwner
+            );
+
+        if (ownerDamage <= 0)
+            return false;
+
+        int highestDamage =
+            GetHighestAppliedDamage();
+
+        if (highestDamage <= 0)
+            return false;
+
+        if (allowTies)
+        {
+            return
+                ownerDamage >=
+                highestDamage;
+        }
+
+        /*
+         * Om ties inte tillåts måste ingen ANNAN contributor
+         * ha lika mycket eller mer damage.
+         */
+        if (entries == null)
+            return false;
+
+        for (int i = 0;
+             i < entries.Length;
+             i++)
+        {
+            DamageContributionEntry entry =
+                entries[i];
+
+            if (entry == null ||
+                entry.CreditOwner == null ||
+                entry.CreditOwner ==
+                creditOwner)
+            {
+                continue;
+            }
+
+            if (entry.AppliedDamage >=
+                ownerDamage)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }

@@ -25,6 +25,8 @@ GameObject:
   - component: {fileID: -4741224723462481346}
   - component: {fileID: -1018831399304009737}
   - component: {fileID: -2672624628164567342}
+  - component: {fileID: 1540313279361898670}
+  - component: {fileID: 8123274129049092888}
   m_Layer: 8
   m_Name: Humanoid
   m_TagString: Enemy
@@ -330,8 +332,18 @@ MonoBehaviour:
   alertedRadiusMultiplier: 3
   drawGizmos: 1
   reactionType: 0
-  hostilityDuration: 300
+  fleeAtLowHealth: 0
+  lowHealthFleeThreshold: 0.15
+  lowHealthFleeSpeedMultiplier: 0.5
+  lowHealthFleeDistance: 10
+  lowHealthFleeTriggersOnce: 1
+  lowHealthFleeCooldown: 20
+  alertsNearbyNPCs: 0
+  propagatesReceivedAlerts: 0
+  alertSameFactionOnly: 1
   alertDuration: 10
+  hostilityDuration: 300
+  createsFactionHostilityWhenAttacked: 0
 --- !u!114 &5293376646054317175
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -350,6 +362,9 @@ MonoBehaviour:
   stopDistanceDefault: 1
   canAggro: 1
   aggroRange: 4
+  threatDetectionLayers:
+    serializedVersion: 2
+    m_Bits: 0
   canWander: 0
   canPatrol: 0
   patrolPath: {fileID: 0}
@@ -372,20 +387,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
   stopDistance: 0.8
-  avoidanceProbeDistance: 1.2
-  avoidanceAngle: 35
-  avoidanceMemoryDuration: 1.5
-  stuckCheckTime: 0.5
-  stuckMovementThreshold: 0.1
-  avoidanceTargetDistance: 2
-  targetWeight: 1
-  obstacleWeight: 2
-  separationWeight: 1.2
+  skinWidth: 0.02
   separationRadius: 1.2
-  obstacleMemoryDuration: 2
-  avoidanceLayers:
-    serializedVersion: 2
-    m_Bits: 0
+  separationWeight: 1.2
   wanderRadius: 3
   wanderMoveTime: 2
   wanderPauseTime: 2
@@ -418,7 +422,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerBaseAttackCollection
   learnedAttacks:
   - {fileID: 0}
-  primaryAttack: {fileID: 11400000, guid: ef961514809aaa741a1d92d2f70b0c6b, type: 2}
+  primaryAttack: {fileID: 0}
   secondaryAttack: {fileID: 0}
 --- !u!114 &-1018831399304009737
 MonoBehaviour:
@@ -446,6 +450,47 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterStateController
   combatDuration: 5
+--- !u!114 &1540313279361898670
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 365970455f826da45a59d9ef78b1dfd7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCNavigationAgent
+  navigationRegion: {fileID: 0}
+  waypointReachDistance: 0.35
+  repathInterval: 0.25
+  targetMoveThreshold: 0.75
+  preferDirectMovement: 1
+  portalReachDistance: 0.35
+  stuckCheckDuration: 0.75
+  minimumProgressDistance: 0.12
+  physicalBlockPathDuration: 1.5
+  drawCurrentPath: 1
+  drawRawPath: 0
+  drawCurrentWaypoint: 1
+  drawWorldRoute: 1
+  navigationDebugLogs: 0
+--- !u!114 &8123274129049092888
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f709dd2aa833dfc4593ced1e4d6f873a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCThreatTracker
+  damageThreatMultiplier: 1
+  initialAggroThreat: 1
+  targetSwitchThreatMultiplier: 1.2
 --- !u!1 &3778626201625969471
 GameObject:
   m_ObjectHideFlags: 0

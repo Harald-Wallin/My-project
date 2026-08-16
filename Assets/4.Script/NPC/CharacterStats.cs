@@ -106,6 +106,8 @@ public class CharacterStats : MonoBehaviour
 
     public event Action OnHealthChanged;
     public event Action OnStatsChanged;
+    public event Action<DamageAppliedEvent>
+    OnDamageApplied;
     public event Action<CharacterStats> OnDamagedBy;
     public event Action<CharacterStats> OnDied;
     public event Action<HealingResult> OnHealed;
@@ -396,6 +398,14 @@ public class CharacterStats : MonoBehaviour
         damageContributionTracker?.RegisterDamage(
             source,
             appliedDamage
+        );
+
+        OnDamageApplied?.Invoke(
+            new DamageAppliedEvent(
+                this,
+                source,
+                appliedDamage
+            )
         );
 
         RaiseHealthChanged();

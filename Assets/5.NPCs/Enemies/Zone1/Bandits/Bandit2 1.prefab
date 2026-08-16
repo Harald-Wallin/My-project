@@ -18,17 +18,17 @@ GameObject:
   - component: {fileID: 17746861532873532}
   - component: {fileID: -6276876268285353313}
   - component: {fileID: 5122081960522985903}
-  - component: {fileID: 6658034871447627093}
   - component: {fileID: -2890300438920332383}
   - component: {fileID: 5337025547157977040}
   - component: {fileID: 7173887725524883641}
   - component: {fileID: 5911326519326787468}
-  - component: {fileID: 3992364038166421198}
   - component: {fileID: -7689155213173438067}
   - component: {fileID: -6321709135610774627}
   - component: {fileID: 788226862973081087}
   - component: {fileID: 2430686843897917415}
   - component: {fileID: 1540313279361898670}
+  - component: {fileID: 3529358493601253075}
+  - component: {fileID: 3814017724552203859}
   m_Layer: 8
   m_Name: Bandit2 1
   m_TagString: Enemy
@@ -294,20 +294,6 @@ MonoBehaviour:
   alertDuration: 10
   hostilityDuration: 300
   createsFactionHostilityWhenAttacked: 0
---- !u!114 &6658034871447627093
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3459725347379031730}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5b3c9e946478baa47a6c0b7c8c0a5b4d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DamageReaction
-  pushDistance: 0.08
-  pushDuration: 0.05
 --- !u!114 &-2890300438920332383
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -365,36 +351,6 @@ MonoBehaviour:
   attackIndicator: {fileID: 0}
   attackOrigin: {fileID: 0}
   indicatorDistance: 0.6
---- !u!114 &3992364038166421198
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3459725347379031730}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c7a54e59b6b6f6345b8e8a4e102d6606, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HumanoidAI
-  player: {fileID: 0}
-  maxDistanceFromSpawn: 8
-  abilityDelayAfterAggro: 3
-  stopDistanceDefault: 1
-  canAggro: 1
-  aggroRange: 4
-  threatDetectionLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  canWander: 0
-  canPatrol: 1
-  patrolPath: {fileID: 0}
-  fleeDistance: 12
-  safeDistanceFromThreat: 18
-  resumeFleeDistance: 12
-  maxHoldDistanceFromSpawn: 50
-  selfStats: {fileID: 0}
-  reaggroCooldown: 3
 --- !u!114 &-7689155213173438067
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -511,9 +467,60 @@ MonoBehaviour:
   repathInterval: 0.25
   targetMoveThreshold: 0.75
   preferDirectMovement: 1
+  portalReachDistance: 0.35
+  stuckCheckDuration: 0.75
+  minimumProgressDistance: 0.12
+  physicalBlockPathDuration: 1.5
   drawCurrentPath: 1
   drawRawPath: 0
   drawCurrentWaypoint: 1
+  drawWorldRoute: 1
+  navigationDebugLogs: 0
+--- !u!114 &3529358493601253075
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1ff74424220cb34788cab7ebfab8b4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCBehavior
+  player: {fileID: 0}
+  maxDistanceFromSpawn: 8
+  abilityDelayAfterAggro: 3
+  stopDistanceDefault: 1
+  canAggro: 1
+  aggroRange: 4
+  threatDetectionLayers:
+    serializedVersion: 2
+    m_Bits: 64
+  canWander: 0
+  canPatrol: 1
+  patrolPath: {fileID: 0}
+  fleeDistance: 12
+  safeDistanceFromThreat: 18
+  resumeFleeDistance: 12
+  maxHoldDistanceFromSpawn: 50
+  selfStats: {fileID: 0}
+  reaggroCooldown: 0
+--- !u!114 &3814017724552203859
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f709dd2aa833dfc4593ced1e4d6f873a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCThreatTracker
+  damageThreatMultiplier: 1
+  initialAggroThreat: 1
+  targetSwitchThreatMultiplier: 1.2
 --- !u!1 &3778626201625969471
 GameObject:
   m_ObjectHideFlags: 0

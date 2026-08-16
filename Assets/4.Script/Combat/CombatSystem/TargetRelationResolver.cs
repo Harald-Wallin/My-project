@@ -3,30 +3,48 @@ using UnityEngine;
 public static class TargetRelationResolver
 {
     /// <summary>
-    /// Beräknar den faktiska relationen från source till target.
+    /// Beräknar den faktiska runtime-relationen från source
+    /// till target.
     ///
-    /// Murder mode behandlas inte här. Murder är ett undantag
-    /// från targetingreglerna, inte en verklig relationsändring.
+    /// Relation kan komma från:
+    /// - self
+    /// - aktiv combat-relation
+    /// - temporary hostility
+    /// - player reputation
+    /// - faction standing
+    ///
+    /// Murder mode behandlas INTE här.
+    /// Murder är ett targeting-undantag som låter spelaren
+    /// INITIERA våld mot ett annars icke-hostile target.
     /// </summary>
     public static TargetRelation Resolve(
         CharacterStats source,
         GameObject target)
     {
-        if (source == null || target == null)
+        if (source == null ||
+            target == null)
+        {
             return TargetRelation.None;
+        }
 
         CharacterStats targetStats =
-            TargetUtility.GetCharacterStats(target);
+            TargetUtility.GetCharacterStats(
+                target
+            );
 
         if (targetStats == null)
         {
-            // Förstörbara och andra icke-karaktärsmål behandlas
-            // tills vidare som neutrala.
+            /*
+             * Destructibles och andra framtida
+             * icke-character-targets är tills vidare neutrala.
+             */
             return TargetRelation.Neutral;
         }
 
         if (targetStats == source)
+        {
             return TargetRelation.Self;
+        }
 
         PlayerStats sourcePlayer =
             source as PlayerStats;
@@ -56,12 +74,34 @@ public static class TargetRelationResolver
         );
     }
 
-    private static TargetRelation ResolvePlayerToCharacter(
-        PlayerStats player,
-        CharacterStats target)
+    // =========================================================
+    // PLAYER -> CHARACTER
+    // =========================================================
+
+    private static TargetRelation
+        ResolvePlayerToCharacter(
+            PlayerStats player,
+            CharacterStats target)
     {
-        if (target.IsHostileToPlayer(player))
+        if (player == null ||
+            target == null)
+        {
+            return TargetRelation.None;
+        }
+
+        /*
+         * Runtime hostility mot spelaren.
+         *
+         * Täcker bland annat:
+         * - Hated reputation
+         * - local temporary hostility
+         * - faction temporary hostility
+         */
+        if (target.IsHostileToPlayer(
+                player))
+        {
             return TargetRelation.Hostile;
+        }
 
         if (target.faction != null &&
             FactionHostilitySystem.Instance != null &&
@@ -75,7 +115,8 @@ public static class TargetRelationResolver
         }
 
         PlayerReputationManager reputation =
-            player.GetComponent<PlayerReputationManager>();
+            player.GetComponent<
+                PlayerReputationManager>();
 
         if (reputation != null &&
             target.faction != null)
@@ -91,7 +132,8 @@ public static class TargetRelationResolver
         }
 
         if (player.faction != null &&
-            player.faction == target.faction)
+            player.faction ==
+            target.faction)
         {
             return TargetRelation.Friendly;
         }
@@ -102,12 +144,47 @@ public static class TargetRelationResolver
         );
     }
 
-    private static TargetRelation ResolveCharacterToPlayer(
-        CharacterStats source,
-        PlayerStats player)
+    // =========================================================
+    // CHARACTER -> PLAYER
+    // =========================================================
+
+    private static TargetRelation
+        ResolveCharacterToPlayer(
+            CharacterStats source,
+            PlayerStats player)
     {
-        if (source.IsHostileToPlayer(player))
+        if (source == null ||
+            player == null)
+        {
+            return TargetRelation.None;
+        }
+
+        /*
+         * VIKTIGT:
+         *
+         * Ett explicit pågående combat-target är alltid hostile
+         * ur ability-targetingens perspektiv.
+         *
+         * Exempel:
+         *
+         * Guard har Player som CurrentTarget efter att spelaren
+         * attackerat honom.
+         *
+         * Då får inte faction/reputation senare klassificera
+         * spelaren som Neutral och blockera guardens attack.
+         */
+        if (CombatTargeting.CanAttack(
+                source,
+                player))
+        {
             return TargetRelation.Hostile;
+        }
+
+        if (source.IsHostileToPlayer(
+                player))
+        {
+            return TargetRelation.Hostile;
+        }
 
         if (source.faction != null &&
             FactionHostilitySystem.Instance != null &&
@@ -121,51 +198,133 @@ public static class TargetRelationResolver
         }
 
         if (source.faction != null &&
-            source.faction == player.faction)
+            source.faction ==
+            player.faction)
         {
             return TargetRelation.Friendly;
         }
 
-        if (source.IsFriendlyTo(player))
+        if (source.IsFriendlyTo(
+                player))
+        {
             return TargetRelation.Friendly;
+        }
 
-        if (source.IsHostileTo(player))
+        if (source.IsHostileTo(
+                player))
+        {
             return TargetRelation.Hostile;
+        }
 
         return TargetRelation.Neutral;
     }
 
-    private static TargetRelation ResolveCharacterToCharacter(
-        CharacterStats source,
-        CharacterStats target)
+    // =========================================================
+    // CHARACTER -> CHARACTER
+    // =========================================================
+
+    private static TargetRelation
+        ResolveCharacterToCharacter(
+            CharacterStats source,
+            CharacterStats target)
     {
+        if (source == null ||
+            target == null)
+        {
+            return TargetRelation.None;
+        }
+
+        /*
+         * Samma faction är fortfarande Friendly som grundregel.
+         *
+         * ReactionSystem ignorerar redan vanlig same-faction
+         * friendly fire, så detta förblir vår normala sociala
+         * relation.
+         */
         if (source.faction != null &&
-            source.faction == target.faction)
+            source.faction ==
+            target.faction)
         {
             return TargetRelation.Friendly;
         }
 
-        if (source.IsHostileTo(target))
+        /*
+         * =====================================================
+         * ACTIVE COMBAT RELATION
+         * =====================================================
+         *
+         * Detta är den viktiga nya regeln.
+         *
+         * CombatTargeting känner till runtime combat-state:
+         *
+         * NPCBehavior.CurrentTarget == target
+         *
+         * betyder att target redan är ett legitimt combat-target.
+         *
+         * Ability-targeting måste acceptera samma sanning.
+         *
+         * Annars får vi exakt buggen:
+         *
+         * Wolf:
+         *   Aggro
+         *   CurrentTarget = Guard
+         *
+         * TargetResolver:
+         *   Guard = Neutral
+         *
+         * => TargetNotAllowed
+         */
+        if (CombatTargeting.CanAttack(
+                source,
+                target))
+        {
             return TargetRelation.Hostile;
+        }
 
-        if (source.IsFriendlyTo(target))
+        /*
+         * Permanent faction hostility.
+         */
+        if (source.IsHostileTo(
+                target))
+        {
+            return TargetRelation.Hostile;
+        }
+
+        if (source.IsFriendlyTo(
+                target))
+        {
             return TargetRelation.Friendly;
+        }
 
         return TargetRelation.Neutral;
     }
 
-    private static TargetRelation ResolveFactionRelation(
-        CharacterStats source,
-        CharacterStats target)
+    // =========================================================
+    // FACTION FALLBACK
+    // =========================================================
+
+    private static TargetRelation
+        ResolveFactionRelation(
+            CharacterStats source,
+            CharacterStats target)
     {
+        if (source == null ||
+            target == null)
+        {
+            return TargetRelation.None;
+        }
+
         if (source.faction == null ||
             target.faction == null)
         {
             return TargetRelation.Neutral;
         }
 
-        if (source.faction == target.faction)
+        if (source.faction ==
+            target.faction)
+        {
             return TargetRelation.Friendly;
+        }
 
         ReputationState standing =
             source.faction.GetStanding(
@@ -177,18 +336,26 @@ public static class TargetRelationResolver
         );
     }
 
-    private static TargetRelation ConvertStandingToRelation(
-        ReputationState standing)
+    // =========================================================
+    // REPUTATION -> TARGET RELATION
+    // =========================================================
+
+    private static TargetRelation
+        ConvertStandingToRelation(
+            ReputationState standing)
     {
         switch (standing)
         {
             case ReputationState.Hated:
+
                 return TargetRelation.Hostile;
 
             case ReputationState.Indifferent:
+
                 return TargetRelation.Neutral;
 
             default:
+
                 return TargetRelation.Friendly;
         }
     }

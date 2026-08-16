@@ -14,6 +14,17 @@ public sealed class CharacterDefeatedResult
     public CharacterStats FinalBlowCreditOwner =>
         FinalBlow.CreditOwner;
 
+    public bool IsTopDamageContributor(
+    CharacterStats creditOwner,
+    bool allowTies = true)
+    {
+        return Contributions
+            .IsTopContributor(
+                creditOwner,
+                allowTies
+            );
+    }
+
     public CharacterDefeatedResult(
         CharacterStats victim,
         CreatureDefinition creature,

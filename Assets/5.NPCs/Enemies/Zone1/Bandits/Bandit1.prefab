@@ -28,6 +28,8 @@ GameObject:
   - component: {fileID: 329194703700394155}
   - component: {fileID: 788226862973081087}
   - component: {fileID: 2430686843897917415}
+  - component: {fileID: 1540313279361898670}
+  - component: {fileID: -4950053025118340}
   m_Layer: 8
   m_Name: Bandit1
   m_TagString: Enemy
@@ -208,6 +210,9 @@ MonoBehaviour:
   stopDistanceDefault: 1
   canAggro: 1
   aggroRange: 4
+  threatDetectionLayers:
+    serializedVersion: 2
+    m_Bits: 0
   canWander: 1
   canPatrol: 0
   patrolPath: {fileID: 0}
@@ -308,8 +313,18 @@ MonoBehaviour:
   alertedRadiusMultiplier: 3
   drawGizmos: 1
   reactionType: 0
-  hostilityDuration: 300
+  fleeAtLowHealth: 0
+  lowHealthFleeThreshold: 0.15
+  lowHealthFleeSpeedMultiplier: 0.5
+  lowHealthFleeDistance: 10
+  lowHealthFleeTriggersOnce: 1
+  lowHealthFleeCooldown: 20
+  alertsNearbyNPCs: 0
+  propagatesReceivedAlerts: 0
+  alertSameFactionOnly: 1
   alertDuration: 10
+  hostilityDuration: 300
+  createsFactionHostilityWhenAttacked: 0
 --- !u!114 &6658034871447627093
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -364,7 +379,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerBaseAttackCollection
   learnedAttacks:
   - {fileID: 11400000, guid: 83d5314be1a2a9a4697b658f29a26d08, type: 2}
-  equippedAttack: {fileID: 11400000, guid: 83d5314be1a2a9a4697b658f29a26d08, type: 2}
+  primaryAttack: {fileID: 11400000, guid: 83d5314be1a2a9a4697b658f29a26d08, type: 2}
+  secondaryAttack: {fileID: 0}
 --- !u!114 &5911326519326787468
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -393,20 +409,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
   stopDistance: 0.8
-  avoidanceProbeDistance: 1.2
-  avoidanceAngle: 35
-  avoidanceMemoryDuration: 1.5
-  stuckCheckTime: 0.5
-  stuckMovementThreshold: 0.1
-  avoidanceTargetDistance: 2
-  targetWeight: 1
-  obstacleWeight: 2
-  separationWeight: 1.2
+  skinWidth: 0.02
   separationRadius: 1.2
-  obstacleMemoryDuration: 2
-  avoidanceLayers:
-    serializedVersion: 2
-    m_Bits: 1152
+  separationWeight: 1.2
   wanderRadius: 3
   wanderMoveTime: 2
   wanderPauseTime: 2
@@ -441,6 +446,7 @@ MonoBehaviour:
   reputationLossOnHit: 20
   reputationLossOnDeath: 100
   displayName: Bandit dreg
+  role: 0
   level: 1
   stats:
   - stat: 0
@@ -452,6 +458,10 @@ MonoBehaviour:
   - stat: 3
     value: 19
   - stat: 12
+    value: 0
+  - stat: 17
+    value: 0
+  - stat: 18
     value: 0
   derivedStats:
   - stat: 15
@@ -469,6 +479,8 @@ MonoBehaviour:
   _currentHP: 0
   deathReward: {fileID: 0}
   effectPoint: {fileID: 5155013851662899411}
+  healingFloatingTextPrefab: {fileID: 0}
+  healingTextOffset: {x: 0, y: 1.5, z: 0}
 --- !u!114 &2430686843897917415
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -483,6 +495,47 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CharacterActionController
   defaultGlobalCooldown: 0.8
   targetingBufferSize: 128
+--- !u!114 &1540313279361898670
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 365970455f826da45a59d9ef78b1dfd7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCNavigationAgent
+  navigationRegion: {fileID: 0}
+  waypointReachDistance: 0.35
+  repathInterval: 0.25
+  targetMoveThreshold: 0.75
+  preferDirectMovement: 1
+  portalReachDistance: 0.35
+  stuckCheckDuration: 0.75
+  minimumProgressDistance: 0.12
+  physicalBlockPathDuration: 1.5
+  drawCurrentPath: 1
+  drawRawPath: 0
+  drawCurrentWaypoint: 1
+  drawWorldRoute: 1
+  navigationDebugLogs: 0
+--- !u!114 &-4950053025118340
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f709dd2aa833dfc4593ced1e4d6f873a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCThreatTracker
+  damageThreatMultiplier: 1
+  initialAggroThreat: 1
+  targetSwitchThreatMultiplier: 1.2
 --- !u!1 &3778626201625969471
 GameObject:
   m_ObjectHideFlags: 0

@@ -800,6 +800,34 @@ public sealed class NPCNavigationAgent :
         if (navigationRegion == null)
             return false;
 
+        bool mayUseDirectMovement =
+            preferDirectMovement &&
+            forcedPathTimer <= 0f;
+
+        if (mayUseDirectMovement &&
+            navigationRegion
+                .IsDirectPathClear(
+                    currentPosition,
+                    localDestination
+                ))
+        {
+            if (HasPath ||
+                pathRequestPending)
+            {
+                InvalidateLocalPath();
+            }
+
+            ResetProgressTracking(
+                currentPosition
+            );
+
+            return TryGetDirectionToPoint(
+                currentPosition,
+                localDestination,
+                out direction
+            );
+        }
+
         // -----------------------------------------------------
         // ACTIVE LOCAL PATH
         // -----------------------------------------------------
@@ -847,24 +875,6 @@ public sealed class NPCNavigationAgent :
         ResetProgressTracking(
             currentPosition
         );
-
-        bool mayUseDirectMovement =
-            preferDirectMovement &&
-            forcedPathTimer <= 0f;
-
-        if (mayUseDirectMovement &&
-            navigationRegion
-                .IsDirectPathClear(
-                    currentPosition,
-                    localDestination
-                ))
-        {
-            return TryGetDirectionToPoint(
-                currentPosition,
-                localDestination,
-                out direction
-            );
-        }
 
         // -----------------------------------------------------
         // NEED LOCAL A*

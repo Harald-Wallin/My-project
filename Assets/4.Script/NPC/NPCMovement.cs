@@ -76,6 +76,34 @@ public class NPCMovement : MonoBehaviour
         separationBuffer =
             new Collider2D[16];
 
+    [Header("Character Avoidance")]
+
+    [SerializeField]
+    [Min(0f)]
+    [Tooltip(
+    "Hur långt framför NPC:n dynamiska karaktärer " +
+    "börjar påverka avoidance."
+)]
+    private float characterAvoidanceProbeDistance =
+    1.4f;
+
+    [SerializeField]
+    [Min(0f)]
+    [Tooltip(
+        "Hur brett området framför NPC:n är där andra " +
+        "karaktärer betraktas som blockerande."
+    )]
+    private float characterAvoidanceWidth =
+        0.65f;
+
+    [SerializeField]
+    [Range(0f, 1f)]
+    [Tooltip(
+        "Hur starkt sidostyrningen får påverka navigationen."
+    )]
+    private float characterAvoidanceStrength =
+        0.8f;
+
     // =========================================================
     // FLEE
     // =========================================================
@@ -140,6 +168,24 @@ public class NPCMovement : MonoBehaviour
     private float patrolWaitTimer;
 
     private bool waitingAtPatrolNode;
+
+    [SerializeField]
+    [Min(0f)]
+    [Tooltip(
+    "Om patrol-noden är blockerad av en annan karaktär " +
+    "och NPC:n redan är nära noden får noden räknas som nådd."
+)]
+    private float blockedPatrolNodeAcceptanceDistance =
+    2f;
+
+    [SerializeField]
+    [Min(0f)]
+    [Tooltip(
+        "Radie runt patrol-noden där levande karaktärer " +
+        "betraktas som att de blockerar noden."
+    )]
+    private float patrolNodeBlockRadius =
+        0.9f;
 
     // =========================================================
     // STATE
@@ -254,6 +300,35 @@ public class NPCMovement : MonoBehaviour
             Mathf.Max(
                 0f,
                 patrolSpeedMultiplier
+            );
+
+        characterAvoidanceProbeDistance =
+             Mathf.Max(
+                0f,
+                characterAvoidanceProbeDistance
+            );
+
+        characterAvoidanceWidth =
+            Mathf.Max(
+                0f,
+                characterAvoidanceWidth
+            );
+
+        characterAvoidanceStrength =
+            Mathf.Clamp01(
+                characterAvoidanceStrength
+            );
+
+        blockedPatrolNodeAcceptanceDistance =
+            Mathf.Max(
+                0f,
+             blockedPatrolNodeAcceptanceDistance
+            );
+
+        patrolNodeBlockRadius =
+            Mathf.Max(
+                0f,
+                patrolNodeBlockRadius
             );
     }
 
@@ -393,10 +468,6 @@ public class NPCMovement : MonoBehaviour
                     out navigationDirection
                 );
 
-        /*
-         * Om NavigationAgent saknas används endast direkt
-         * riktning som säker fallback.
-         */
         if (!hasNavigationDirection)
         {
             if (navigationAgent != null)
@@ -436,18 +507,28 @@ public class NPCMovement : MonoBehaviour
         // -----------------------------------------------------
 
         Vector2 movementDirection =
+    navigationDirection.normalized;
+
+        movementDirection =
+            ApplyCharacterAvoidance(
+                movementDirection
+            );
+
+        movementDirection =
             ApplyLocalSeparation(
-            navigationDirection
+                movementDirection
             );
 
         if (movementDirection.sqrMagnitude <=
             0.0001f)
         {
             movementDirection =
-                navigationDirection;
+                navigationDirection.normalized;
         }
-
-        movementDirection.Normalize();
+        else
+        {
+            movementDirection.Normalize();
+        }
 
         if (navigationAgent != null &&
             navigationAgent.CurrentRegion != null)
@@ -531,6 +612,236 @@ public class NPCMovement : MonoBehaviour
         return true;
     }
 
+    private Vector2 ApplyCharacterAvoidance(
+    Vector2 navigationDirection)
+    {
+        if (rb == null ||
+            navigationDirection.sqrMagnitude <=
+                0.0001f ||
+            characterAvoidanceProbeDistance <=
+                0f ||
+            characterAvoidanceStrength <=
+                0f)
+        {
+            return navigationDirection;
+        }
+
+        navigationDirection.Normalize();
+
+        Vector2 origin =
+            rb.position;
+
+        int hitCount =
+            Physics2D.OverlapCircleNonAlloc(
+                origin,
+                characterAvoidanceProbeDistance,
+                separationBuffer,
+                SeparationLayers
+            );
+
+        if (hitCount <= 0)
+            return navigationDirection;
+
+        CharacterStats blockingCharacter =
+            null;
+
+        Vector2 blockerPosition =
+            Vector2.zero;
+
+        float bestForwardDistance =
+            float.PositiveInfinity;
+
+        for (int i = 0;
+             i < hitCount;
+             i++)
+        {
+            Collider2D hit =
+                separationBuffer[i];
+
+            if (hit == null)
+                continue;
+
+            CharacterStats other =
+                hit.GetComponentInParent<
+                    CharacterStats>();
+
+            if (other == null ||
+                other == stats ||
+                !other.IsAlive)
+            {
+                continue;
+            }
+
+            Vector2 closestPoint =
+                hit.ClosestPoint(
+                    origin
+                );
+
+            Vector2 toOther =
+                closestPoint -
+                origin;
+
+            if (toOther.sqrMagnitude <=
+                0.0001f)
+            {
+                toOther =
+                    (Vector2)other
+                        .transform
+                        .position -
+                    origin;
+            }
+
+            float forwardDistance =
+                Vector2.Dot(
+                    toOther,
+                    navigationDirection
+                );
+
+            if (forwardDistance <=
+                    0f ||
+                forwardDistance >
+                    characterAvoidanceProbeDistance)
+            {
+                continue;
+            }
+
+            Vector2 lateral =
+                toOther -
+                navigationDirection *
+                forwardDistance;
+
+            float lateralDistance =
+                lateral.magnitude;
+
+            if (lateralDistance >
+                characterAvoidanceWidth)
+            {
+                continue;
+            }
+
+            if (forwardDistance >=
+                bestForwardDistance)
+            {
+                continue;
+            }
+
+            bestForwardDistance =
+                forwardDistance;
+
+            blockingCharacter =
+                other;
+
+            blockerPosition =
+                closestPoint;
+        }
+
+        if (blockingCharacter == null)
+            return navigationDirection;
+
+        Vector2 leftDirection =
+            new Vector2(
+                -navigationDirection.y,
+                navigationDirection.x
+            );
+
+        Vector2 rightDirection =
+            -leftDirection;
+
+        Vector2 toBlocker =
+            blockerPosition -
+            origin;
+
+        float blockerSide =
+            Vector2.Dot(
+                toBlocker,
+                leftDirection
+            );
+
+        Vector2 preferredSide =
+            blockerSide >= 0f
+                ? rightDirection
+                : leftDirection;
+
+        Vector2 alternateSide =
+            -preferredSide;
+
+        Vector2 preferredSteering =
+            (
+                navigationDirection +
+                preferredSide *
+                characterAvoidanceStrength
+            ).normalized;
+
+        Vector2 alternateSteering =
+            (
+                navigationDirection +
+                alternateSide *
+                characterAvoidanceStrength
+            ).normalized;
+
+        bool preferredClear =
+            IsShortMovementDirectionClear(
+                preferredSteering
+            );
+
+        if (preferredClear)
+        {
+            return preferredSteering;
+        }
+
+        bool alternateClear =
+            IsShortMovementDirectionClear(
+                alternateSteering
+            );
+
+        if (alternateClear)
+        {
+            return alternateSteering;
+        }
+        return navigationDirection;
+    }
+
+    private bool IsShortMovementDirectionClear(
+    Vector2 direction)
+    {
+        if (direction.sqrMagnitude <=
+            0.0001f)
+        {
+            return false;
+        }
+
+        direction.Normalize();
+
+        float probeDistance =
+            Mathf.Max(
+                0.35f,
+                characterAvoidanceProbeDistance *
+                0.6f
+            );
+
+        Vector2 probeEnd =
+            rb.position +
+            direction *
+            probeDistance;
+
+        /*
+         * Statisk World-clearance.
+         */
+        if (navigationAgent != null &&
+            navigationAgent.CurrentRegion != null &&
+            !navigationAgent
+                .CurrentRegion
+                .IsDirectPathClear(
+                    rb.position,
+                    probeEnd
+                ))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     // =========================================================
     // WORLD COLLISION SAFETY
     // =========================================================
@@ -597,25 +908,11 @@ public class NPCMovement : MonoBehaviour
                 hitNormal
             );
 
-        /*
-         * Positiv dotprodukt:
-         *
-         * Rörelsen går bort från ytan.
-         *
-         * Vi ska då INTE blockera rörelsen bara för att casten
-         * började väldigt nära colliderkanten.
-         */
         if (normalMovement >= 0f)
         {
             return desiredMove;
         }
 
-        /*
-         * Negativ dotprodukt betyder att en del av rörelsen går
-         * in i väggen.
-         *
-         * Ta bort just den komponenten och behåll tangent-rörelsen.
-         */
         Vector2 slideMove =
             desiredMove -
             hitNormal *
@@ -641,14 +938,48 @@ public class NPCMovement : MonoBehaviour
             return slideMove;
         }
 
-        /*
-         * Om även slide är blockerad gör vi ingen fysisk
-         * improvisation här.
-         *
-         * NavigationAgent upptäcker utebliven progress och
-         * begär istället en ny A*-path.
-         */
         return Vector2.zero;
+    }
+
+    private bool IsPatrolNodeBlockedByCharacter(
+    Vector2 nodePosition)
+    {
+        if (patrolNodeBlockRadius <= 0f)
+            return false;
+
+        int hitCount =
+            Physics2D.OverlapCircleNonAlloc(
+                nodePosition,
+                patrolNodeBlockRadius,
+                separationBuffer,
+                SeparationLayers
+            );
+
+        for (int i = 0;
+             i < hitCount;
+             i++)
+        {
+            Collider2D hit =
+                separationBuffer[i];
+
+            if (hit == null)
+                continue;
+
+            CharacterStats other =
+                hit.GetComponentInParent<
+                    CharacterStats>();
+
+            if (other == null ||
+                other == stats ||
+                !other.IsAlive)
+            {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     // =========================================================
@@ -662,6 +993,8 @@ public class NPCMovement : MonoBehaviour
     /// Den får endast påverka färdriktningen lite och får
     /// därför aldrig ersätta navigationens riktning.
     /// </summary>
+
+
     private Vector2 ApplyLocalSeparation(
         Vector2 navigationDirection)
     {
@@ -989,14 +1322,6 @@ public class NPCMovement : MonoBehaviour
 
         fleeDirection.Normalize();
 
-        /*
-         * Flyktdestinationen låses vid flee-start.
-         *
-         * Spelaren kan därför inte styra om NPC:ns destination
-         * genom att röra sig under flykten.
-         *
-         * A* får sedan hitta en faktisk väg till punkten.
-         */
         fleeTargetPosition =
             rb.position +
             fleeDirection *
@@ -1082,9 +1407,10 @@ public class NPCMovement : MonoBehaviour
     // =========================================================
 
     public void UpdateAggroMovement(
-    CharacterStats target,
-    float attackRange,
-    bool forceApproach = false)
+     CharacterStats target,
+     float attackRange,
+     bool forceApproach = false,
+     float customStopDistance = -1f)
     {
         if (target == null)
             return;
@@ -1094,18 +1420,25 @@ public class NPCMovement : MonoBehaviour
                 target.gameObject
             );
 
-
-        float desiredStopDistance =
-            Mathf.Max(
-                0f,
-                attackRange *
-                0.9f
-            );
+        float desiredStopDistance;
 
         if (forceApproach)
         {
             desiredStopDistance =
                 0.05f;
+        }
+        else if (customStopDistance >= 0f)
+        {
+            desiredStopDistance =
+                customStopDistance;
+        }
+        else
+        {
+            desiredStopDistance =
+                Mathf.Max(
+                    0f,
+                    attackRange * 0.9f
+                );
         }
 
         MoveTowards(
@@ -1238,30 +1571,53 @@ public class NPCMovement : MonoBehaviour
             return;
         }
 
-        MoveTowards(
-            point.transform.position,
-            patrolSpeedMultiplier
-        );
+        Vector2 nodePosition =
+    point.transform.position;
 
         float distance =
             Vector2.Distance(
                 transform.position,
-                point.transform.position
+                nodePosition
             );
 
-        if (distance >
-            DefaultStopDistance)
+        bool reachedNormally =
+            distance <=
+            DefaultStopDistance;
+
+        bool blockedNearNode =
+            distance <=
+                blockedPatrolNodeAcceptanceDistance &&
+            IsPatrolNodeBlockedByCharacter(
+                nodePosition
+            );
+
+        if (reachedNormally ||
+            blockedNearNode)
         {
+            Stop();
+
+            if (point.waitTime <= 0f)
+            {
+                AdvancePatrolPoint(
+                    patrolPath
+                );
+
+                return;
+            }
+
+            waitingAtPatrolNode =
+                true;
+
+            patrolWaitTimer =
+                point.waitTime;
+
             return;
         }
 
-        Stop();
-
-        waitingAtPatrolNode =
-            true;
-
-        patrolWaitTimer =
-            point.waitTime;
+        MoveTowards(
+            nodePosition,
+            patrolSpeedMultiplier
+        );
     }
 
     private void AdvancePatrolPoint(

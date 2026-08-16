@@ -36,9 +36,12 @@ public class DeathReward :
     [Header("Credit")]
 
     [SerializeField]
-    [Range(0f, 1f)]
-    private float minimumPlayerDamageShare =
-        0.5f;
+    [Tooltip(
+        "Om exakt delad högsta contribution fortfarande ska " +
+        "ge spelaren reward-credit."
+    )]
+    private bool allowTiedTopContribution =
+        true;
 
     [Header("Visuals")]
 
@@ -47,6 +50,10 @@ public class DeathReward :
     [Header("World")]
 
     public bool unlockStartZoneWolf;
+
+    // =========================================================
+    // EXPERIENCE
+    // =========================================================
 
     public int GetExperience(
         int targetLevel,
@@ -64,6 +71,10 @@ public class DeathReward :
         return experience;
     }
 
+    // =========================================================
+    // DEATH RESULT
+    // =========================================================
+
     public void GiveRewards(
         CharacterDefeatedResult result)
     {
@@ -73,25 +84,53 @@ public class DeathReward :
             return;
         }
 
+        CharacterStats victim =
+            result.Victim;
+
         PlayerStats player =
             PlayerReference.Player;
 
-        if (player == null)
-            return;
-
-        if (!result.HasMinimumDamageShare(
+        bool playerHasCredit =
+            player != null &&
+            result.IsTopDamageContributor(
                 player,
-                minimumPlayerDamageShare))
+                allowTiedTopContribution
+            );
+
+        /*
+         * Corpse skapas ALLTID här.
+         *
+         * Detta är viktigt:
+         *
+         * tidigare skapades corpse från NPCBehavior innan
+         * contribution-resultatet ens hade utvärderats.
+         *
+         * Nu känner corpse-generationen till reward ownership.
+         */
+        SpawnCorpse(
+            victim.transform.position,
+            victim,
+            playerHasCredit
+        );
+
+        if (!playerHasCredit ||
+            player == null)
         {
             return;
         }
 
         GiveRewardsInternal(
-            result.Victim,
+            victim,
             player
         );
     }
 
+    /// <summary>
+    /// Legacy-ingång.
+    ///
+    /// Behålls tills alla äldre callers är migrerade.
+    /// Den delar endast ut progression och skapar INTE corpse.
+    /// </summary>
     public void GiveRewards(
         CharacterStats victim,
         CharacterStats killer)
@@ -107,6 +146,10 @@ public class DeathReward :
             player
         );
     }
+
+    // =========================================================
+    // REWARD PAYOUT
+    // =========================================================
 
     private void GiveRewardsInternal(
         CharacterStats victim,
@@ -172,6 +215,10 @@ public class DeathReward :
         }
     }
 
+    // =========================================================
+    // EXPERIENCE FEEDBACK
+    // =========================================================
+
     private void ShowFloatingExperience(
         CharacterStats victim,
         int amount)
@@ -198,9 +245,14 @@ public class DeathReward :
         if (tmp != null)
         {
             tmp.text =
-                amount + " EXP";
+                amount +
+                " EXP";
         }
     }
+
+    // =========================================================
+    // LOOT GENERATION
+    // =========================================================
 
     public void GenerateLoot(
         LootContainer container)
@@ -209,6 +261,7 @@ public class DeathReward :
             return;
 
         container.items.Clear();
+
         container.SetCoins(
             0
         );
@@ -235,9 +288,14 @@ public class DeathReward :
         );
     }
 
+    // =========================================================
+    // CORPSE
+    // =========================================================
+
     public GameObject SpawnCorpse(
         Vector3 position,
-        CharacterStats owner)
+        CharacterStats owner,
+        bool generatePlayerLoot)
     {
         if (corpsePrefab == null)
             return null;
@@ -255,9 +313,24 @@ public class DeathReward :
 
         if (loot != null)
         {
-            GenerateLoot(
-                loot
-            );
+            /*
+             * Corpse får bara player-loot om spelaren faktiskt
+             * vann contribution.
+             */
+            if (generatePlayerLoot)
+            {
+                GenerateLoot(
+                    loot
+                );
+            }
+            else
+            {
+                loot.items.Clear();
+
+                loot.SetCoins(
+                    0
+                );
+            }
         }
 
         CharacterStats corpseStats =
@@ -279,6 +352,20 @@ public class DeathReward :
         }
 
         return corpse;
+    }
+
+    /// <summary>
+    /// Legacy-overload.
+    /// </summary>
+    public GameObject SpawnCorpse(
+        Vector3 position,
+        CharacterStats owner)
+    {
+        return SpawnCorpse(
+            position,
+            owner,
+            true
+        );
     }
 
     private static void MoveNameplateToCorpse(
@@ -315,6 +402,7 @@ public class DeathReward :
     }
 
 #if UNITY_EDITOR
+
     private void OnValidate()
     {
         minLootRolls =
@@ -329,5 +417,6 @@ public class DeathReward :
                 maxLootRolls
             );
     }
+
 #endif
 }

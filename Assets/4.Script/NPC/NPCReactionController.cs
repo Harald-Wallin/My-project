@@ -203,6 +203,9 @@ public sealed class NPCReactionController :
     public bool IsDetectingPlayer =>
         currentlyDetectingPlayer;
 
+    public float CurrentAwarenessRadius =>
+    GetCurrentAwarenessRadius();
+
     public bool IsReacting =>
         ai != null &&
         (
@@ -280,7 +283,6 @@ public sealed class NPCReactionController :
         UpdateLowHealthFleeCooldown();
         UpdateLocalHostility();
         UpdatePlayerDetection();
-        HandlePassiveHostility();
         UpdateAlertTimer();
     }
 
@@ -508,7 +510,7 @@ public sealed class NPCReactionController :
     }
 
     private bool IsMutualCombatThreat(
-        CharacterStats threat)
+    CharacterStats threat)
     {
         if (selfStats == null ||
             threat == null)
@@ -516,32 +518,21 @@ public sealed class NPCReactionController :
             return false;
         }
 
-        if (CombatTargeting.CanAttack(
-                selfStats,
-                threat))
-        {
-            return true;
-        }
-
-        if (CombatTargeting.CanAttack(
-                threat,
-                selfStats))
-        {
-            return true;
-        }
-
-        if (selfStats.IsHostileTo(
-                threat))
-        {
-            return true;
-        }
-
-        if (threat.IsHostileTo(
-                selfStats))
-        {
-            return true;
-        }
-
+        /*
+         * PLAYER
+         *
+         * Murder Mode betyder endast att SPELAREN får attackera
+         * factionen.
+         *
+         * Det betyder INTE att factionen automatiskt betraktar
+         * spelaren som fientlig.
+         *
+         * För NPC -> Player använder vi därför faktisk hostility:
+         *
+         * - Hated reputation
+         * - local temporary hostility
+         * - faction temporary hostility
+         */
         if (threat is PlayerStats playerStats)
         {
             return selfStats
@@ -550,11 +541,25 @@ public sealed class NPCReactionController :
                 );
         }
 
-        return false;
+        /*
+         * NPC -> NPC
+         *
+         * En relation räknas som combat-hostile om någon av
+         * factionerna betraktar den andra som fientlig.
+         *
+         * Detta stödjer även asymmetriska factionrelationer.
+         */
+        return
+            selfStats.IsHostileTo(
+                threat
+            ) ||
+            threat.IsHostileTo(
+                selfStats
+            );
     }
 
     private bool CanThreatAttackSelf(
-        CharacterStats threat)
+     CharacterStats threat)
     {
         if (selfStats == null ||
             threat == null)
@@ -562,26 +567,38 @@ public sealed class NPCReactionController :
             return false;
         }
 
-        if (CombatTargeting.CanAttack(
-                threat,
-                selfStats))
+        /*
+         * Murder Mode ska INTE göra spelaren till ett hot.
+         *
+         * En Flee-NPC flyr från spelaren först när NPC:ns
+         * faction faktiskt betraktar spelaren som hostile.
+         *
+         * Exempel:
+         * - Hated reputation
+         * - NPC/faction har blivit attackerad
+         * - temporary faction hostility
+         */
+        if (threat is PlayerStats playerStats)
         {
-            return true;
-        }
-
-        if (threat.IsHostileTo(
-                selfStats))
-        {
-            return true;
+            return selfStats
+                .IsHostileToPlayer(
+                    playerStats
+                );
         }
 
         /*
-         * En NPC som själv hatar hotets faction får också
-         * betrakta det som farligt nog att fly från.
+         * NPC-hot.
+         *
+         * Om någon av factionerna betraktar relationen som hostile
+         * behandlar en Flee-NPC motparten som ett hot.
          */
-        return selfStats.IsHostileTo(
-            threat
-        );
+        return
+            threat.IsHostileTo(
+                selfStats
+            ) ||
+            selfStats.IsHostileTo(
+                threat
+            );
     }
 
     // =========================================================
@@ -993,53 +1010,6 @@ public sealed class NPCReactionController :
             return false;
 
         return selfStats.IsHostileTo(
-            playerStats
-        );
-    }
-
-    // =========================================================
-    // PASSIVE PLAYER HOSTILITY
-    // =========================================================
-
-    private void HandlePassiveHostility()
-    {
-        if (reactionType ==
-            NPCReactionType.None)
-        {
-            return;
-        }
-
-        if (selfStats == null ||
-            ai == null)
-        {
-            return;
-        }
-
-        PlayerStats playerStats =
-            PlayerReference.Player;
-
-        if (playerStats == null)
-            return;
-
-        if (!IsHostile)
-            return;
-
-        float distance =
-            Vector2.Distance(
-                transform.position,
-                playerStats.transform.position
-            );
-
-        if (distance >
-            awarenessRadius)
-        {
-            return;
-        }
-
-        if (IsReacting)
-            return;
-
-        ExecuteReaction(
             playerStats
         );
     }

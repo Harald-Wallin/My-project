@@ -43,6 +43,27 @@ public class NPCBehavior : MonoBehaviour
 
     private LayerMask threatDetectionLayers;
 
+    [Header("Combat Chase")]
+
+    [SerializeField]
+    [Range(0.1f, 1f)]
+    [Tooltip(
+    "Hur stor del av attack range target måste lämna " +
+    "innan NPC:n börjar jaga. 0.95 = 95% av range.")]
+
+    private float combatChaseEnterFactor = 0.95f;
+
+    [SerializeField]
+    [Range(0.1f, 1f)]
+    [Tooltip(
+        "När en chase väl börjat fortsätter NPC:n tills target " +
+        "är innanför denna del av attack range. " +
+        "Måste vara lägre än Enter Factor.")]
+
+    private float combatChaseExitFactor = 0.72f;
+
+    private bool combatApproachActive;
+
     [Header("Wander")]
     [SerializeField] protected bool canWander = true;
 
@@ -78,6 +99,10 @@ public class NPCBehavior : MonoBehaviour
 
     private bool hasCombatAnchor;
 
+    private float combatLeashRadius;
+
+    private bool sharesRetreatLeash;
+
     public bool IsInCombat => currentState == AIState.Aggro;
     protected AIState currentState = AIState.Idle;
     public AIState CurrentState => currentState;
@@ -85,12 +110,18 @@ public class NPCBehavior : MonoBehaviour
 
     private BuffSystem buffSystem;
     private NPCReactionController reactionController;
+    private NPCThreatTracker threatTracker;
 
     private bool encounterResetInProgress;
 
     public bool IsEncounterResetting =>
         encounterResetInProgress ||
         currentState == AIState.Returning;
+
+    //DEBUG
+    private float nextCombatDebugTime;
+    private const float CombatDebugInterval =
+        0.25f;
 
     [Header("Re-aggro")]
     [SerializeField] private float reaggroCooldown = 0f;
@@ -119,6 +150,9 @@ public class NPCBehavior : MonoBehaviour
         reactionController =
             GetComponent<NPCReactionController>();
 
+        threatTracker =
+            GetComponent<NPCThreatTracker>();
+
         spawnPosition =
             transform.position;
 
@@ -127,6 +161,12 @@ public class NPCBehavior : MonoBehaviour
 
         encounterReturnPosition =
             spawnPosition;
+
+        combatLeashRadius =
+            maxDistanceFromSpawn;
+
+        sharesRetreatLeash =
+            false;
 
         if (selfStats != null)
         {
@@ -213,13 +253,16 @@ public class NPCBehavior : MonoBehaviour
     {
         if (player == null)
         {
-            player = PlayerReference.Player?.transform;
+            player =
+                PlayerReference.Player
+                    ?.transform;
         }
 
         UpdateTimers();
 
-        HandleLeash();
         UpdateCurrentState();
+
+        HandleLeash();
     }
 
     void UpdateCurrentState()
@@ -475,16 +518,266 @@ public class NPCBehavior : MonoBehaviour
         ChangeState(AIState.Patrolling);
     }
 
+    private void SetCurrentCombatTarget(
+    CharacterStats target)
+    {
+        if (currentTargetStats ==
+            target)
+        {
+            return;
+        }
+
+        ResetCombatApproach();
+
+        if (subscribedPlayer != null)
+        {
+            subscribedPlayer.OnDied -=
+                HandleTargetDied;
+
+            subscribedPlayer =
+                null;
+        }
+
+        currentTargetStats =
+            target;
+
+        player =
+            target != null
+                ? target.transform
+                : PlayerReference.Player
+                    ?.transform;
+
+        PlayerStats playerTarget =
+            target as PlayerStats;
+
+        if (playerTarget != null)
+        {
+            SubscribeToPlayerDeath(
+                playerTarget
+            );
+        }
+    }
+
+    /// <summary>
+    /// Låter threat-listan välja vilket combat-target som bör
+    /// användas.
+    ///
+    /// Returnerar false endast när inget giltigt threat finns kvar.
+    /// </summary>
+    private bool RefreshCombatTargetFromThreat()
+    {
+        if (threatTracker == null)
+        {
+            bool validCurrentTarget =
+                currentTargetStats != null &&
+                currentTargetStats.IsAlive;
+
+            if (!validCurrentTarget)
+            {
+                DebugCombatState(
+                    "NO THREAT TRACKER + INVALID TARGET"
+                );
+            }
+
+            return validCurrentTarget;
+        }
+
+        CharacterStats previousTarget =
+            currentTargetStats;
+
+        CharacterStats preferredTarget =
+            threatTracker.GetPreferredTarget(
+                currentTargetStats
+            );
+
+        if (preferredTarget == null)
+        {
+            Debug.LogWarning(
+                $"[COMBAT TARGET] {name} NO THREAT TARGET | " +
+                $"previous=" +
+                $"{(previousTarget != null ? previousTarget.name : "NULL")} | " +
+                $"threatCount={threatTracker.ThreatSourceCount}",
+                this
+            );
+
+            SetCurrentCombatTarget(
+                null
+            );
+
+            return false;
+        }
+
+        if (preferredTarget !=
+            currentTargetStats)
+        {
+            Debug.Log(
+                $"[COMBAT TARGET] {name} SWITCH | " +
+                $"from=" +
+                $"{(currentTargetStats != null ? currentTargetStats.name : "NULL")} | " +
+                $"to={preferredTarget.name} | " +
+                $"threat={threatTracker.GetThreat(preferredTarget):F1}",
+                this
+            );
+
+            SetCurrentCombatTarget(
+                preferredTarget
+            );
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Returnerar combat-avstånd enligt samma grundprincip som
+    /// actionsystemets targeting:
+    ///
+    /// caster origin -> targetens närmaste colliderpunkt.
+    ///
+    /// Detta gör att AI och TargetResolver inte längre har två
+    /// olika uppfattningar om attack range.
+    /// </summary>
+    private float GetCombatDistance(
+        CharacterStats target)
+    {
+        if (target == null)
+        {
+            return float.PositiveInfinity;
+        }
+
+        Vector2 origin =
+            selfStats != null
+                ? TargetUtility.GetTargetPosition(
+                    selfStats.gameObject
+                )
+                : (Vector2)transform.position;
+
+        Vector2 closestPoint =
+            TargetUtility.GetClosestPoint(
+                target.gameObject,
+                origin
+            );
+
+        return Vector2.Distance(
+            origin,
+            closestPoint
+        );
+    }
+
+    /// <summary>
+    /// Combat chase använder hysteresis.
+    ///
+    /// NPC:n börjar inte och slutar inte gå vid exakt samma
+    /// avstånd. Det förhindrar:
+    ///
+    /// stop -> go -> stop -> go
+    ///
+    /// när target rör sig längs attack-range-gränsen.
+    /// </summary>
+    private bool ShouldContinueCombatApproach(
+        float distance,
+        float desiredRange,
+        out float stopDistance)
+    {
+        float safeRange =
+            Mathf.Max(
+                0.05f,
+                desiredRange
+            );
+
+        float enterFactor =
+            Mathf.Clamp01(
+                combatChaseEnterFactor
+            );
+
+        float exitFactor =
+            Mathf.Clamp(
+                combatChaseExitFactor,
+                0.05f,
+                enterFactor
+            );
+
+        float enterDistance =
+            safeRange *
+            enterFactor;
+
+        stopDistance =
+            safeRange *
+            exitFactor;
+
+        if (combatApproachActive)
+        {
+            if (distance <=
+                stopDistance)
+            {
+                combatApproachActive =
+                    false;
+            }
+
+            return combatApproachActive;
+        }
+
+        if (distance >
+            enterDistance)
+        {
+            combatApproachActive =
+                true;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private void ResetCombatApproach()
+    {
+        combatApproachActive =
+            false;
+    }
+
+    private void EndCombatNaturally()
+    {
+        bool resumePatrol =
+            wasPatrollingBeforeCombat &&
+            canPatrol &&
+            patrolPath != null &&
+            patrolPath.points != null &&
+            patrolPath.points.Count > 0;
+
+        movement?.Stop();
+
+        FinishEncounter();
+
+        wasPatrollingBeforeCombat =
+            false;
+
+        if (resumePatrol)
+        {
+            EnterPatrolState(
+                false
+            );
+
+            return;
+        }
+
+        if (canWander)
+        {
+            EnterWanderState();
+
+            return;
+        }
+
+        EnterIdleState();
+    }
+
     void UpdateAggroState()
     {
         // =====================================================
         // TARGET VALIDATION
         // =====================================================
 
-        if (currentTargetStats == null ||
-            !currentTargetStats.IsAlive)
+        if (!RefreshCombatTargetFromThreat())
         {
-            BeginEncounterResetAndReturn();
+            EndCombatNaturally();
 
             return;
         }
@@ -500,18 +793,6 @@ public class NPCBehavior : MonoBehaviour
         // ACTIVE ACTION
         // =====================================================
 
-        /*
-         * En action pågår redan.
-         *
-         * NPC:n ska stå still under den actionfas som
-         * CharacterActionController just nu styr.
-         *
-         * VIKTIGT:
-         * navigationen får INTE raderas här.
-         *
-         * När actionen är färdig kan NPC:n fortsätta på sin
-         * gamla path eller repatha mot targetets nya position.
-         */
         if (actionController.HasActiveAction)
         {
             movement.HoldPosition();
@@ -525,10 +806,8 @@ public class NPCBehavior : MonoBehaviour
         // DISTANCE
         // =====================================================
 
-        float distance =
-            Vector2.Distance(
-                transform.position,
-                currentTargetStats.transform.position
+        float distance =  GetCombatDistance(
+            currentTargetStats
             );
 
         AbilityData desiredAction =
@@ -540,13 +819,7 @@ public class NPCBehavior : MonoBehaviour
         // NO CURRENTLY AVAILABLE ACTION
         // =====================================================
 
-        /*
-         * Detta kan exempelvis ske medan base attack ligger
-         * på cooldown.
-         *
-         * NPC:n ska fortfarande bibehålla sitt combat state
-         * och sin navigation.
-         */
+
         if (desiredAction == null)
         {
             float fallbackRange =
@@ -555,28 +828,34 @@ public class NPCBehavior : MonoBehaviour
                         .CurrentAttackRange
                     : movement.DefaultStopDistance;
 
-            /*
-             * Är target faktiskt för långt bort fortsätter vi
-             * approach.
-             */
-            if (distance >
-                fallbackRange * 0.9f)
+            bool shouldApproach =
+                ShouldContinueCombatApproach(
+                    distance,
+                    fallbackRange,
+                    out float chaseStopDistance
+                );
+
+            DebugCombatState(
+                $"NO ACTION | " +
+                $"distance={distance:F2} | " +
+                $"range={fallbackRange:F2} | " +
+                $"approach={shouldApproach} | " +
+                $"stop={chaseStopDistance:F2}"
+            );
+
+            if (shouldApproach)
             {
                 movement.UpdateAggroMovement(
                     currentTargetStats,
                     fallbackRange,
-                    forceApproach: false
+                    forceApproach: false,
+                    customStopDistance:
+                        chaseStopDistance
                 );
 
                 return;
             }
 
-            /*
-             * Vi står ungefär där vi vill vara medan vi väntar
-             * på nästa tillgängliga action.
-             *
-             * Behåll navigationen.
-             */
             movement.HoldPosition();
 
             FaceCurrentTarget();
@@ -624,19 +903,29 @@ public class NPCBehavior : MonoBehaviour
                 movement.DefaultStopDistance
             );
 
-        /*
-         * Target befinner sig utanför abilityns räckvidd.
-         *
-         * Här behövs ingen targeting-query ännu.
-         * Vi vet redan att NPC:n måste närmare.
-         */
-        if (distance >
-            desiredRange * 0.9f)
+        bool shouldApproachForAction =
+            ShouldContinueCombatApproach(
+            distance,
+            desiredRange,
+            out float actionChaseStopDistance
+            );
+
+        if (shouldApproachForAction)
         {
+            DebugCombatState(
+                $"APPROACH | " +
+                $"distance={distance:F2} | " +
+                $"range={desiredRange:F2} | " +
+                $"stop={actionChaseStopDistance:F2} | " +
+                $"ability={desiredAction.name}"
+            );
+
             movement.UpdateAggroMovement(
                 currentTargetStats,
                 desiredRange,
-                forceApproach: false
+                forceApproach: false,
+                customStopDistance:
+                    actionChaseStopDistance
             );
 
             return;
@@ -705,21 +994,15 @@ public class NPCBehavior : MonoBehaviour
 
         if (!canAttackFromCurrentPosition)
         {
-            /*
-             * Detta är den viktiga combat-navigation-regeln:
-             *
-             * NPC:n HAR redan aggro.
-             *
-             * Därför ska förlorad LoS INTE få den att glömma
-             * target eller stå still.
-             *
-             * Den fortsätter istället pathfinding mot target
-             * tills en användbar combat-position hittas.
-             *
-             * 0.05-ish stop distance används genom forceApproach
-             * eftersom vanlig attack-range annars skulle stoppa
-             * NPC:n på fel sida av ett hinder.
-             */
+            ResetCombatApproach();
+
+            DebugCombatState(
+    $"INVALID TARGETING | " +
+    $"distance={distance:F2} | " +
+    $"ability={desiredAction.name} | " +
+    $"failure=" +
+    $"{(targetingResult != null ? targetingResult.FailureReason.ToString() : "NULL RESULT")}"
+);
             movement.UpdateAggroMovement(
                 currentTargetStats,
                 desiredRange,
@@ -733,6 +1016,14 @@ public class NPCBehavior : MonoBehaviour
         // VALID COMBAT POSITION
         // =====================================================
 
+        ResetCombatApproach();
+
+        DebugCombatState(
+    $"ATTACK POSITION | " +
+    $"distance={distance:F2} | " +
+    $"ability={desiredAction.name}"
+);
+
         movement.HoldPosition();
 
         FaceCurrentTarget();
@@ -743,34 +1034,41 @@ public class NPCBehavior : MonoBehaviour
                 distance
             );
 
+        if (!attackStarted)
+        {
+            DebugCombatState(
+                $"ATTACK FAILED AFTER VALID TARGETING | " +
+                $"distance={distance:F2} | " +
+                $"ability={desiredAction.name}"
+            );
+        }
+
         if (attackStarted)
         {
             return;
         }
-
-        /*
-         * Targetingen var giltig men actionen kunde inte startas.
-         *
-         * Exempel:
-         * - någon kort runtime-lock
-         * - resource/cost
-         * - timing/state
-         *
-         * NPC:n får stå kvar utan att dess navigation förstörs.
-         */
     }
 
     void SetupAggro(
     CharacterStats target)
     {
-        encounterResetInProgress = false;
+        encounterResetInProgress =
+            false;
 
-        currentTargetStats = target;
+        threatTracker
+            ?.EnsureThreat(
+                target
+            );
 
-        player = target.transform;
+        SetCurrentCombatTarget(
+            target
+        );
 
-        isAggro = true;
-        isReturning = false;
+        isAggro =
+            true;
+
+        isReturning =
+            false;
 
         abilityLockTimer =
             abilityDelayAfterAggro;
@@ -785,10 +1083,24 @@ public class NPCBehavior : MonoBehaviour
         if (IsEncounterResetting)
             return;
 
-        if (currentState == AIState.Aggro)
+        if (currentState ==
+            AIState.Aggro)
         {
-            currentTargetStats =
-                target;
+            /*
+             * NPC:n är redan i combat.
+             *
+             * Ett nytt threat får INTE direkt skriva över current target.
+             *
+             * Damage-eventet har redan lagt till riktig threat och
+             * RefreshCombatTargetFromThreat avgör om target ska bytas
+             * enligt hysteresis-reglerna.
+             */
+            threatTracker
+                ?.EnsureThreat(
+                    target
+                );
+
+            RefreshCombatTargetFromThreat();
 
             return;
         }
@@ -803,13 +1115,26 @@ public class NPCBehavior : MonoBehaviour
          */
         combatAnchorPosition =
             wasPatrollingBeforeCombat
-                ? transform.position
-                : spawnPosition;
+        ? transform.position
+        : spawnPosition;
 
         encounterReturnPosition =
             combatAnchorPosition;
 
-        hasCombatAnchor = true;
+        hasCombatAnchor =
+            true;
+
+        /*
+         * Ett helt nytt encounter börjar alltid med NPC:ns
+         * normala leash.
+         *
+         * Low-health retreat kan senare utöka den.
+         */
+        combatLeashRadius =
+            maxDistanceFromSpawn;
+
+        sharesRetreatLeash =
+            false;
 
         ChangeState(
             AIState.Aggro
@@ -909,18 +1234,63 @@ public class NPCBehavior : MonoBehaviour
         ChangeState(AIState.Holding);
     }
 
+    public bool TryGetSharedRetreatLeash(
+        out Vector2 origin,
+        out float radius)
+    {
+        origin =
+            combatAnchorPosition;
+
+        radius =
+            Mathf.Max(
+                0f,
+                combatLeashRadius
+            );
+
+        if (!sharesRetreatLeash)
+            return false;
+
+        if (!hasCombatAnchor)
+            return false;
+
+        if (IsEncounterResetting)
+            return false;
+
+        if (selfStats == null ||
+            !selfStats.IsAlive)
+        {
+            return false;
+        }
+
+        return radius > 0f;
+    }
+
     private void HandleLeash()
     {
-        if (currentState != AIState.Aggro)
+        if (currentState !=
+            AIState.Aggro)
+        {
             return;
+        }
 
         if (IsEncounterResetting)
             return;
 
-        Vector3 leashOrigin =
+        Vector2 leashOrigin =
             hasCombatAnchor
-                ? combatAnchorPosition
-                : spawnPosition;
+                ? (Vector2)combatAnchorPosition
+                : (Vector2)spawnPosition;
+
+        float ownLeashRadius =
+            hasCombatAnchor
+                ? Mathf.Max(
+                    0f,
+                    combatLeashRadius
+                )
+                : Mathf.Max(
+                    0f,
+                    maxDistanceFromSpawn
+                );
 
         float distanceFromLeashOrigin =
             Vector2.Distance(
@@ -928,19 +1298,111 @@ public class NPCBehavior : MonoBehaviour
                 leashOrigin
             );
 
+        // =========================================================
+        // STILL INSIDE OUR OWN ENCOUNTER
+        // =========================================================
+
         if (distanceFromLeashOrigin <=
-            maxDistanceFromSpawn)
+            ownLeashRadius)
         {
             return;
         }
 
-        encounterReturnPosition = spawnPosition;
+        // =========================================================
+        // TARGET HAS AN ACTIVE RETREAT ENCOUNTER AREA
+        // =========================================================
+
+        if (currentTargetStats != null)
+        {
+            NPCBehavior targetAI =
+                currentTargetStats.GetComponent<
+                    NPCBehavior>();
+
+            if (targetAI != null &&
+                targetAI != this &&
+                targetAI.TryGetSharedRetreatLeash(
+                    out Vector2 sharedOrigin,
+                    out float sharedRadius))
+            {
+                float distanceFromSharedArea =
+                    Vector2.Distance(
+                        transform.position,
+                        sharedOrigin
+                    );
+
+                if (distanceFromSharedArea <=
+                    sharedRadius)
+                {
+                    return;
+                }
+            }
+        }
+
+        // =========================================================
+        // CURRENT TARGET PULLED US OUTSIDE THE ENCOUNTER
+        // =========================================================
+
+        if (threatTracker != null)
+        {
+            CharacterStats replacementTarget =
+                threatTracker
+                    .GetHighestThreatTargetWithinRange(
+                        leashOrigin,
+                        ownLeashRadius,
+                        currentTargetStats
+                    );
+
+            if (replacementTarget != null)
+            {
+                if (currentTargetStats != null)
+                {
+                    threatTracker.RemoveThreat(
+                        currentTargetStats
+                    );
+                }
+
+                SetCurrentCombatTarget(
+                    replacementTarget
+                );
+
+                movement?.Stop();
+
+                return;
+            }
+        }
+
+        // =========================================================
+        // NO VALID ENCOUNTER TARGET REMAINS
+        // =========================================================
+
+        Debug.LogWarning(
+            $"[COMBAT LEASH] {name} LEASH RESET | " +
+            $"distanceFromAnchor={distanceFromLeashOrigin:F2} | " +
+            $"max={ownLeashRadius:F2} | " +
+            $"target=" +
+            $"{(currentTargetStats != null ? currentTargetStats.name : "NULL")} | " +
+            $"threats=" +
+            $"{(threatTracker != null ? threatTracker.ThreatSourceCount : -1)}",
+            this
+        );
 
         BeginEncounterResetAndReturn();
     }
 
     private void BeginEncounterResetAndReturn()
     {
+        Debug.LogWarning(
+    $"[COMBAT RESET] {name} BEGIN RESET | " +
+    $"state={currentState} | " +
+    $"target=" +
+    $"{(currentTargetStats != null ? currentTargetStats.name : "NULL")} | " +
+    $"threats=" +
+    $"{(threatTracker != null ? threatTracker.ThreatSourceCount : -1)} | " +
+    $"position={transform.position} | " +
+    $"anchor={combatAnchorPosition} | " +
+    $"spawn={spawnPosition}",
+    this
+);
         if (encounterResetInProgress)
             return;
 
@@ -955,17 +1417,14 @@ public class NPCBehavior : MonoBehaviour
         encounterResetInProgress =
             true;
 
-        /*
-         * Avsluta aktiva actions omedelbart.
-         *
-         * HP, encounter-buffs och reaction-memory återställs däremot
-         * först när NPC:n faktiskt har nått sin return-position.
-         */
         actionController
             ?.ResetRuntimeState();
 
         abilityController
             ?.ResetRuntimeState();
+
+        threatTracker
+            ?.ResetThreat();
 
         movement?.Stop();
 
@@ -980,6 +1439,8 @@ public class NPCBehavior : MonoBehaviour
 
         fleeSource =
             null;
+
+        ResetCombatApproach();
 
         currentTargetStats =
             null;
@@ -1021,13 +1482,18 @@ public class NPCBehavior : MonoBehaviour
         EnterReturnState();
     }
 
-    private void CompleteEncounterReset()
+    private void FinishEncounter()
     {
         /*
-         * Detta är den riktiga fulla encounter-resetten.
-         *
-         * Den körs först när NPC:n faktiskt har återvänt.
+         * Gemensam encounter-cleanup utan att bestämma
+         * locomotion-state.
          */
+        actionController
+            ?.ResetRuntimeState();
+
+        abilityController
+            ?.ResetRuntimeState();
+
         buffSystem
             ?.RemoveEncounterResetBuffs();
 
@@ -1037,8 +1503,68 @@ public class NPCBehavior : MonoBehaviour
         reactionController
             ?.ResetEncounterState();
 
+        threatTracker
+            ?.ResetThreat();
+
         fleeSource =
             null;
+
+        SetCurrentCombatTarget(
+            null
+        );
+
+        lowHealthRetreatActive =
+            false;
+
+        lowHealthRetreatThreat =
+            null;
+
+        lowHealthRetreatStartPosition =
+            Vector3.zero;
+
+        activeFleeSpeedMultiplier =
+            1f;
+
+        isAggro =
+            false;
+
+        isReturning =
+            false;
+
+        hasCombatAnchor =
+            false;
+
+        encounterResetInProgress =
+            false;
+
+        if (subscribedPlayer != null)
+        {
+            subscribedPlayer.OnDied -=
+                HandleTargetDied;
+
+            subscribedPlayer =
+                null;
+        }
+    }
+
+    private void CompleteEncounterReset()
+    {
+        buffSystem
+            ?.RemoveEncounterResetBuffs();
+
+        selfStats
+            ?.ResetEncounterState();
+
+        reactionController
+            ?.ResetEncounterState();
+
+        threatTracker
+            ?.ResetThreat();
+
+        fleeSource =
+            null;
+
+        ResetCombatApproach();
 
         currentTargetStats =
             null;
@@ -1066,13 +1592,22 @@ public class NPCBehavior : MonoBehaviour
 
         encounterResetInProgress =
             false;
+
+        hasCombatAnchor =
+            false;
+
+        combatLeashRadius =
+            maxDistanceFromSpawn;
+
+        sharesRetreatLeash =
+            false;
+
+        encounterResetInProgress =
+            false;
     }
 
     private void HandleAggroDetection()
     {
-        if (!canAggro)
-            return;
-
         if (aggroDisableTimer > 0f)
             return;
 
@@ -1109,22 +1644,39 @@ public class NPCBehavior : MonoBehaviour
             return;
         }
 
-
+        /*
+         * canAggro gäller endast NPC:er vars faktiska reaction
+         * är Aggro.
+         *
+         * En Flee-NPC måste fortfarande få upptäcka hot även om
+         * den själv inte tillåts gå in i Aggro.
+         */
+        if (reactionController.ReactionType ==
+                NPCReactionType.Aggro &&
+            !canAggro)
+        {
+            return;
+        }
 
         /*
-         * Vi söker alla colliders och resolve:ar därefter deras
-         * CharacterStats från parent-hierarkin.
+         * NPCReactionController äger awareness-inställningarna.
          *
-         * Det gör proximity detection oberoende av om karaktärens
-         * collider ligger på NPC, HostileMob, Hitbox eller ett
-         * annat child-layer.
+         * NPCBehavior äger själva spatiala scanningen.
+         *
+         * På så sätt finns bara EN auktoritativ awareness-radius.
          */
+        float detectionRadius =
+            reactionController
+                .CurrentAwarenessRadius;
+
+        if (detectionRadius <= 0f)
+            return;
+
         Collider2D[] hits =
             Physics2D.OverlapCircleAll(
                 transform.position,
-                currentAggroRange
+                detectionRadius
             );
-
 
         HashSet<CharacterStats>
             checkedCharacters =
@@ -1151,8 +1703,8 @@ public class NPCBehavior : MonoBehaviour
             }
 
             /*
-             * En karaktär kan ha flera colliders.
-             * Den ska bara valideras en gång per scan.
+             * Samma CharacterStats kan representeras av flera
+             * colliders.
              */
             if (!checkedCharacters.Add(
                     threat))
@@ -1163,6 +1715,13 @@ public class NPCBehavior : MonoBehaviour
             if (!threat.IsAlive)
                 continue;
 
+            /*
+             * Proximity awareness kräver LoS.
+             *
+             * När NPC:n väl HAR reagerat/är i encounter används
+             * inte denna scan längre och combat-navigationen får
+             * fortsätta jaga target även bakom hinder.
+             */
             if (!LineOfSightUtility
                     .HasLineOfSight(
                         transform.position,
@@ -1198,17 +1757,7 @@ public class NPCBehavior : MonoBehaviour
 
         movement.EndFlee();
 
-        /*
-         * LOW HEALTH RETREAT
-         *
-         * Detta är bara en taktisk ompositionering.
-         * NPC:n ska INTE:
-         *
-         * - resetta HP
-         * - resetta cooldowns
-         * - lämna encounter
-         * - återvända till spawn
-         */
+
         if (lowHealthRetreatActive)
         {
             CompleteLowHealthRetreat();
@@ -1216,15 +1765,14 @@ public class NPCBehavior : MonoBehaviour
             return;
         }
 
-        /*
-         * Vanlig Flee-reaction behåller det gamla beteendet.
-         */
+        // Vanlig Flee-reaction behåller det gamla beteendet.
+
         EnterHoldingState();
     }
 
     private void CompleteLowHealthRetreat()
     {
-        CharacterStats threat =
+        CharacterStats previousThreat =
             lowHealthRetreatThreat;
 
         lowHealthRetreatActive =
@@ -1239,33 +1787,27 @@ public class NPCBehavior : MonoBehaviour
         activeFleeSpeedMultiplier =
             1f;
 
-        /*
-         * Om target dog medan NPC:n retirerade finns inget encounter
-         * kvar att återgå till.
-         *
-         * Då går NPC:n tillbaka till ORIGINAL spawn och gör en riktig
-         * encounter-reset där.
-         */
-        if (threat == null ||
-            !threat.IsAlive)
-        {
-            encounterReturnPosition =
-                spawnPosition;
 
-            BeginEncounterResetAndReturn();
+        if (previousThreat != null &&
+            !previousThreat.IsAlive)
+        {
+            threatTracker
+                ?.RemoveThreat(
+                    previousThreat
+                );
+        }
+
+
+        if (RefreshCombatTargetFromThreat())
+        {
+            ResumeAggroAfterLowHealthRetreat(
+                currentTargetStats
+            );
 
             return;
         }
 
-        /*
-         * Återgå till samma encounter utan att skapa ett nytt
-         * combat-anchor.
-         *
-         * combatAnchorPosition är redan retreatens startpunkt.
-         */
-        ResumeAggroAfterLowHealthRetreat(
-            threat
-        );
+        BeginEncounterResetAndReturn();
     }
 
     private void ResumeAggroAfterLowHealthRetreat(
@@ -1743,12 +2285,35 @@ public class NPCBehavior : MonoBehaviour
         return currentTargetStats is PlayerStats;
     }
 
-    public void ForceAggro(CharacterStats target)
+    public void ForceAggro(
+    CharacterStats target)
     {
-        if (target == null)
+        if (target == null ||
+            !target.IsAlive)
+        {
             return;
+        }
 
-        EnterAggroState(target);
+        threatTracker
+            ?.EnsureThreat(
+                target
+            );
+
+        /*
+         * Är NPC:n redan i combat bestämmer ThreatTracker om
+         * target faktiskt bör bytas.
+         */
+        if (currentState ==
+            AIState.Aggro)
+        {
+            RefreshCombatTargetFromThreat();
+
+            return;
+        }
+
+        EnterAggroState(
+            target
+        );
     }
 
     public void StartFleeing(
@@ -1812,12 +2377,47 @@ public class NPCBehavior : MonoBehaviour
          * DENNA punkt blir encounterts nya leash-center.
          */
         lowHealthRetreatStartPosition =
-            transform.position;
+    transform.position;
 
+        /*
+         * Retreatens startpunkt blir encounterts nya centrum.
+         */
         combatAnchorPosition =
             lowHealthRetreatStartPosition;
 
         hasCombatAnchor =
+            true;
+
+        /*
+         * Retreaten får skapa ett större temporärt encounterområde.
+         *
+         * Exempel:
+         *
+         * normal leash = 8
+         * retreat = 10
+         *
+         * =>
+         *
+         * temporary combat leash = 18
+         *
+         * Det ger NPC:n plats att:
+         * - genomföra retreaten
+         * - vända för last stand
+         * - repositionera under fortsatt combat
+         *
+         * utan att encountert resetas precis när retreaten är klar.
+         */
+        combatLeashRadius =
+            Mathf.Max(
+                maxDistanceFromSpawn,
+                maxDistanceFromSpawn +
+                Mathf.Max(
+                    0f,
+                    retreatDistance
+                )
+            );
+
+        sharesRetreatLeash =
             true;
 
         /*
@@ -1879,6 +2479,18 @@ public class NPCBehavior : MonoBehaviour
 
         currentTargetStats =
             null;
+
+        combatLeashRadius =
+            maxDistanceFromSpawn;
+
+        sharesRetreatLeash =
+            false;
+
+        hasCombatAnchor =
+            false;
+
+        threatTracker
+            ?.ResetThreat();
 
         if (subscribedPlayer != null)
         {
@@ -1962,10 +2574,19 @@ public class NPCBehavior : MonoBehaviour
     private void HandleTargetDied(
     CharacterStats deadTarget)
     {
-        encounterReturnPosition =
-            spawnPosition;
+        threatTracker
+            ?.RemoveThreat(
+                deadTarget
+            );
 
-        BeginEncounterResetAndReturn();
+        if (currentState ==
+                AIState.Aggro &&
+            RefreshCombatTargetFromThreat())
+        {
+            return;
+        }
+
+        EndCombatNaturally();
     }
 
     void HandleDeath(CharacterStats deadCharacter)
@@ -1976,13 +2597,6 @@ public class NPCBehavior : MonoBehaviour
         isDead = true;
 
         DisableBehaviour();
-
-        if (selfStats.deathReward != null)
-        {
-            selfStats.deathReward.SpawnCorpse(
-                transform.position,
-                selfStats);
-        }
 
         spawner?.OnMobDied();
     }
@@ -2000,5 +2614,39 @@ public class NPCBehavior : MonoBehaviour
         }
 
         movement?.Stop();
+    }
+
+    private void DebugCombatState(
+    string reason)
+    {
+        if (Time.time <
+            nextCombatDebugTime)
+        {
+            return;
+        }
+
+        nextCombatDebugTime =
+            Time.time +
+            CombatDebugInterval;
+
+        string targetName =
+            currentTargetStats != null
+                ? currentTargetStats.name
+                : "NULL";
+
+        int threatCount =
+            threatTracker != null
+                ? threatTracker.ThreatSourceCount
+                : -1;
+
+        Debug.Log(
+            $"[COMBAT DEBUG] {name} | " +
+            $"reason={reason} | " +
+            $"state={currentState} | " +
+            $"target={targetName} | " +
+            $"threats={threatCount} | " +
+            $"pos={transform.position}",
+            this
+        );
     }
 }
