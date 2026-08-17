@@ -2,6 +2,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
+[RequireComponent(typeof(PlayerAbilityCollection))]
 public class NPCBehavior : MonoBehaviour
 {
     [Header("Refs")]
@@ -11,10 +12,13 @@ public class NPCBehavior : MonoBehaviour
     [Header("Leash")]
     [SerializeField] protected float maxDistanceFromSpawn = 8f;
 
-    [Header("Attack")]
-    private AbilityController abilityController;
-    private CharacterActionController actionController;
-    private BaseAttackController baseAttackController;
+    [Header("Actions")]
+
+    private CharacterActionController
+    actionController;
+
+    private PlayerAbilityCollection
+        abilityCollection;
 
     [Header("Ability Delay")]
     [SerializeField] private float abilityDelayAfterAggro = 3f;
@@ -132,11 +136,11 @@ public class NPCBehavior : MonoBehaviour
         movement =
             GetComponent<NPCMovement>();
 
-        baseAttackController =
-            GetComponent<BaseAttackController>();
+        actionController =
+             GetComponent<CharacterActionController>();
 
-        abilityController =
-            GetComponent<AbilityController>();
+        abilityCollection =
+            GetComponent<PlayerAbilityCollection>();
 
         actionController =
             GetComponent<CharacterActionController>();
@@ -769,6 +773,45 @@ public class NPCBehavior : MonoBehaviour
         EnterIdleState();
     }
 
+    private AbilityData GetActiveBaseAttack()
+{
+    if (abilityCollection == null)
+        return null;
+
+    return abilityCollection
+        .GetActiveBaseAttack();
+}
+
+private float GetBaseAttackRange()
+{
+    AbilityData baseAttack =
+        GetActiveBaseAttack();
+
+    if (baseAttack == null ||
+        baseAttack.TargetingSettings == null)
+    {
+        return movement != null
+            ? movement.DefaultStopDistance
+            : 1f;
+    }
+
+    return Mathf.Max(
+        0f,
+        baseAttack
+            .TargetingSettings
+            .Range
+    );
+}
+
+private AbilityData[] GetEquippedAbilities()
+{
+    if (abilityCollection == null)
+        return null;
+
+    return abilityCollection
+        .GetEquippedAbilities();
+}
+
     void UpdateAggroState()
     {
         // =====================================================
@@ -822,11 +865,7 @@ public class NPCBehavior : MonoBehaviour
 
         if (desiredAction == null)
         {
-            float fallbackRange =
-                baseAttackController != null
-                    ? baseAttackController
-                        .CurrentAttackRange
-                    : movement.DefaultStopDistance;
+            float fallbackRange = GetBaseAttackRange();
 
             bool shouldApproach =
                 ShouldContinueCombatApproach(
@@ -1391,18 +1430,6 @@ public class NPCBehavior : MonoBehaviour
 
     private void BeginEncounterResetAndReturn()
     {
-        Debug.LogWarning(
-    $"[COMBAT RESET] {name} BEGIN RESET | " +
-    $"state={currentState} | " +
-    $"target=" +
-    $"{(currentTargetStats != null ? currentTargetStats.name : "NULL")} | " +
-    $"threats=" +
-    $"{(threatTracker != null ? threatTracker.ThreatSourceCount : -1)} | " +
-    $"position={transform.position} | " +
-    $"anchor={combatAnchorPosition} | " +
-    $"spawn={spawnPosition}",
-    this
-);
         if (encounterResetInProgress)
             return;
 
@@ -1418,9 +1445,6 @@ public class NPCBehavior : MonoBehaviour
             true;
 
         actionController
-            ?.ResetRuntimeState();
-
-        abilityController
             ?.ResetRuntimeState();
 
         threatTracker
@@ -1489,9 +1513,6 @@ public class NPCBehavior : MonoBehaviour
          * locomotion-state.
          */
         actionController
-            ?.ResetRuntimeState();
-
-        abilityController
             ?.ResetRuntimeState();
 
         buffSystem
@@ -2058,69 +2079,73 @@ public class NPCBehavior : MonoBehaviour
         return true;
     }
 
-    bool TryFallbackBaseAttack(
+    private bool TryFallbackBaseAttack(
     float distanceToTarget)
+{
+    if (actionController == null)
+        return false;
+
+    AbilityData baseAttack =
+        GetActiveBaseAttack();
+
+    if (!CanSelectBaseAttack(
+            baseAttack))
     {
-        if (baseAttackController == null ||
-            actionController == null)
-        {
-            return false;
-        }
-
-        AbilityData baseAttack =
-            baseAttackController.CurrentAttack;
-
-        if (!CanSelectBaseAttack(
-                baseAttack))
-        {
-            return false;
-        }
-
-        AbilityTargetingSettings targeting =
-            baseAttack.TargetingSettings;
-
-        if (targeting == null)
-            return false;
-
-        if (distanceToTarget >
-            targeting.Range)
-        {
-            return false;
-        }
-
-        if (distanceToTarget <
-            targeting.MinimumRange)
-        {
-            return false;
-        }
-
-        return TryStartNPCAction(
-            baseAttack
-        );
+        return false;
     }
 
-    AbilityData SelectDesiredAction(
+    AbilityTargetingSettings targeting =
+        baseAttack.TargetingSettings;
+
+    if (targeting == null)
+        return false;
+
+    if (distanceToTarget >
+        targeting.Range)
+    {
+        return false;
+    }
+
+    if (distanceToTarget <
+        targeting.MinimumRange)
+    {
+        return false;
+    }
+
+    return TryStartNPCAction(
+        baseAttack
+    );
+}
+
+    private AbilityData SelectDesiredAction(
     float distanceToTarget)
     {
-        if (actionController == null)
+        if (actionController == null ||
+            abilityCollection == null)
+        {
             return null;
+        }
 
         /*
-         * NPC-abilities är låsta en kort stund efter aggro.
-         * Under den tiden kan NPC:n fortfarande använda sin
-         * base attack.
+         * Vanliga abilities får en kort delay efter
+         * encounter-start.
+         *
+         * Base Attack är fortfarande tillgänglig direkt.
          */
-        if (abilityLockTimer <= 0f &&
-            abilityController != null)
+        if (abilityLockTimer <= 0f)
         {
             AbilityData[] abilities =
-                abilityController
-                    .GetEquippedAbilities();
+                GetEquippedAbilities();
 
             if (abilities != null)
             {
-                foreach (AbilityData ability in abilities)
+                for (int i = 0;
+                     i < abilities.Length;
+                     i++)
                 {
+                    AbilityData ability =
+                        abilities[i];
+
                     if (!CanSelectAbility(
                             ability,
                             distanceToTarget))
@@ -2133,11 +2158,8 @@ public class NPCBehavior : MonoBehaviour
             }
         }
 
-        if (baseAttackController == null)
-            return null;
-
         AbilityData baseAttack =
-            baseAttackController.CurrentAttack;
+            GetActiveBaseAttack();
 
         if (!CanSelectBaseAttack(
                 baseAttack))
@@ -2148,7 +2170,7 @@ public class NPCBehavior : MonoBehaviour
         return baseAttack;
     }
 
-    bool CanSelectBaseAttack(
+    private bool CanSelectBaseAttack(
     AbilityData attack)
     {
         if (attack == null)
@@ -2161,6 +2183,12 @@ public class NPCBehavior : MonoBehaviour
             return false;
 
         if (attack.TargetingSettings == null)
+            return false;
+
+        if (attack.TimingSettings == null)
+            return false;
+
+        if (actionController == null)
             return false;
 
         return actionController
@@ -2603,17 +2631,14 @@ public class NPCBehavior : MonoBehaviour
 
     void DisableBehaviour()
     {
-        enabled = false;
+        enabled =
+            false;
 
-        actionController?.CancelCurrentAction();
+        actionController
+            ?.CancelCurrentAction();
 
-        if (baseAttackController != null)
-        {
-            baseAttackController.enabled =
-                false;
-        }
-
-        movement?.Stop();
+        movement
+            ?.Stop();
     }
 
     private void DebugCombatState(

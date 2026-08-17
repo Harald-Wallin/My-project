@@ -22,14 +22,13 @@ GameObject:
   - component: {fileID: 6658034871447627093}
   - component: {fileID: -2890300438920332383}
   - component: {fileID: 5337025547157977040}
-  - component: {fileID: 7173887725524883641}
-  - component: {fileID: 5911326519326787468}
   - component: {fileID: -3707031425147597524}
   - component: {fileID: -6827340284187196788}
   - component: {fileID: 788226862973081087}
   - component: {fileID: 2430686843897917415}
   - component: {fileID: 1540313279361898670}
   - component: {fileID: 6876162503876820265}
+  - component: {fileID: 547171804974366799}
   m_Layer: 8
   m_Name: Bandit2
   m_TagString: Enemy
@@ -213,6 +212,8 @@ MonoBehaviour:
   threatDetectionLayers:
     serializedVersion: 2
     m_Bits: 0
+  combatChaseEnterFactor: 0.95
+  combatChaseExitFactor: 0.72
   canWander: 1
   canPatrol: 0
   patrolPath: {fileID: 0}
@@ -365,37 +366,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AbilityController
   equippedAbilities: []
---- !u!114 &7173887725524883641
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3459725347379031730}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6ba712539a91c8e49a0f2e4e8be63180, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerBaseAttackCollection
-  learnedAttacks:
-  - {fileID: 11400000, guid: 83d5314be1a2a9a4697b658f29a26d08, type: 2}
-  primaryAttack: {fileID: 11400000, guid: 83d5314be1a2a9a4697b658f29a26d08, type: 2}
-  secondaryAttack: {fileID: 0}
---- !u!114 &5911326519326787468
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3459725347379031730}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e81c5e86ff840864aacbfe17645486ce, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BaseAttackController
-  attackIndicator: {fileID: 0}
-  attackOrigin: {fileID: 0}
-  indicatorDistance: 0.6
 --- !u!114 &-3707031425147597524
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -410,13 +380,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
   stopDistance: 0.8
   skinWidth: 0.02
-  separationRadius: 1.2
-  separationWeight: 1.2
+  avoidanceProbeDistance: 1.4
+  avoidanceCorridorHalfWidth: 0.65
+  avoidanceStrength: 0.8
+  avoidanceMemoryDuration: 0.5
+  overlapRecoveryDistance: 0.25
+  overlapRecoveryStrength: 0.35
   wanderRadius: 3
   wanderMoveTime: 2
   wanderPauseTime: 2
   wanderSpeedMultiplier: 0.5
   patrolSpeedMultiplier: 0.75
+  blockedPatrolNodeAcceptanceDistance: 2
+  patrolNodeBlockRadius: 0.9
 --- !u!114 &-6827340284187196788
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -536,6 +512,33 @@ MonoBehaviour:
   damageThreatMultiplier: 1
   initialAggroThreat: 1
   targetSwitchThreatMultiplier: 1.2
+--- !u!114 &547171804974366799
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 58b437750817a4744aad8a625b490e43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerAbilityCollection
+  learnedAbilities:
+  - {fileID: 11400000, guid: 83d5314be1a2a9a4697b658f29a26d08, type: 2}
+  equippedAbilities:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  baseAttacks:
+  - {fileID: 11400000, guid: 83d5314be1a2a9a4697b658f29a26d08, type: 2}
+  - {fileID: 0}
 --- !u!1 &3778626201625969471
 GameObject:
   m_ObjectHideFlags: 0

@@ -16,7 +16,7 @@ public sealed class ScaledDamageEffect :
     private int flatDamage;
 
     public override void Execute(
-        AbilityEffectExecutionContext context)
+    AbilityEffectExecutionContext context)
     {
         if (context == null ||
             context.Caster == null ||
@@ -44,7 +44,7 @@ public sealed class ScaledDamageEffect :
 
         context.Target.TakeDamage(
             result,
-            context.Caster
+            context.DamageSource
         );
     }
 

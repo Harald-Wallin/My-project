@@ -102,8 +102,6 @@ GameObject:
   - component: {fileID: 67456301161924493}
   - component: {fileID: 5096408160528072190}
   - component: {fileID: 5554398571828178578}
-  - component: {fileID: 822371957010129274}
-  - component: {fileID: 3706294627332642803}
   - component: {fileID: 4287925351190680984}
   - component: {fileID: 8581354136658360309}
   - component: {fileID: 788226862973081087}
@@ -389,37 +387,6 @@ MonoBehaviour:
   alertDuration: 10
   hostilityDuration: 300
   createsFactionHostilityWhenAttacked: 0
---- !u!114 &822371957010129274
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3459725347379031730}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6ba712539a91c8e49a0f2e4e8be63180, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerBaseAttackCollection
-  learnedAttacks:
-  - {fileID: 11400000, guid: ef961514809aaa741a1d92d2f70b0c6b, type: 2}
-  primaryAttack: {fileID: 11400000, guid: ef961514809aaa741a1d92d2f70b0c6b, type: 2}
-  secondaryAttack: {fileID: 0}
---- !u!114 &3706294627332642803
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3459725347379031730}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e81c5e86ff840864aacbfe17645486ce, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BaseAttackController
-  attackIndicator: {fileID: 0}
-  attackOrigin: {fileID: 0}
-  indicatorDistance: 0.6
 --- !u!114 &4287925351190680984
 MonoBehaviour:
   m_ObjectHideFlags: 0

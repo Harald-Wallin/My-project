@@ -1,8 +1,17 @@
 using UnityEngine;
 
-[CreateAssetMenu(menuName = "RPG/Talent")]
-public class TalentData : ScriptableObject
+[CreateAssetMenu(
+    menuName = "RPG/Talent"
+)]
+public sealed class TalentData :
+    ScriptableObject
 {
+    // =========================================================
+    // BASIC
+    // =========================================================
+
+    [Header("Basic")]
+
     public string talentName;
 
     [TextArea]
@@ -10,28 +19,66 @@ public class TalentData : ScriptableObject
 
     public Sprite icon;
 
+    // =========================================================
+    // SCALING
+    // =========================================================
+
     [Header("Scaling")]
+
+    [Min(1)]
     public int maxPoints = 5;
 
+    // =========================================================
+    // EFFECTS
+    // =========================================================
+
     [Header("Effects")]
+
     public AbilityEffect[] effects;
 
+    // =========================================================
+    // UNLOCKS
+    // =========================================================
+
     [Header("Unlocks")]
-    public AbilityData unlockedAbility;
 
     [Tooltip(
-        "En AbilityData vars Usage Type är BaseAttack."
+        "Ability som låses upp när första poängen läggs i " +
+        "talenten.\n\n" +
+        "Kan vara både en vanlig Ability och en BaseAttack. " +
+        "AbilityData.UsageType avgör senare vilka slots den " +
+        "kan utrustas i."
     )]
-    public AbilityData unlockedBaseAttack;
+    public AbilityData unlockedAbility;
+
+    // =========================================================
+    // WARD
+    // =========================================================
 
     [Header("Ward")]
+
     public bool unlocksWardSystem;
 
+    // =========================================================
+    // TIER
+    // =========================================================
+
     [Header("Tier")]
+
+    [Min(1)]
     public int tier = 1;
 
+    // =========================================================
+    // REQUIREMENTS
+    // =========================================================
+
     [Header("Requirements")]
+
     public TalentRequirement[] requirements;
+
+    // =========================================================
+    // TOOLTIP
+    // =========================================================
 
     public TooltipData GetTooltipData(
         CharacterStats caster,
@@ -40,32 +87,20 @@ public class TalentData : ScriptableObject
         TooltipData data =
             new TooltipData
             {
-                title = talentName,
-                description = description
+                title =
+                    talentName,
+
+                description =
+                    description,
+
+                showFooter =
+                    false
             };
 
-        // CURRENT
-        if (currentPoints > 0 &&
-            effects != null)
-        {
-            foreach (AbilityEffect effect in effects)
-            {
-                if (effect is not StatModifierEffect stat)
-                    continue;
-
-                float value =
-                    stat.value *
-                    currentPoints;
-
-                data.stats.Add(
-                    StatFormatting.FormatModifier(
-                        stat.stat,
-                        stat.type,
-                        value
-                    )
-                );
-            }
-        }
+        AddCurrentEffectsTooltip(
+            data,
+            currentPoints
+        );
 
         AddAbilityUnlockTooltip(
             data,
@@ -73,110 +108,98 @@ public class TalentData : ScriptableObject
             currentPoints
         );
 
-        AddBaseAttackUnlockTooltip(
+        AddNextRankTooltip(
             data,
-            caster,
             currentPoints
         );
-
-        // NEXT RANK
-        if (currentPoints < maxPoints)
-        {
-            if (currentPoints > 0)
-            {
-                data.stats.Add("");
-            }
-
-            data.stats.Add(
-                "<color=yellow>Next Rank:</color>"
-            );
-
-            if (effects != null)
-            {
-                foreach (AbilityEffect effect in effects)
-                {
-                    if (effect is not StatModifierEffect stat)
-                        continue;
-
-                    float value =
-                        stat.value *
-                        (currentPoints + 1);
-
-                    data.stats.Add(
-                        StatFormatting.FormatModifier(
-                            stat.stat,
-                            stat.type,
-                            value
-                        )
-                    );
-                }
-            }
-        }
 
         AddRequirementsTooltip(
             data
         );
 
-        data.showFooter = false;
-
         return data;
     }
+
+    // =========================================================
+    // CURRENT EFFECTS
+    // =========================================================
+
+    private void AddCurrentEffectsTooltip(
+        TooltipData data,
+        int currentPoints)
+    {
+        if (data == null ||
+            currentPoints <= 0 ||
+            effects == null)
+        {
+            return;
+        }
+
+        for (int i = 0;
+             i < effects.Length;
+             i++)
+        {
+            AbilityEffect effect =
+                effects[i];
+
+            if (effect is not
+                StatModifierEffect statEffect)
+            {
+                continue;
+            }
+
+            float value =
+                statEffect.value *
+                currentPoints;
+
+            data.stats.Add(
+                StatFormatting.FormatModifier(
+                    statEffect.stat,
+                    statEffect.type,
+                    value
+                )
+            );
+        }
+    }
+
+    // =========================================================
+    // ABILITY UNLOCK
+    // =========================================================
 
     private void AddAbilityUnlockTooltip(
         TooltipData data,
         CharacterStats caster,
         int currentPoints)
     {
-        if (unlockedAbility == null)
+        if (data == null ||
+            unlockedAbility == null)
+        {
             return;
+        }
 
-        AddUnlockedEntryTooltip(
-            data,
-            unlockedAbility,
-            caster,
-            currentPoints
-        );
-    }
-
-    private void AddBaseAttackUnlockTooltip(
-        TooltipData data,
-        CharacterStats caster,
-        int currentPoints)
-    {
-        if (unlockedBaseAttack == null)
-            return;
-
-        AddUnlockedEntryTooltip(
-            data,
-            unlockedBaseAttack,
-            caster,
-            currentPoints
-        );
-    }
-
-    private static void AddUnlockedEntryTooltip(
-        TooltipData data,
-        AbilityData ability,
-        CharacterStats caster,
-        int currentPoints)
-    {
         string prefix =
-            currentPoints == 0
-                ? "Unlocks"
-                : "Unlocked";
+            currentPoints > 0
+                ? "Unlocked"
+                : "Unlocks";
 
         data.stats.Add(
             $"<color=#66FFAA>" +
-            $"{prefix}: {ability.abilityName}" +
+            $"{prefix}: " +
+            $"{unlockedAbility.abilityName}" +
             $"</color>"
         );
 
-        data.stats.Add("");
+        data.stats.Add(
+            string.Empty
+        );
 
         TooltipData abilityTooltip =
-            ability.GetTooltipData(
+            unlockedAbility.GetTooltipData(
                 caster
             );
+
+        if (abilityTooltip == null)
+            return;
 
         if (!string.IsNullOrEmpty(
                 abilityTooltip.description))
@@ -186,33 +209,119 @@ public class TalentData : ScriptableObject
             );
         }
 
-        foreach (string line in
-                 abilityTooltip.stats)
+        if (abilityTooltip.stats == null)
+            return;
+
+        for (int i = 0;
+             i < abilityTooltip.stats.Count;
+             i++)
         {
+            string line =
+                abilityTooltip.stats[i];
+
+            if (string.IsNullOrEmpty(
+                    line))
+            {
+                continue;
+            }
+
             data.stats.Add(
                 line
             );
         }
     }
 
+    // =========================================================
+    // NEXT RANK
+    // =========================================================
+
+    private void AddNextRankTooltip(
+        TooltipData data,
+        int currentPoints)
+    {
+        if (data == null ||
+            currentPoints >= maxPoints)
+        {
+            return;
+        }
+
+        if (currentPoints > 0)
+        {
+            data.stats.Add(
+                string.Empty
+            );
+        }
+
+        data.stats.Add(
+            "<color=yellow>" +
+            "Next Rank:" +
+            "</color>"
+        );
+
+        if (effects == null)
+            return;
+
+        int nextRank =
+            currentPoints + 1;
+
+        for (int i = 0;
+             i < effects.Length;
+             i++)
+        {
+            AbilityEffect effect =
+                effects[i];
+
+            if (effect is not
+                StatModifierEffect statEffect)
+            {
+                continue;
+            }
+
+            float value =
+                statEffect.value *
+                nextRank;
+
+            data.stats.Add(
+                StatFormatting.FormatModifier(
+                    statEffect.stat,
+                    statEffect.type,
+                    value
+                )
+            );
+        }
+    }
+
+    // =========================================================
+    // REQUIREMENTS
+    // =========================================================
+
     private void AddRequirementsTooltip(
         TooltipData data)
     {
-        if (requirements == null ||
+        if (data == null ||
+            requirements == null ||
             requirements.Length == 0)
         {
             return;
         }
 
-        data.stats.Add("");
-
         data.stats.Add(
-            "<color=yellow>Requirements:</color>"
+            string.Empty
         );
 
-        foreach (TalentRequirement requirement in
-                 requirements)
+        data.stats.Add(
+            "<color=yellow>" +
+            "Requirements:" +
+            "</color>"
+        );
+
+        for (int i = 0;
+             i < requirements.Length;
+             i++)
         {
+            TalentRequirement requirement =
+                requirements[i];
+
             if (requirement == null ||
                 requirement.talent == null)
             {
@@ -220,30 +329,23 @@ public class TalentData : ScriptableObject
             }
 
             TalentRuntime runtime =
-                TalentManager.Instance != null
-                    ? TalentManager.Instance
-                        .talents
-                        .Find(
-                            talent =>
-                                talent.data ==
-                                requirement.talent
-                        )
-                    : null;
+                FindTalentRuntime(
+                    requirement.talent
+                );
+
+            int current =
+                runtime != null
+                    ? runtime.currentPoints
+                    : 0;
 
             bool fulfilled =
-                runtime != null &&
-                runtime.currentPoints >=
+                current >=
                 requirement.requiredPoints;
 
             string color =
                 fulfilled
                     ? "#66FF66"
                     : "#FF6666";
-
-            int current =
-                runtime != null
-                    ? runtime.currentPoints
-                    : 0;
 
             data.stats.Add(
                 $"<color={color}>" +
@@ -255,7 +357,34 @@ public class TalentData : ScriptableObject
         }
     }
 
+    private static TalentRuntime
+        FindTalentRuntime(
+            TalentData talent)
+    {
+        if (talent == null ||
+            TalentManager.Instance == null ||
+            TalentManager.Instance.talents == null)
+        {
+            return null;
+        }
+
+        return TalentManager
+            .Instance
+            .talents
+            .Find(
+                runtime =>
+                    runtime != null &&
+                    runtime.data ==
+                    talent
+            );
+    }
+
+    // =========================================================
+    // VALIDATION
+    // =========================================================
+
 #if UNITY_EDITOR
+
     private void OnValidate()
     {
         maxPoints =
@@ -269,29 +398,7 @@ public class TalentData : ScriptableObject
                 1,
                 tier
             );
-
-        if (unlockedAbility != null &&
-            unlockedAbility.IsBaseAttack)
-        {
-            Debug.LogWarning(
-                $"Talent '{talentName}' har en base attack i " +
-                $"{nameof(unlockedAbility)}. Flytta den till " +
-                $"{nameof(unlockedBaseAttack)}.",
-                this
-            );
-        }
-
-        if (unlockedBaseAttack != null &&
-            !unlockedBaseAttack.IsBaseAttack)
-        {
-            Debug.LogWarning(
-                $"Talent '{talentName}' har " +
-                $"'{unlockedBaseAttack.abilityName}' i " +
-                $"{nameof(unlockedBaseAttack)}, men abilityns " +
-                $"Usage Type är inte BaseAttack.",
-                this
-            );
-        }
     }
+
 #endif
 }

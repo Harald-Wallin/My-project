@@ -190,7 +190,7 @@ public sealed class TalentManager :
     }
 
     private void HandleUnlocks(
-        TalentRuntime talent)
+    TalentRuntime talent)
     {
         PlayerStats player =
             Player;
@@ -202,36 +202,23 @@ public sealed class TalentManager :
             return;
         }
 
-        // Unlocks appliceras endast när första poängen köps.
+        /*
+         * Unlocks appliceras endast när
+         * första poängen köps.
+         */
         if (talent.currentPoints != 1)
             return;
-
-        PlayerAbilityCollection abilities =
-            player.GetComponent<
-                PlayerAbilityCollection
-            >();
-
-        PlayerBaseAttackCollection attacks =
-            player.GetComponent<
-                PlayerBaseAttackCollection
-            >();
 
         AbilityData unlockedAbility =
             talent.data.unlockedAbility;
 
         if (unlockedAbility != null)
         {
-            if (unlockedAbility.IsBaseAttack)
-            {
-                Debug.LogWarning(
-                    $"Talent '{talent.data.talentName}' har " +
-                    $"base attacken '{unlockedAbility.abilityName}' " +
-                    $"i unlockedAbility. Använd " +
-                    $"unlockedBaseAttack i stället.",
-                    talent.data
-                );
-            }
-            else if (abilities == null)
+            PlayerAbilityCollection abilities =
+                player.GetComponent<
+                    PlayerAbilityCollection>();
+
+            if (abilities == null)
             {
                 Debug.LogError(
                     $"{nameof(PlayerAbilityCollection)} saknas " +
@@ -248,43 +235,9 @@ public sealed class TalentManager :
             }
         }
 
-        AbilityData unlockedBaseAttack =
-            talent.data.unlockedBaseAttack;
-
-        if (unlockedBaseAttack != null)
-        {
-            if (!unlockedBaseAttack.IsBaseAttack)
-            {
-                Debug.LogWarning(
-                    $"Talent '{talent.data.talentName}' har " +
-                    $"'{unlockedBaseAttack.abilityName}' i " +
-                    $"unlockedBaseAttack, men dess Usage Type " +
-                    $"är inte BaseAttack.",
-                    talent.data
-                );
-            }
-            else if (attacks == null)
-            {
-                Debug.LogError(
-                    $"{nameof(PlayerBaseAttackCollection)} saknas " +
-                    $"på spelaren. Base attacken " +
-                    $"'{unlockedBaseAttack.abilityName}' kunde " +
-                    $"inte låsas upp.",
-                    player
-                );
-            }
-            else
-            {
-                attacks.LearnAttack(
-                    unlockedBaseAttack
-                );
-            }
-        }
-
         SpellbookUI spellbook =
             FindFirstObjectByType<
-                SpellbookUI
-            >();
+                SpellbookUI>();
 
         spellbook?.Refresh();
     }

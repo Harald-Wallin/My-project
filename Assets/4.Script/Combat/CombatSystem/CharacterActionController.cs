@@ -46,7 +46,8 @@ public sealed class CharacterActionController :
     private ActionContext currentContext;
     private ActionRequest currentRequest;
 
-    private float globalCooldownTimer;
+    private float abilityGlobalCooldownTimer;
+    private float baseAttackGlobalCooldownTimer;
     private float phaseTimer;
     private float phaseDuration;
     private bool fullChargeReached;
@@ -347,7 +348,7 @@ public sealed class CharacterActionController :
     }
 
     private bool CanStartAction(
-        AbilityData ability)
+     AbilityData ability)
     {
         if (ability == null)
             return false;
@@ -370,16 +371,43 @@ public sealed class CharacterActionController :
             return false;
         }
 
-        if (!ability.IsBaseAttack && globalCooldownTimer > 0f)
+        // =====================================================
+        // COOLDOWN GROUP
+        // =====================================================
+
+        if (ability.IsBaseAttack)
         {
-            ShowAbilityOnCooldown();
-            return false;
+            if (baseAttackGlobalCooldownTimer >
+                0f)
+            {
+                ShowAbilityOnCooldown();
+
+                return false;
+            }
+        }
+        else
+        {
+            if (abilityGlobalCooldownTimer >
+                0f)
+            {
+                ShowAbilityOnCooldown();
+
+                return false;
+            }
         }
 
+        /*
+         * Individuell cooldown gäller framför allt
+         * vanliga abilities.
+         *
+         * Base Attacks använder i stället sin gemensamma
+         * AttackSpeed-baserade cooldown-group.
+         */
         if (cooldownTimers.ContainsKey(
                 ability))
         {
             ShowAbilityOnCooldown();
+
             return false;
         }
 
@@ -396,6 +424,7 @@ public sealed class CharacterActionController :
                 return true;
 
             case ActionTimingType.Charge:
+
                 if (ability.ExecutionSettings ==
                     null)
                 {
@@ -418,6 +447,7 @@ public sealed class CharacterActionController :
                 return true;
 
             case ActionTimingType.Channel:
+
                 Debug.LogWarning(
                     $"Ability '{ability.abilityName}' använder Channel, " +
                     $"vilket ännu inte exekveras av " +
@@ -1288,7 +1318,8 @@ public sealed class CharacterActionController :
 
         cooldownTimers.Clear();
 
-        globalCooldownTimer = 0f;
+        abilityGlobalCooldownTimer = 0f;
+        baseAttackGlobalCooldownTimer = 0f;
         phaseTimer = 0f;
         phaseDuration = 0f;
         fullChargeReached = false;
@@ -1300,10 +1331,12 @@ public sealed class CharacterActionController :
     // =========================================================
 
     /// <summary>
-    /// Vanliga abilities använder sin konfigurerade cooldown.
+    /// Individuell cooldown.
     ///
-    /// Base attacks använder alltid karaktärens AttackSpeed:
-    /// cooldown = 1 / AttackSpeed.
+    /// Base Attack använder AttackSpeed som sin cooldownlängd.
+    ///
+    /// Skillnaden är att Base Attack-cooldownen sedan appliceras
+    /// på hela Base Attack-gruppen i stället för endast asseten.
     /// </summary>
     private float GetCooldownDuration(
         AbilityData ability)
@@ -1312,7 +1345,10 @@ public sealed class CharacterActionController :
             return 0f;
 
         if (!ability.IsBaseAttack)
-            return ability.EffectiveCooldown;
+        {
+            return ability
+                .EffectiveCooldown;
+        }
 
         if (stats == null)
             return 0f;
@@ -1323,18 +1359,36 @@ public sealed class CharacterActionController :
             );
 
         if (attackSpeed <= 0f)
-            attackSpeed = 1f;
+        {
+            attackSpeed =
+                1f;
+        }
 
-        return 1f / attackSpeed;
+        return
+            1f /
+            attackSpeed;
     }
+
     private void UpdateCooldowns()
     {
-        if (globalCooldownTimer > 0f)
+        if (abilityGlobalCooldownTimer >
+            0f)
         {
-            globalCooldownTimer =
+            abilityGlobalCooldownTimer =
                 Mathf.Max(
                     0f,
-                    globalCooldownTimer -
+                    abilityGlobalCooldownTimer -
+                    Time.deltaTime
+                );
+        }
+
+        if (baseAttackGlobalCooldownTimer >
+            0f)
+        {
+            baseAttackGlobalCooldownTimer =
+                Mathf.Max(
+                    0f,
+                    baseAttackGlobalCooldownTimer -
                     Time.deltaTime
                 );
         }
@@ -1360,7 +1414,8 @@ public sealed class CharacterActionController :
                 abilities[i];
 
             float remaining =
-                cooldownTimers[ability] -
+                cooldownTimers[
+                    ability] -
                 Time.deltaTime;
 
             if (remaining <= 0f)
@@ -1372,16 +1427,45 @@ public sealed class CharacterActionController :
                 continue;
             }
 
-            cooldownTimers[ability] =
+            cooldownTimers[
+                ability] =
                 remaining;
         }
     }
 
     private void StartCooldowns(
-    AbilityData ability)
+        AbilityData ability)
     {
         if (ability == null)
             return;
+
+        // =====================================================
+        // BASE ATTACK COOLDOWN GROUP
+        // =====================================================
+
+        if (ability.IsBaseAttack)
+        {
+            float baseAttackCooldown =
+                GetCooldownDuration(
+                    ability
+                );
+
+            if (baseAttackCooldown >
+                0f)
+            {
+                baseAttackGlobalCooldownTimer =
+                    Mathf.Max(
+                        baseAttackGlobalCooldownTimer,
+                        baseAttackCooldown
+                    );
+            }
+
+            return;
+        }
+
+        // =====================================================
+        // INDIVIDUAL ABILITY COOLDOWN
+        // =====================================================
 
         float cooldown =
             GetCooldownDuration(
@@ -1390,14 +1474,14 @@ public sealed class CharacterActionController :
 
         if (cooldown > 0f)
         {
-            cooldownTimers[ability] =
+            cooldownTimers[
+                ability] =
                 cooldown;
         }
 
-        // Base attacks har alltid en fristående cooldown
-        // och startar aldrig global cooldown.
-        if (ability.IsBaseAttack)
-            return;
+        // =====================================================
+        // NORMAL ABILITY GCD
+        // =====================================================
 
         AbilityExecutionSettings execution =
             ability.ExecutionSettings;
@@ -1410,58 +1494,83 @@ public sealed class CharacterActionController :
 
         float globalCooldown =
             execution.UsesGlobalCooldownOverride
-                ? execution.GlobalCooldownOverride
+                ? execution
+                    .GlobalCooldownOverride
                 : defaultGlobalCooldown;
 
         if (globalCooldown <= 0f)
             return;
 
-        globalCooldownTimer =
-            globalCooldown;
+        abilityGlobalCooldownTimer =
+            Mathf.Max(
+                abilityGlobalCooldownTimer,
+                globalCooldown
+            );
     }
 
     public float GetCooldownRemaining(
-    AbilityData ability)
+        AbilityData ability)
     {
         if (ability == null)
             return 0f;
+
+        if (ability.IsBaseAttack)
+        {
+            return Mathf.Max(
+                0f,
+                baseAttackGlobalCooldownTimer
+            );
+        }
+
+        float individualCooldown =
+            0f;
 
         if (cooldownTimers.TryGetValue(
                 ability,
                 out float remaining))
         {
-            return Mathf.Max(
-                0f,
-                remaining
-            );
+            individualCooldown =
+                Mathf.Max(
+                    0f,
+                    remaining
+                );
         }
 
-        // Base attacks påverkas aldrig av global cooldown.
-        if (ability.IsBaseAttack)
-            return 0f;
+        float globalCooldown =
+            Mathf.Max(
+                0f,
+                abilityGlobalCooldownTimer
+            );
 
         return Mathf.Max(
-            0f,
-            globalCooldownTimer
+            individualCooldown,
+            globalCooldown
         );
     }
 
     public float GetMaxCooldown(
-    AbilityData ability)
+        AbilityData ability)
     {
         if (ability == null)
             return 0f;
 
-        if (cooldownTimers.ContainsKey(
-                ability))
+        if (ability.IsBaseAttack)
         {
             return GetCooldownDuration(
                 ability
             );
         }
 
-        if (ability.IsBaseAttack)
-            return 0f;
+        float individualMaximum =
+            cooldownTimers.ContainsKey(
+                ability)
+                ? GetCooldownDuration(
+                    ability
+                )
+                : 0f;
+
+        float globalMaximum =
+            0f;
 
         AbilityExecutionSettings execution =
             ability.ExecutionSettings;
@@ -1469,13 +1578,18 @@ public sealed class CharacterActionController :
         if (execution != null &&
             execution.TriggersGlobalCooldown)
         {
-            return
-                execution.UsesGlobalCooldownOverride
-                    ? execution.GlobalCooldownOverride
+            globalMaximum =
+                execution
+                    .UsesGlobalCooldownOverride
+                    ? execution
+                        .GlobalCooldownOverride
                     : defaultGlobalCooldown;
         }
 
-        return 0f;
+        return Mathf.Max(
+            individualMaximum,
+            globalMaximum
+        );
     }
 
     private static void ShowAbilityOnCooldown()

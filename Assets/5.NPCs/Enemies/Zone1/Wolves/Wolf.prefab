@@ -125,8 +125,6 @@ GameObject:
   - component: {fileID: 6069970325683136558}
   - component: {fileID: 8211094807883814740}
   - component: {fileID: 1898894088392311568}
-  - component: {fileID: 1886271859279076144}
-  - component: {fileID: 8452496395842813275}
   - component: {fileID: 4693989535447528578}
   - component: {fileID: 6584142422350811442}
   - component: {fileID: 1327340354901553847}
@@ -134,6 +132,7 @@ GameObject:
   - component: {fileID: 6351350600522376679}
   - component: {fileID: 3005642618300060603}
   - component: {fileID: -7217729489899146503}
+  - component: {fileID: -8855530114388049432}
   m_Layer: 8
   m_Name: Wolf
   m_TagString: Enemy
@@ -309,6 +308,8 @@ MonoBehaviour:
   threatDetectionLayers:
     serializedVersion: 2
     m_Bits: 0
+  combatChaseEnterFactor: 0.95
+  combatChaseExitFactor: 0.72
   canWander: 1
   canPatrol: 0
   patrolPath: {fileID: 0}
@@ -399,37 +400,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AbilityController
   equippedAbilities:
   - {fileID: 11400000, guid: 613ff67fc888d144bb81e6ce135926aa, type: 2}
---- !u!114 &1886271859279076144
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3459725347379031730}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e81c5e86ff840864aacbfe17645486ce, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BaseAttackController
-  attackIndicator: {fileID: 0}
-  attackOrigin: {fileID: 0}
-  indicatorDistance: 0.6
---- !u!114 &8452496395842813275
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3459725347379031730}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6ba712539a91c8e49a0f2e4e8be63180, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerBaseAttackCollection
-  learnedAttacks:
-  - {fileID: 11400000, guid: 83d5314be1a2a9a4697b658f29a26d08, type: 2}
-  primaryAttack: {fileID: 11400000, guid: 83d5314be1a2a9a4697b658f29a26d08, type: 2}
-  secondaryAttack: {fileID: 0}
 --- !u!114 &4693989535447528578
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -444,13 +414,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
   stopDistance: 0.8
   skinWidth: 0.02
-  separationRadius: 1.2
-  separationWeight: 1.2
+  avoidanceProbeDistance: 1.4
+  avoidanceCorridorHalfWidth: 0.65
+  avoidanceStrength: 0.8
+  avoidanceMemoryDuration: 0.5
+  overlapRecoveryDistance: 0.25
+  overlapRecoveryStrength: 0.35
   wanderRadius: 10
   wanderMoveTime: 2
   wanderPauseTime: 2
   wanderSpeedMultiplier: 0.3
   patrolSpeedMultiplier: 0.75
+  blockedPatrolNodeAcceptanceDistance: 2
+  patrolNodeBlockRadius: 0.9
 --- !u!114 &6584142422350811442
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -559,6 +535,33 @@ MonoBehaviour:
   damageThreatMultiplier: 1
   initialAggroThreat: 1
   targetSwitchThreatMultiplier: 1.2
+--- !u!114 &-8855530114388049432
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 58b437750817a4744aad8a625b490e43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerAbilityCollection
+  learnedAbilities:
+  - {fileID: 11400000, guid: 83d5314be1a2a9a4697b658f29a26d08, type: 2}
+  equippedAbilities:
+  - {fileID: 11400000, guid: 613ff67fc888d144bb81e6ce135926aa, type: 2}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  baseAttacks:
+  - {fileID: 11400000, guid: 83d5314be1a2a9a4697b658f29a26d08, type: 2}
+  - {fileID: 0}
 --- !u!1 &5964683598601086679
 GameObject:
   m_ObjectHideFlags: 0

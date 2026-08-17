@@ -14,6 +14,10 @@ public sealed class ActionSlot :
     IPointerUpHandler,
     ICombatSlot
 {
+    // =========================================================
+    // UI
+    // =========================================================
+
     [Header("UI")]
 
     [SerializeField]
@@ -34,8 +38,9 @@ public sealed class ActionSlot :
     [SerializeField]
     private Image flashImage;
 
-    private AbilityController
-        abilityController;
+    // =========================================================
+    // REFERENCES
+    // =========================================================
 
     private CharacterActionController
         actionController;
@@ -45,6 +50,10 @@ public sealed class ActionSlot :
 
     private PlayerAbilityCollection
         collection;
+
+    // =========================================================
+    // DATA
+    // =========================================================
 
     public AbilityData ability;
 
@@ -56,28 +65,30 @@ public sealed class ActionSlot :
 
     private bool UsesHoldAndRelease =>
         ability != null &&
-        ability.UsesActionSettings &&
         ability.UsesHoldAndRelease;
 
+    // =========================================================
+    // INITIALIZE
+    // =========================================================
+
     public void Initialize(
-        AbilityController controller,
+        PlayerAbilityCollection abilityCollection,
         AbilityData initializedAbility,
         int index)
     {
-        abilityController =
-            controller;
-
         collection =
-            controller.GetComponent<
-                PlayerAbilityCollection>();
+            abilityCollection;
 
-        playerActionInput =
-            controller.GetComponent<
-                PlayerActionInput>();
+        if (collection != null)
+        {
+            actionController =
+                collection.GetComponent<
+                    CharacterActionController>();
 
-        actionController =
-            controller.GetComponent<
-                CharacterActionController>();
+            playerActionInput =
+                collection.GetComponent<
+                    PlayerActionInput>();
+        }
 
         ability =
             initializedAbility;
@@ -88,11 +99,16 @@ public sealed class ActionSlot :
         if (hotkeyText != null)
         {
             hotkeyText.text =
-                (index + 1).ToString();
+                (index + 1)
+                .ToString();
         }
 
         RefreshVisual();
     }
+
+    // =========================================================
+    // UPDATE
+    // =========================================================
 
     private void Update()
     {
@@ -101,6 +117,7 @@ public sealed class ActionSlot :
         if (ability == null)
         {
             ClearCooldownUI();
+
             return;
         }
 
@@ -195,14 +212,11 @@ public sealed class ActionSlot :
             return;
         }
 
-        /*
-         * Hold-and-Release hanteras redan av PointerDown och
-         * PointerUp. OnPointerClick får inte aktivera den igen.
-         */
         if (UsesHoldAndRelease)
             return;
 
         PlayClickFeedback();
+
         TryActivateAbility();
     }
 
@@ -212,28 +226,15 @@ public sealed class ActionSlot :
 
     private bool TryActivateAbility()
     {
-        if (ability == null)
-            return false;
-
-        if (ability.IsBaseAttack)
-            return false;
-
-        if (ability.UsesActionSettings)
+        if (ability == null ||
+            ability.IsBaseAttack ||
+            playerActionInput == null)
         {
-            if (playerActionInput == null)
-                return false;
-
-            return playerActionInput
-                .TryStartAbility(
-                    ability
-                );
+            return false;
         }
 
-        if (abilityController == null)
-            return false;
-
-        return abilityController
-            .TryUseAbility(
+        return playerActionInput
+            .TryStartAbility(
                 ability
             );
     }
@@ -244,60 +245,31 @@ public sealed class ActionSlot :
 
     private void UpdateCooldownUI()
     {
-        if (ability == null)
+        if (ability == null ||
+            actionController == null)
         {
             ClearCooldownUI();
+
             return;
         }
 
-        float remaining;
-        float maximum;
+        float remaining =
+            actionController
+                .GetCooldownRemaining(
+                    ability
+                );
 
-        if (ability.UsesActionSettings)
-        {
-            if (actionController == null)
-            {
-                ClearCooldownUI();
-                return;
-            }
-
-            remaining =
-                actionController
-                    .GetCooldownRemaining(
-                        ability
-                    );
-
-            maximum =
-                actionController
-                    .GetMaxCooldown(
-                        ability
-                    );
-        }
-        else
-        {
-            if (abilityController == null)
-            {
-                ClearCooldownUI();
-                return;
-            }
-
-            remaining =
-                abilityController
-                    .GetCooldownRemaining(
-                        ability
-                    );
-
-            maximum =
-                abilityController
-                    .GetMaxCooldown(
-                        ability
-                    );
-        }
+        float maximum =
+            actionController
+                .GetMaxCooldown(
+                    ability
+                );
 
         if (remaining <= 0f ||
             maximum <= 0f)
         {
             ClearCooldownUI();
+
             return;
         }
 
@@ -347,7 +319,8 @@ public sealed class ActionSlot :
         );
     }
 
-    private IEnumerator ClickFeedbackRoutine()
+    private IEnumerator
+        ClickFeedbackRoutine()
     {
         if (slotTransform == null ||
             flashImage == null)
@@ -422,7 +395,7 @@ public sealed class ActionSlot :
     }
 
     // =========================================================
-    // DRAG AND DROP
+    // DRAG & DROP
     // =========================================================
 
     public void OnDrop(
@@ -472,10 +445,6 @@ public sealed class ActionSlot :
             return;
         }
 
-        /*
-         * Om abilityn som byts bort för närvarande hålls,
-         * avbryts dess charge först.
-         */
         if (ability != null &&
             ability != newAbility)
         {
@@ -490,10 +459,11 @@ public sealed class ActionSlot :
 
         RefreshVisual();
 
-        collection?.SetEquippedAbility(
-            slotIndex,
-            ability
-        );
+        collection
+            ?.SetEquippedAbility(
+                slotIndex,
+                ability
+            );
     }
 
     private void RefreshVisual()
@@ -573,7 +543,8 @@ public sealed class ActionSlot :
     public void OnPointerExit(
         PointerEventData eventData)
     {
-        ItemTooltip.Instance?.Hide();
+        ItemTooltip.Instance
+            ?.Hide();
     }
 
     public void ClearSlot()
@@ -593,6 +564,7 @@ public sealed class ActionSlot :
                 );
         }
 
-        ItemTooltip.Instance?.Hide();
+        ItemTooltip.Instance
+            ?.Hide();
     }
 }

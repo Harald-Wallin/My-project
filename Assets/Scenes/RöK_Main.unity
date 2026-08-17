@@ -1105,7 +1105,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3459725347379031730, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4234482838763025597, guid: f5bc9bd5af687ca45b59f5095ab1fd74, type: 3}
       propertyPath: m_LocalPosition.x
@@ -11658,7 +11658,7 @@ Transform:
   m_GameObject: {fileID: 457748944}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 18.99734, y: 21.55099, z: 0}
+  m_LocalPosition: {x: 18.96, y: 21.55099, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -17776,7 +17776,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 174.99998, y: 203.49997}
+  m_AnchoredPosition: {x: 174.99994, y: 203.50006}
   m_SizeDelta: {x: 311.378, y: 80}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &729205947
@@ -18049,7 +18049,7 @@ MonoBehaviour:
   regionPrefab: {fileID: 5484312396202719871, guid: 1b57482b9c1d20444800e7d681bc9666, type: 3}
   autoSyncInEditor: 1
   removeUnusedRegions: 1
-  drawZoneBounds: 0
+  drawZoneBounds: 1
   drawRegionLayout: 1
 --- !u!1 &730408156
 GameObject:
@@ -28308,7 +28308,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ebed3c8fdf8cd6d4786227610c9c1b93, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NavigationWorld
-  regionSize: 32
+  regionSize: 332
   worldOrigin: {x: 0, y: 0}
   cellSizeTolerance: 0.001
   minimumPortalCells: 1
@@ -32663,11 +32663,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9158285331223175390, guid: e3fc7c2058c18a642ad734a095353f8e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -30.86
+      value: -30.8
       objectReference: {fileID: 0}
     - target: {fileID: 9158285331223175390, guid: e3fc7c2058c18a642ad734a095353f8e, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -3.56
+      value: -4.01
       objectReference: {fileID: 0}
     - target: {fileID: 9158285331223175390, guid: e3fc7c2058c18a642ad734a095353f8e, type: 3}
       propertyPath: m_LocalPosition.z
@@ -32843,7 +32843,7 @@ Transform:
   m_GameObject: {fileID: 1272270906}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -6.31, y: 1.39, z: 0}
+  m_LocalPosition: {x: -5.94, y: -0.45, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -33460,7 +33460,7 @@ Transform:
   m_GameObject: {fileID: 1298404125}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -15.65, y: -3.87, z: 0}
+  m_LocalPosition: {x: -11.95, y: -9.02, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -36704,13 +36704,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
   stopDistance: 0.8
   skinWidth: 0.02
-  separationRadius: 1.2
-  separationWeight: 1.2
+  avoidanceProbeDistance: 1.4
+  avoidanceCorridorHalfWidth: 0.65
+  avoidanceStrength: 0.8
+  avoidanceMemoryDuration: 0.5
+  overlapRecoveryDistance: 0.25
+  overlapRecoveryStrength: 0.35
   wanderRadius: 3
   wanderMoveTime: 2
   wanderPauseTime: 2
   wanderSpeedMultiplier: 0.3
   patrolSpeedMultiplier: 0.75
+  blockedPatrolNodeAcceptanceDistance: 2
+  patrolNodeBlockRadius: 0.9
 --- !u!114 &1402952648
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -36750,14 +36756,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCBehavior
   player: {fileID: 0}
-  maxDistanceFromSpawn: 8
+  maxDistanceFromSpawn: 20
   abilityDelayAfterAggro: 3
   stopDistanceDefault: 1
   canAggro: 1
-  aggroRange: 4
+  aggroRange: 5
   threatDetectionLayers:
     serializedVersion: 2
     m_Bits: 384
+  combatChaseEnterFactor: 0.95
+  combatChaseExitFactor: 0.72
   canWander: 0
   canPatrol: 0
   patrolPath: {fileID: 0}
@@ -36945,6 +36953,8 @@ MonoBehaviour:
   threatDetectionLayers:
     serializedVersion: 2
     m_Bits: 0
+  combatChaseEnterFactor: 0.95
+  combatChaseExitFactor: 0.72
   canWander: 1
   canPatrol: 0
   patrolPath: {fileID: 0}
@@ -36968,13 +36978,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
   stopDistance: 0.8
   skinWidth: 0.02
-  separationRadius: 1.2
-  separationWeight: 1.2
+  avoidanceProbeDistance: 1.4
+  avoidanceCorridorHalfWidth: 0.65
+  avoidanceStrength: 0.8
+  avoidanceMemoryDuration: 0.5
+  overlapRecoveryDistance: 0.25
+  overlapRecoveryStrength: 0.35
   wanderRadius: 3
   wanderMoveTime: 2
   wanderPauseTime: 2
   wanderSpeedMultiplier: 0.3
   patrolSpeedMultiplier: 0.75
+  blockedPatrolNodeAcceptanceDistance: 2
+  patrolNodeBlockRadius: 0.9
 --- !u!114 &1407074003
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -37218,7 +37234,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3459725347379031730, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4234482838763025597, guid: 860700a826b89f14b8947ea580e3390c, type: 3}
       propertyPath: m_LocalPosition.x
@@ -39555,11 +39571,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9158285331223175390, guid: e3fc7c2058c18a642ad734a095353f8e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -31.12
+      value: -24.05
       objectReference: {fileID: 0}
     - target: {fileID: 9158285331223175390, guid: e3fc7c2058c18a642ad734a095353f8e, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -1.36
+      value: 1.82
       objectReference: {fileID: 0}
     - target: {fileID: 9158285331223175390, guid: e3fc7c2058c18a642ad734a095353f8e, type: 3}
       propertyPath: m_LocalPosition.z
@@ -40921,13 +40937,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
   stopDistance: 0.8
   skinWidth: 0.02
-  separationRadius: 1.2
-  separationWeight: 1.2
+  avoidanceProbeDistance: 1.4
+  avoidanceCorridorHalfWidth: 0.65
+  avoidanceStrength: 0.8
+  avoidanceMemoryDuration: 0.5
+  overlapRecoveryDistance: 0.25
+  overlapRecoveryStrength: 0.35
   wanderRadius: 3
   wanderMoveTime: 2
   wanderPauseTime: 2
   wanderSpeedMultiplier: 0.5
   patrolSpeedMultiplier: 0.5
+  blockedPatrolNodeAcceptanceDistance: 2
+  patrolNodeBlockRadius: 0.9
 --- !u!114 &1548978276
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -40949,6 +40971,8 @@ MonoBehaviour:
   threatDetectionLayers:
     serializedVersion: 2
     m_Bits: 0
+  combatChaseEnterFactor: 0.95
+  combatChaseExitFactor: 0.72
   canWander: 0
   canPatrol: 1
   patrolPath: {fileID: 631374185}
@@ -41257,7 +41281,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1368261479}
   m_HandleRect: {fileID: 1368261478}
   m_Direction: 2
-  m_Value: 0.99998826
+  m_Value: 1.0000235
   m_Size: 0.9871668
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -42642,7 +42666,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1333578090657008725, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1609944110340007256, guid: c003fe8cfc5ef8d4b9de185c55209fee, type: 3}
       propertyPath: m_Size.x
@@ -43193,7 +43217,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3459725347379031730, guid: feb4fd10d437f14488c3e984d40ce4cb, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4234482838763025597, guid: feb4fd10d437f14488c3e984d40ce4cb, type: 3}
       propertyPath: m_LocalPosition.x
@@ -44133,11 +44157,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9158285331223175390, guid: e3fc7c2058c18a642ad734a095353f8e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -35.77
+      value: -29.41
       objectReference: {fileID: 0}
     - target: {fileID: 9158285331223175390, guid: e3fc7c2058c18a642ad734a095353f8e, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 3.21
+      value: 2.04
       objectReference: {fileID: 0}
     - target: {fileID: 9158285331223175390, guid: e3fc7c2058c18a642ad734a095353f8e, type: 3}
       propertyPath: m_LocalPosition.z
@@ -44997,7 +45021,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -190.00002, y: 220.49997}
+  m_AnchoredPosition: {x: -190.00006, y: 220.50006}
   m_SizeDelta: {x: 304.6964, y: 80}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!114 &1694675092
@@ -48469,7 +48493,7 @@ Transform:
   m_GameObject: {fileID: 1847498570}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -12.75, y: -30.67, z: 0}
+  m_LocalPosition: {x: -11.06, y: -29.18, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -55200,6 +55224,8 @@ MonoBehaviour:
   threatDetectionLayers:
     serializedVersion: 2
     m_Bits: 0
+  combatChaseEnterFactor: 0.95
+  combatChaseExitFactor: 0.72
   canWander: 0
   canPatrol: 0
   patrolPath: {fileID: 0}
@@ -55223,13 +55249,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPCMovement
   stopDistance: 0.8
   skinWidth: 0.02
-  separationRadius: 1.2
-  separationWeight: 1.2
+  avoidanceProbeDistance: 1.4
+  avoidanceCorridorHalfWidth: 0.65
+  avoidanceStrength: 0.8
+  avoidanceMemoryDuration: 0.5
+  overlapRecoveryDistance: 0.25
+  overlapRecoveryStrength: 0.35
   wanderRadius: 3
   wanderMoveTime: 2
   wanderPauseTime: 2
   wanderSpeedMultiplier: 0.3
   patrolSpeedMultiplier: 0.75
+  blockedPatrolNodeAcceptanceDistance: 2
+  patrolNodeBlockRadius: 0.9
 --- !u!114 &2063733851
 MonoBehaviour:
   m_ObjectHideFlags: 0

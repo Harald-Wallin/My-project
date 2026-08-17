@@ -1,7 +1,5 @@
 using System.Collections;
-using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
@@ -21,46 +19,27 @@ public sealed class BaseAttackBarUI :
     [Header("Controls")]
 
     [SerializeField]
-    [Tooltip(
-        "Knappen mellan slotarna som byter plats på " +
-        "primary och secondary attack."
-    )]
     private Button swapButton;
 
-    [SerializeField]
-    private KeyCode swapKey =
-        KeyCode.Tab;
-
-    [SerializeField]
-    [Tooltip(
-        "Förhindrar byte när spelaren skriver i ett TMP-inputfält."
-    )]
-    private bool blockSwapWhileTyping =
-        true;
-
-    private PlayerBaseAttackCollection
+    private PlayerAbilityCollection
         collection;
 
-    private BaseAttackController
-        controller;
+    private CharacterActionController
+        actionController;
 
     private IEnumerator Start()
     {
-        /*
-         * PlayerReference kan initialiseras något senare
-         * än UI-objekten.
-         */
         yield return null;
 
         ResolveReferences();
 
-        if (controller == null ||
-            collection == null)
+        if (collection == null ||
+            actionController == null)
         {
             Debug.LogWarning(
                 $"{nameof(BaseAttackBarUI)} kunde inte hitta " +
-                $"{nameof(BaseAttackController)} eller " +
-                $"{nameof(PlayerBaseAttackCollection)}.",
+                $"{nameof(PlayerAbilityCollection)} eller " +
+                $"{nameof(CharacterActionController)}.",
                 this
             );
 
@@ -68,58 +47,31 @@ public sealed class BaseAttackBarUI :
         }
 
         primarySlot?.Initialize(
-            controller,
             collection,
-            PlayerBaseAttackCollection
-                .PrimarySlotIndex
+            actionController,
+            PlayerAbilityCollection
+                .PrimaryBaseAttackSlotIndex
         );
 
         secondarySlot?.Initialize(
-            controller,
             collection,
-            PlayerBaseAttackCollection
-                .SecondarySlotIndex
+            actionController,
+            PlayerAbilityCollection
+                .SecondaryBaseAttackSlotIndex
         );
 
         ConfigureSwapButton();
     }
 
-    private void Update()
-    {
-        if (collection == null)
-            return;
-
-        if (!Input.GetKeyDown(
-                swapKey))
-        {
-            return;
-        }
-
-        if (blockSwapWhileTyping &&
-            IsTypingInInputField())
-        {
-            return;
-        }
-
-        /*
-         * TAB ska inte göra någonting medan användaren
-         * modifierar textinmatning.
-         *
-         * Det blockeras däremot inte av att musen befinner
-         * sig över vanligt UI.
-         */
-        SwapAttacks();
-    }
-
     private void OnDestroy()
     {
-        if (swapButton != null)
-        {
-            swapButton.onClick
-                .RemoveListener(
-                    HandleSwapClicked
-                );
-        }
+        if (swapButton == null)
+            return;
+
+        swapButton.onClick
+            .RemoveListener(
+                HandleSwapClicked
+            );
     }
 
     private void ResolveReferences()
@@ -130,13 +82,13 @@ public sealed class BaseAttackBarUI :
         if (player == null)
             return;
 
-        controller =
-            player.GetComponent<
-                BaseAttackController>();
-
         collection =
             player.GetComponent<
-                PlayerBaseAttackCollection>();
+                PlayerAbilityCollection>();
+
+        actionController =
+            player.GetComponent<
+                CharacterActionController>();
     }
 
     private void ConfigureSwapButton()
@@ -157,27 +109,6 @@ public sealed class BaseAttackBarUI :
 
     private void HandleSwapClicked()
     {
-        SwapAttacks();
-    }
-
-    private void SwapAttacks()
-    {
-        collection?.SwapAttacks();
-    }
-
-    private static bool IsTypingInInputField()
-    {
-        if (EventSystem.current == null)
-            return false;
-
-        GameObject selected =
-            EventSystem.current
-                .currentSelectedGameObject;
-
-        if (selected == null)
-            return false;
-
-        return selected.GetComponent<
-                   TMP_InputField>() != null;
+        collection?.SwapBaseAttacks();
     }
 }

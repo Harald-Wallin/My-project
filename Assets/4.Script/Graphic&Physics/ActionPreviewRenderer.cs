@@ -1,24 +1,22 @@
 using UnityEngine;
 
 /// <summary>
-/// Visar den aktiva spelar-actionens targeting-preview.
+/// Auktoritativ preview-renderer för spelarens actionsystem.
 ///
-/// Gameplay-geometrin kommer från TargetResolver.
-/// Denna klass bestämmer endast hur geometrin ska visualiseras.
+/// Hanterar två typer av presentation:
 ///
-/// Två separata TargetShapeRenderer används:
+/// PASSIVE BASE ATTACK PREVIEW
+/// - visar den aktiva base attackens grundform
+/// - visar cooldown/readiness
+/// - visas endast när ingen aktiv action tar över
 ///
-/// outlineShapeRenderer:
-/// - visar full targetingform eller maximal range
-/// - kan visas utan fill
+/// ACTIVE ACTION PREVIEW
+/// - targeting preview
+/// - charge preview
+/// - valid / invalid state
 ///
-/// fillShapeRenderer:
-/// - visar charge-progress
-/// - har ingen egen outline
-///
-/// Detta gör det möjligt att senare ersätta mesh-renderingen
-/// med sprites, shaders eller handritade preview-assets utan att
-/// förändra gameplaylogiken.
+/// Gameplay-geometrin ägs fortfarande av TargetResolver.
+/// Denna klass visualiserar endast AbilityData / TargetingResult.
 /// </summary>
 [RequireComponent(
     typeof(CharacterActionController)
@@ -26,10 +24,17 @@ using UnityEngine;
 [RequireComponent(
     typeof(CharacterStats)
 )]
+[RequireComponent(
+    typeof(PlayerAbilityCollection)
+)]
 public sealed class ActionPreviewRenderer :
     MonoBehaviour
 {
-    [Header("Normal Preview Colors")]
+    // =========================================================
+    // ACTIVE PREVIEW COLORS
+    // =========================================================
+
+    [Header("Active Preview Colors")]
 
     [SerializeField]
     private Color validFillColor =
@@ -67,12 +72,16 @@ public sealed class ActionPreviewRenderer :
             0.95f
         );
 
+    // =========================================================
+    // CHARGE COLORS
+    // =========================================================
+
     [Header("Charge Preview Colors")]
 
     [SerializeField]
     [Tooltip(
-        "Outline som visar abilityns maximala form eller range " +
-        "under charge."
+        "Outline som visar abilityns maximala form eller " +
+        "chargeområde."
     )]
     private Color chargeMaximumOutlineColor =
         new Color(
@@ -84,7 +93,7 @@ public sealed class ActionPreviewRenderer :
 
     [SerializeField]
     [Tooltip(
-        "Fill som visar nuvarande charge-progress."
+        "Fill som visar aktuell charge."
     )]
     private Color chargeFillColor =
         new Color(
@@ -96,8 +105,7 @@ public sealed class ActionPreviewRenderer :
 
     [SerializeField]
     [Tooltip(
-        "Fill som används när aktuell charge-targeting är " +
-        "ogiltig."
+        "Fill när aktuell charge-targeting är ogiltig."
     )]
     private Color invalidChargeFillColor =
         new Color(
@@ -106,6 +114,94 @@ public sealed class ActionPreviewRenderer :
             0.15f,
             0.35f
         );
+
+    // =========================================================
+    // PASSIVE BASE ATTACK
+    // =========================================================
+
+    [Header("Passive Base Attack")]
+
+    [SerializeField]
+    [Tooltip(
+        "Om den passiva base attack-formen ska visas " +
+        "även utanför combat."
+    )]
+    private bool showBaseAttackOutsideCombat =
+        true;
+
+    [SerializeField]
+    [Tooltip(
+        "Om abilityns Preview Mode ska påverka den " +
+        "passiva base attack-previewn."
+    )]
+    private bool respectBaseAttackPreviewMode =
+        true;
+
+    [SerializeField]
+    [Tooltip(
+        "Tillåter readiness-fyllnaden även när " +
+        "Preview Mode är None."
+    )]
+    private bool showBaseAttackReadinessWhenPreviewModeIsNone =
+        true;
+
+    [SerializeField]
+    [Tooltip(
+        "Döljer readiness-fyllnaden när attacken är " +
+        "helt redo."
+    )]
+    private bool hideReadinessFillWhenReady;
+
+    [Header("Passive Base Attack Colors")]
+
+    [SerializeField]
+    private Color passiveBaseAttackFillColor =
+        new Color(
+            0.25f,
+            0.8f,
+            1f,
+            0.07f
+        );
+
+    [SerializeField]
+    private Color passiveBaseAttackOutlineColor =
+        new Color(
+            0.35f,
+            0.9f,
+            1f,
+            0.22f
+        );
+
+    [SerializeField]
+    private Color combatBaseAttackFillColor =
+        new Color(
+            0.25f,
+            0.8f,
+            1f,
+            0.12f
+        );
+
+    [SerializeField]
+    private Color combatBaseAttackOutlineColor =
+        new Color(
+            0.35f,
+            0.9f,
+            1f,
+            0.38f
+        );
+
+    [SerializeField]
+    private Color readinessFillColor =
+        new Color(
+            1f,
+            1f,
+            1f,
+            0.16f
+        );
+
+    // =========================================================
+    // SHAPE QUALITY
+    // =========================================================
 
     [Header("Shape Quality")]
 
@@ -134,6 +230,10 @@ public sealed class ActionPreviewRenderer :
     private float outlineWidth =
         0.04f;
 
+    // =========================================================
+    // RENDERING
+    // =========================================================
+
     [Header("Rendering")]
 
     [SerializeField]
@@ -144,36 +244,66 @@ public sealed class ActionPreviewRenderer :
     private int sortingOrder =
         100;
 
+    // =========================================================
+    // REFERENCES
+    // =========================================================
+
     private CharacterStats stats;
+
+    private CharacterStateController
+        stateController;
 
     private CharacterActionController
         actionController;
 
-    private GameObject outlineRendererObject;
-    private GameObject fillRendererObject;
+    private PlayerAbilityCollection
+        abilityCollection;
+
+    private Camera worldCamera;
+
+    // =========================================================
+    // ACTIVE RENDERERS
+    // =========================================================
+
+    private GameObject
+        activePreviewRoot;
 
     private TargetShapeRenderer
-        outlineShapeRenderer;
+        activeOutlineRenderer;
 
     private TargetShapeRenderer
-        fillShapeRenderer;
+        activeFillRenderer;
+
+    // =========================================================
+    // PASSIVE RENDERERS
+    // =========================================================
+
+    private GameObject
+        passivePreviewRoot;
+
+    private TargetShapeRenderer
+        passiveBaseRenderer;
+
+    private TargetShapeRenderer
+        passiveReadinessRenderer;
+
+    // =========================================================
+    // RUNTIME
+    // =========================================================
 
     private bool activeChargeIsFull;
 
+    // =========================================================
+    // UNITY
+    // =========================================================
+
     private void Awake()
     {
-        stats =
-            GetComponent<
-                CharacterStats>();
-
-        actionController =
-            GetComponent<
-                CharacterActionController>();
+        ResolveReferences();
 
         /*
-         * NPC-actions använder samma gameplaytargeting,
-         * men spelarens targeting-preview ska inte skapas
-         * på NPC:er.
+         * NPC:s använder samma AbilityData och targeting,
+         * men behöver ingen lokal spelar-preview.
          */
         if (!(stats is PlayerStats))
         {
@@ -183,100 +313,44 @@ public sealed class ActionPreviewRenderer :
             return;
         }
 
-        CreateShapeRenderers();
+        CreateRenderingObjects();
     }
 
     private void OnEnable()
     {
+        ResolveReferences();
+
         if (!(stats is PlayerStats))
             return;
 
-        if (actionController == null)
-        {
-            actionController =
-                GetComponent<
-                    CharacterActionController>();
-        }
+        Subscribe();
 
-        if (actionController == null)
-            return;
-
-        actionController.OnPreviewStarted +=
-            HandlePreviewStarted;
-
-        actionController.OnTargetingUpdated +=
-            HandleTargetingUpdated;
-
-        actionController.OnPhaseChanged +=
-            HandlePhaseChanged;
-
-        actionController.OnActionCancelled +=
-            HandleActionEnded;
-
-        actionController.OnActionCompleted +=
-            HandleActionEnded;
-
-        actionController.OnFullChargeReached +=
-            HandleFullChargeReached;
+        RefreshPresentation();
     }
 
     private void OnDisable()
     {
-        if (actionController != null)
-        {
-            actionController.OnPreviewStarted -=
-                HandlePreviewStarted;
+        Unsubscribe();
 
-            actionController.OnTargetingUpdated -=
-                HandleTargetingUpdated;
-
-            actionController.OnPhaseChanged -=
-                HandlePhaseChanged;
-
-            actionController.OnActionCancelled -=
-                HandleActionEnded;
-
-            actionController.OnActionCompleted -=
-                HandleActionEnded;
-
-            actionController.OnFullChargeReached -=
-                HandleFullChargeReached;
-        }
-
-        ClearPreview();
-    }
-
-    private void HandleFullChargeReached(
-    ActionContext context)
-    {
-        if (context == null ||
-            context !=
-            actionController.CurrentContext)
-        {
-            return;
-        }
-
-        activeChargeIsFull =
-            true;
-
-        RenderPreview(
-            context
-        );
+        ClearActivePreview();
+        ClearPassivePreview();
     }
 
     private void OnDestroy()
     {
-        if (outlineRendererObject != null)
+        Unsubscribe();
+
+        if (activePreviewRoot != null)
         {
             Destroy(
-                outlineRendererObject
+                activePreviewRoot
             );
         }
 
-        if (fillRendererObject != null)
+        if (passivePreviewRoot != null)
         {
             Destroy(
-                fillRendererObject
+                passivePreviewRoot
             );
         }
     }
@@ -316,31 +390,198 @@ public sealed class ActionPreviewRenderer :
             );
     }
 
-    private void CreateShapeRenderers()
+    private void LateUpdate()
     {
-        CreateOutlineRenderer();
-        CreateFillRenderer();
+        if (!(stats is PlayerStats))
+            return;
+
+        /*
+         * Full-charge shake behöver uppdateras även när
+         * TargetingResult i sig inte förändras.
+         */
+        if (activeChargeIsFull &&
+            actionController != null &&
+            actionController.IsCharging)
+        {
+            ActionContext context =
+                actionController
+                    .CurrentContext;
+
+            if (context != null)
+            {
+                RenderActivePreview(
+                    context
+                );
+            }
+
+            ClearPassivePreview();
+
+            return;
+        }
+
+        /*
+         * Passiv base attack-preview följer musens riktning
+         * kontinuerligt.
+         */
+        if (actionController == null ||
+            !actionController.HasActiveAction)
+        {
+            RenderPassiveBaseAttack();
+        }
+        else
+        {
+            ClearPassivePreview();
+        }
     }
 
-    private void CreateOutlineRenderer()
+    // =========================================================
+    // REFERENCES
+    // =========================================================
+
+    private void ResolveReferences()
     {
-        outlineRendererObject =
+        if (stats == null)
+        {
+            stats =
+                GetComponent<
+                    CharacterStats>();
+        }
+
+        if (stateController == null)
+        {
+            stateController =
+                GetComponent<
+                    CharacterStateController>();
+        }
+
+        if (actionController == null)
+        {
+            actionController =
+                GetComponent<
+                    CharacterActionController>();
+        }
+
+        if (abilityCollection == null)
+        {
+            abilityCollection =
+                GetComponent<
+                    PlayerAbilityCollection>();
+        }
+
+        if (worldCamera == null)
+        {
+            worldCamera =
+                Camera.main;
+        }
+    }
+
+    // =========================================================
+    // EVENTS
+    // =========================================================
+
+    private void Subscribe()
+    {
+        if (actionController == null)
+            return;
+
+        actionController.OnPreviewStarted -=
+            HandlePreviewStarted;
+
+        actionController.OnTargetingUpdated -=
+            HandleTargetingUpdated;
+
+        actionController.OnPhaseChanged -=
+            HandlePhaseChanged;
+
+        actionController.OnActionCancelled -=
+            HandleActionEnded;
+
+        actionController.OnActionCompleted -=
+            HandleActionEnded;
+
+        actionController.OnFullChargeReached -=
+            HandleFullChargeReached;
+
+        actionController.OnPreviewStarted +=
+            HandlePreviewStarted;
+
+        actionController.OnTargetingUpdated +=
+            HandleTargetingUpdated;
+
+        actionController.OnPhaseChanged +=
+            HandlePhaseChanged;
+
+        actionController.OnActionCancelled +=
+            HandleActionEnded;
+
+        actionController.OnActionCompleted +=
+            HandleActionEnded;
+
+        actionController.OnFullChargeReached +=
+            HandleFullChargeReached;
+    }
+
+    private void Unsubscribe()
+    {
+        if (actionController == null)
+            return;
+
+        actionController.OnPreviewStarted -=
+            HandlePreviewStarted;
+
+        actionController.OnTargetingUpdated -=
+            HandleTargetingUpdated;
+
+        actionController.OnPhaseChanged -=
+            HandlePhaseChanged;
+
+        actionController.OnActionCancelled -=
+            HandleActionEnded;
+
+        actionController.OnActionCompleted -=
+            HandleActionEnded;
+
+        actionController.OnFullChargeReached -=
+            HandleFullChargeReached;
+    }
+
+    // =========================================================
+    // CREATION
+    // =========================================================
+
+    private void CreateRenderingObjects()
+    {
+        CreateActiveRenderers();
+        CreatePassiveRenderers();
+    }
+
+    private void CreateActiveRenderers()
+    {
+        activePreviewRoot =
             new GameObject(
-                "Action Preview Outline Runtime"
+                "Active Action Preview Runtime"
             );
 
-        outlineRendererObject.transform
-            .SetParent(
-                transform,
-                false
+        activePreviewRoot.transform.SetParent(
+            transform,
+            false
+        );
+
+        GameObject outlineObject =
+            new GameObject(
+                "Active Outline"
             );
 
-        outlineShapeRenderer =
-            outlineRendererObject
-                .AddComponent<
-                    TargetShapeRenderer>();
+        outlineObject.transform.SetParent(
+            activePreviewRoot.transform,
+            false
+        );
 
-        outlineShapeRenderer.Initialize(
+        activeOutlineRenderer =
+            outlineObject.AddComponent<
+                TargetShapeRenderer>();
+
+        activeOutlineRenderer.Initialize(
             sortingLayerName,
             sortingOrder,
             circleSegments,
@@ -350,31 +591,22 @@ public sealed class ActionPreviewRenderer :
             outlineWidth,
             renderOutline: true
         );
-    }
 
-    private void CreateFillRenderer()
-    {
-        fillRendererObject =
+        GameObject fillObject =
             new GameObject(
-                "Action Preview Fill Runtime"
+                "Active Fill"
             );
 
-        fillRendererObject.transform
-            .SetParent(
-                transform,
-                false
-            );
+        fillObject.transform.SetParent(
+            activePreviewRoot.transform,
+            false
+        );
 
-        fillShapeRenderer =
-            fillRendererObject
-                .AddComponent<
-                    TargetShapeRenderer>();
+        activeFillRenderer =
+            fillObject.AddComponent<
+                TargetShapeRenderer>();
 
-        /*
-         * Fill-renderern ligger något under outlinen och
-         * skapar ingen egen LineRenderer.
-         */
-        fillShapeRenderer.Initialize(
+        activeFillRenderer.Initialize(
             sortingLayerName,
             sortingOrder - 1,
             circleSegments,
@@ -384,12 +616,89 @@ public sealed class ActionPreviewRenderer :
             outlineWidth,
             renderOutline: false
         );
+
+        activePreviewRoot.SetActive(
+            false
+        );
     }
+
+    private void CreatePassiveRenderers()
+    {
+        passivePreviewRoot =
+            new GameObject(
+                "Passive Base Attack Preview Runtime"
+            );
+
+        passivePreviewRoot.transform.SetParent(
+            transform,
+            false
+        );
+
+        GameObject baseObject =
+            new GameObject(
+                "Passive Base Shape"
+            );
+
+        baseObject.transform.SetParent(
+            passivePreviewRoot.transform,
+            false
+        );
+
+        passiveBaseRenderer =
+            baseObject.AddComponent<
+                TargetShapeRenderer>();
+
+        passiveBaseRenderer.Initialize(
+            sortingLayerName,
+            sortingOrder - 10,
+            circleSegments,
+            coneSegments,
+            pointRadius,
+            selfRadius,
+            outlineWidth,
+            renderOutline: true
+        );
+
+        GameObject readinessObject =
+            new GameObject(
+                "Passive Readiness Fill"
+            );
+
+        readinessObject.transform.SetParent(
+            passivePreviewRoot.transform,
+            false
+        );
+
+        passiveReadinessRenderer =
+            readinessObject.AddComponent<
+                TargetShapeRenderer>();
+
+        passiveReadinessRenderer.Initialize(
+            sortingLayerName,
+            sortingOrder - 9,
+            circleSegments,
+            coneSegments,
+            pointRadius,
+            selfRadius,
+            outlineWidth,
+            renderOutline: false
+        );
+
+        passivePreviewRoot.SetActive(
+            false
+        );
+    }
+
+    // =========================================================
+    // ACTIVE EVENTS
+    // =========================================================
 
     private void HandlePreviewStarted(
         ActionContext context)
     {
-        RenderPreview(
+        ClearPassivePreview();
+
+        RenderActivePreview(
             context
         );
     }
@@ -397,22 +706,24 @@ public sealed class ActionPreviewRenderer :
     private void HandleTargetingUpdated(
         ActionContext context)
     {
-        if (!ShouldRenderContext(
+        if (!ShouldRenderActiveContext(
                 context))
         {
-            ClearPreview();
+            ClearActivePreview();
 
             return;
         }
 
-        RenderPreview(
+        ClearPassivePreview();
+
+        RenderActivePreview(
             context
         );
     }
 
     private void HandlePhaseChanged(
-    ActionContext context,
-    ActionPhase phase)
+        ActionContext context,
+        ActionPhase phase)
     {
         if (phase ==
                 ActionPhase.Preview ||
@@ -420,7 +731,7 @@ public sealed class ActionPreviewRenderer :
                 ActionPhase.Charging)
         {
             if (phase ==
-                ActionPhase.Charging &&
+                    ActionPhase.Charging &&
                 context != null &&
                 context.ChargeProgress < 1f)
             {
@@ -428,7 +739,9 @@ public sealed class ActionPreviewRenderer :
                     false;
             }
 
-            RenderPreview(
+            ClearPassivePreview();
+
+            RenderActivePreview(
                 context
             );
 
@@ -438,20 +751,51 @@ public sealed class ActionPreviewRenderer :
         activeChargeIsFull =
             false;
 
-        ClearPreview();
+        ClearActivePreview();
+
+        /*
+         * Passive preview återkommer automatiskt i
+         * LateUpdate när hela actionen är klar.
+         */
     }
 
     private void HandleActionEnded(
-    ActionContext context)
+        ActionContext context)
     {
         activeChargeIsFull =
             false;
 
-        ClearPreview();
+        ClearActivePreview();
+
+        RenderPassiveBaseAttack();
     }
 
-    private static bool ShouldRenderContext(
+    private void HandleFullChargeReached(
         ActionContext context)
+    {
+        if (context == null ||
+            actionController == null ||
+            context !=
+                actionController.CurrentContext)
+        {
+            return;
+        }
+
+        activeChargeIsFull =
+            true;
+
+        RenderActivePreview(
+            context
+        );
+    }
+
+    // =========================================================
+    // ACTIVE PREVIEW
+    // =========================================================
+
+    private static bool
+        ShouldRenderActiveContext(
+            ActionContext context)
     {
         if (context == null)
             return false;
@@ -463,11 +807,12 @@ public sealed class ActionPreviewRenderer :
                 ActionPhase.Charging;
     }
 
-    private void RenderPreview(
+    private void RenderActivePreview(
         ActionContext context)
     {
-        if (outlineShapeRenderer == null ||
-            fillShapeRenderer == null)
+        if (activeOutlineRenderer == null ||
+            activeFillRenderer == null ||
+            activePreviewRoot == null)
         {
             return;
         }
@@ -477,7 +822,7 @@ public sealed class ActionPreviewRenderer :
 
         if (ability == null)
         {
-            ClearPreview();
+            ClearActivePreview();
 
             return;
         }
@@ -488,50 +833,61 @@ public sealed class ActionPreviewRenderer :
         if (targeting == null ||
             targeting.Settings == null)
         {
-            ClearPreview();
+            ClearActivePreview();
 
             return;
         }
 
+        activePreviewRoot.SetActive(
+            true
+        );
+
         switch (ability.PreviewMode)
         {
             case ActionPreviewMode.None:
-                ClearPreview();
+
+                ClearActivePreview();
+
                 break;
 
             case ActionPreviewMode.FullGeometry:
+
                 RenderFullGeometry(
                     targeting
                 );
+
                 break;
 
             case ActionPreviewMode.ChargeIndicator:
+
                 RenderChargeIndicator(
                     context,
                     targeting
                 );
+
                 break;
 
             case ActionPreviewMode.ChargeFilledGeometry:
+
                 RenderChargeFilledGeometry(
                     context,
                     targeting
                 );
+
                 break;
 
             default:
-                ClearPreview();
+
+                ClearActivePreview();
+
                 break;
         }
     }
 
-    /// <summary>
-    /// Visar hela targetingformen med vanlig fill och outline.
-    /// </summary>
     private void RenderFullGeometry(
         TargetingResult targeting)
     {
-        fillShapeRenderer.Clear();
+        activeFillRenderer.Clear();
 
         Color fillColor =
             targeting.IsValid
@@ -543,24 +899,18 @@ public sealed class ActionPreviewRenderer :
                 ? validOutlineColor
                 : invalidOutlineColor;
 
-        outlineShapeRenderer.Render(
+        activeOutlineRenderer.Render(
             targeting,
             fillColor,
             outlineColor
         );
     }
 
-    /// <summary>
-    /// Visar endast targetingformens outline.
-    ///
-    /// Kan användas för charge-actions där vi bara vill visa
-    /// abilityns riktning eller maximum range utan någon fill.
-    /// </summary>
     private void RenderChargeIndicator(
-     ActionContext context,
-     TargetingResult targeting)
+        ActionContext context,
+        TargetingResult targeting)
     {
-        fillShapeRenderer.Clear();
+        activeFillRenderer.Clear();
 
         Color outlineColor =
             targeting.IsValid
@@ -573,7 +923,7 @@ public sealed class ActionPreviewRenderer :
                 targeting
             );
 
-        outlineShapeRenderer.Render(
+        activeOutlineRenderer.Render(
             targeting,
             Color.clear,
             outlineColor,
@@ -582,23 +932,6 @@ public sealed class ActionPreviewRenderer :
         );
     }
 
-    /// <summary>
-    /// Visar charge som en fill i targetingformen.
-    ///
-    /// Beteende:
-    ///
-    /// Damage only:
-    /// - full statisk outline
-    /// - fill växer med ChargeProgress
-    ///
-    /// Range only:
-    /// - grå outline visar maximum range
-    /// - fill visar aktuell chargad range
-    ///
-    /// Damage + Range:
-    /// - endast aktuell växande fill
-    /// - samma form representerar både damage och range
-    /// </summary>
     private void RenderChargeFilledGeometry(
         ActionContext context,
         TargetingResult targeting)
@@ -606,8 +939,9 @@ public sealed class ActionPreviewRenderer :
         AbilityData ability =
             context.Ability;
 
-        AbilityChargeSettings chargeSettings =
-            ability.ChargeSettings;
+        AbilityChargeSettings
+            chargeSettings =
+                ability.ChargeSettings;
 
         if (chargeSettings == null)
         {
@@ -643,18 +977,14 @@ public sealed class ActionPreviewRenderer :
         /*
          * DAMAGE + RANGE
          *
-         * TargetResolver har redan byggt formen med nuvarande
-         * EffectiveRange. Formen växer alltså fysiskt under charge.
-         *
-         * Vi visar ingen separat maximum-outline eftersom fillen
-         * representerar både damage och range.
+         * TargetResolver har redan byggt aktuell storlek.
          */
         if (scalesDamage &&
             scalesRange)
         {
-            outlineShapeRenderer.Clear();
+            activeOutlineRenderer.Clear();
 
-            fillShapeRenderer.Render(
+            activeFillRenderer.Render(
                 targeting,
                 currentFillColor,
                 Color.clear,
@@ -665,20 +995,14 @@ public sealed class ActionPreviewRenderer :
             return;
         }
 
+        /*
+         * RANGE ONLY
+         */
         if (scalesRange)
         {
-            /*
-             * RANGE ONLY
-             *
-             * TargetResolver har redan skapat targetingformen med
-             * aktuell chargad EffectiveRange.
-             *
-             * Vi visar därför endast den faktiska formen som växer.
-             * Ingen statisk maximum-outline visas.
-             */
-            outlineShapeRenderer.Clear();
+            activeOutlineRenderer.Clear();
 
-            fillShapeRenderer.Render(
+            activeFillRenderer.Render(
                 targeting,
                 currentFillColor,
                 Color.clear,
@@ -692,20 +1016,17 @@ public sealed class ActionPreviewRenderer :
         /*
          * DAMAGE ONLY
          *
-         * Abilityns range är statisk.
-         * Outlinen visar hela targetingformen.
-         *
-         * Fillen växer inuti formen baserat på ChargeProgress.
+         * Full targetingform + växande fill.
          */
         if (scalesDamage)
         {
-            outlineShapeRenderer.Render(
+            activeOutlineRenderer.Render(
                 targeting,
                 Color.clear,
                 chargeMaximumOutlineColor
             );
 
-            fillShapeRenderer.Render(
+            activeFillRenderer.Render(
                 targeting,
                 currentFillColor,
                 Color.clear,
@@ -717,127 +1038,407 @@ public sealed class ActionPreviewRenderer :
         }
 
         /*
-         * Charge ability utan konfigurerad damage- eller
-         * range-skalning.
-         *
-         * Vi visar ändå en växande fill för att spelaren ska
-         * kunna läsa av charge-tiden visuellt.
+         * Charge utan damage/range scaling.
          */
-        outlineShapeRenderer.Render(
+        activeOutlineRenderer.Render(
             targeting,
             Color.clear,
             chargeMaximumOutlineColor
         );
 
-        fillShapeRenderer.Render(
+        activeFillRenderer.Render(
             targeting,
             currentFillColor,
             Color.clear,
-            chargeProgress, 
+            chargeProgress,
             terminalOffset
         );
     }
 
-    /// <summary>
-    /// Renderar abilityns maximala targetingform som en grå
-    /// outline.
-    ///
-    /// TargetingResult innehåller den aktuella chargade formen,
-    /// medan AbilityTargetingSettings.Range innehåller maximum.
-    /// </summary>
-    private void RenderMaximumRangeOutline(
-        TargetingResult targeting)
+    // =========================================================
+    // PASSIVE BASE ATTACK PREVIEW
+    // =========================================================
+
+    private void RenderPassiveBaseAttack()
     {
+        ResolveReferences();
+
+        if (!CanRenderPassivePreview())
+        {
+            ClearPassivePreview();
+
+            return;
+        }
+
+        AbilityData attack =
+            abilityCollection
+                .GetActiveBaseAttack();
+
+        if (!CanDisplayPassiveBaseAttack(
+                attack))
+        {
+            ClearPassivePreview();
+
+            return;
+        }
+
+        bool inCombat =
+            stateController != null &&
+            stateController.InCombat;
+
+        if (!showBaseAttackOutsideCombat &&
+            !inCombat)
+        {
+            ClearPassivePreview();
+
+            return;
+        }
+
         AbilityTargetingSettings settings =
-            targeting.Settings;
+            attack.TargetingSettings;
 
-        Vector2 maximumTargetPoint =
-            ResolveMaximumTargetPoint(
-                targeting
+        bool previewModeIsNone =
+            attack.PreviewMode ==
+            ActionPreviewMode.None;
+
+        bool showBaseShape =
+            !respectBaseAttackPreviewMode ||
+            !previewModeIsNone;
+
+        bool showReadiness =
+            !previewModeIsNone ||
+            showBaseAttackReadinessWhenPreviewModeIsNone;
+
+        Vector2 origin =
+            TargetUtility.GetTargetPosition(
+                stats.gameObject
             );
 
-        float maximumDistance =
+        Vector2 direction =
+            GetPassiveAimDirection();
+
+        float range =
+            Mathf.Max(
+                0f,
+                settings.Range
+            );
+
+        Vector2 targetPoint =
+            ResolvePassiveTargetPoint(
+                settings,
+                origin,
+                direction,
+                range
+            );
+
+        float distance =
             Vector2.Distance(
-                targeting.Origin,
-                maximumTargetPoint
+                origin,
+                targetPoint
             );
 
-        outlineShapeRenderer.Render(
+        float readiness =
+            GetAbilityReadiness(
+                attack
+            );
+
+        bool renderedAnything =
+            false;
+
+        if (showBaseShape)
+        {
+            renderedAnything |=
+                RenderPassiveBaseShape(
+                    settings,
+                    origin,
+                    targetPoint,
+                    direction,
+                    distance,
+                    inCombat
+                );
+        }
+        else
+        {
+            passiveBaseRenderer
+                ?.Clear();
+        }
+
+        if (showReadiness)
+        {
+            renderedAnything |=
+                RenderPassiveReadiness(
+                    settings,
+                    origin,
+                    targetPoint,
+                    direction,
+                    distance,
+                    readiness
+                );
+        }
+        else
+        {
+            passiveReadinessRenderer
+                ?.Clear();
+        }
+
+        passivePreviewRoot
+            .SetActive(
+                renderedAnything
+            );
+    }
+
+    private bool CanRenderPassivePreview()
+    {
+        if (!(stats is PlayerStats))
+            return false;
+
+        if (abilityCollection == null ||
+            actionController == null ||
+            passivePreviewRoot == null ||
+            passiveBaseRenderer == null ||
+            passiveReadinessRenderer == null)
+        {
+            return false;
+        }
+
+        /*
+         * Aktiv action äger presentationen helt.
+         */
+        if (actionController.HasActiveAction)
+            return false;
+
+        return true;
+    }
+
+    private bool RenderPassiveBaseShape(
+        AbilityTargetingSettings settings,
+        Vector2 origin,
+        Vector2 targetPoint,
+        Vector2 direction,
+        float distance,
+        bool inCombat)
+    {
+        Color fillColor =
+            inCombat
+                ? combatBaseAttackFillColor
+                : passiveBaseAttackFillColor;
+
+        Color outlineColor =
+            inCombat
+                ? combatBaseAttackOutlineColor
+                : passiveBaseAttackOutlineColor;
+
+        return passiveBaseRenderer.Render(
             settings,
-            targeting.Origin,
-            maximumTargetPoint,
-            targeting.Direction,
-            maximumDistance,
-            targeting.PrimaryTarget,
-            Color.clear,
-            chargeMaximumOutlineColor,
+            origin,
+            targetPoint,
+            direction,
+            distance,
+            null,
+            fillColor,
+            outlineColor,
             shapeScale: 1f,
             rangeOverride: settings.Range
         );
     }
 
-    /// <summary>
-    /// Beräknar var maximum-previewn ska sluta.
-    ///
-    /// Full Range:
-    /// - använder alltid hela settings.Range
-    ///
-    /// To Cursor:
-    /// - använder musens avstånd, men aldrig längre än Range
-    /// </summary>
-    private static Vector2 ResolveMaximumTargetPoint(
-        TargetingResult targeting)
+    private bool RenderPassiveReadiness(
+        AbilityTargetingSettings settings,
+        Vector2 origin,
+        Vector2 targetPoint,
+        Vector2 direction,
+        float distance,
+        float readiness)
     {
-        AbilityTargetingSettings settings =
-            targeting.Settings;
+        bool shouldShow =
+            readiness > 0f &&
+            (
+                !hideReadinessFillWhenReady ||
+                readiness < 0.999f
+            );
 
-        Vector2 direction =
-            targeting.Direction.sqrMagnitude >
-            0.0001f
-                ? targeting.Direction.normalized
-                : Vector2.down;
-
-        if (settings.TargetingMode ==
-                TargetingMode.Line &&
-            settings.LineLengthMode ==
-                LineLengthMode.FullRange)
+        if (!shouldShow)
         {
-            return
-                targeting.Origin +
-                direction *
-                settings.Range;
+            passiveReadinessRenderer
+                .Clear();
+
+            return false;
         }
 
-        float rawAimDistance =
-            Vector2.Distance(
-                targeting.Origin,
-                targeting.RawAimPoint
-            );
-
-        float maximumDistance =
-            Mathf.Min(
-                rawAimDistance,
-                settings.Range
-            );
-
-        return
-            targeting.Origin +
-            direction *
-            maximumDistance;
+        return passiveReadinessRenderer.Render(
+            settings,
+            origin,
+            targetPoint,
+            direction,
+            distance,
+            null,
+            readinessFillColor,
+            Color.clear,
+            shapeScale: readiness,
+            rangeOverride: settings.Range
+        );
     }
 
-    private void ClearPreview()
+    private float GetAbilityReadiness(
+        AbilityData ability)
     {
-        activeChargeIsFull =
-            false;
+        if (ability == null ||
+            actionController == null)
+        {
+            return 0f;
+        }
 
-        outlineShapeRenderer?.Clear();
-        fillShapeRenderer?.Clear();
+        float remaining =
+            actionController
+                .GetCooldownRemaining(
+                    ability
+                );
+
+        /*
+         * Ingen cooldown kvar = helt redo.
+         *
+         * Detta specialfall behövs eftersom
+         * GetMaxCooldown(baseAttack) får returnera 0 när
+         * ingen aktiv cooldown längre finns.
+         */
+        if (remaining <= 0f)
+            return 1f;
+
+        float maximum =
+            actionController
+                .GetMaxCooldown(
+                    ability
+                );
+
+        if (maximum <= 0f)
+            return 1f;
+
+        return Mathf.Clamp01(
+            1f -
+            remaining /
+            maximum
+        );
     }
+
+    private Vector2 GetPassiveAimDirection()
+    {
+        ResolveReferences();
+
+        Vector2 origin =
+            TargetUtility.GetTargetPosition(
+                stats.gameObject
+            );
+
+        if (worldCamera != null)
+        {
+            Vector3 mouseWorld =
+                worldCamera
+                    .ScreenToWorldPoint(
+                        Input.mousePosition
+                    );
+
+            Vector2 direction =
+                new Vector2(
+                    mouseWorld.x,
+                    mouseWorld.y
+                ) -
+                origin;
+
+            if (direction.sqrMagnitude >
+                0.0001f)
+            {
+                return
+                    direction.normalized;
+            }
+        }
+
+        /*
+         * Fallback om kameran saknas eller musen råkar
+         * ligga exakt över player-origin.
+         */
+        return Vector2.down;
+    }
+
+    private static Vector2
+        ResolvePassiveTargetPoint(
+            AbilityTargetingSettings settings,
+            Vector2 origin,
+            Vector2 direction,
+            float range)
+    {
+        direction =
+            GetSafeDirection(
+                direction
+            );
+
+        if (settings == null)
+            return origin;
+
+        if (settings.TargetingMode ==
+            TargetingMode.Self)
+        {
+            return origin;
+        }
+
+        /*
+         * Passiv preview visar abilityns fulla
+         * konfigurerade räckvidd.
+         */
+        return
+            origin +
+            direction *
+            Mathf.Max(
+                0f,
+                range
+            );
+    }
+
+    private static bool
+        CanDisplayPassiveBaseAttack(
+            AbilityData attack)
+    {
+        if (attack == null)
+            return false;
+
+        if (!attack.IsBaseAttack)
+            return false;
+
+        if (!attack.UsesActionSettings)
+            return false;
+
+        if (attack.TargetingSettings == null)
+            return false;
+
+        return SupportsPermanentPreview(
+            attack.TargetingSettings
+                .TargetingMode
+        );
+    }
+
+    private static bool SupportsPermanentPreview(
+        TargetingMode targetingMode)
+    {
+        return
+            targetingMode ==
+                TargetingMode.Cone ||
+
+            targetingMode ==
+                TargetingMode.Circle ||
+
+            targetingMode ==
+                TargetingMode.Self ||
+
+            targetingMode ==
+                TargetingMode.Line;
+    }
+
+    // =========================================================
+    // CHARGE TERMINAL EFFECT
+    // =========================================================
 
     private Vector2 GetFullChargeTerminalOffset(
-    ActionContext context,
-    TargetingResult targeting)
+        ActionContext context,
+        TargetingResult targeting)
     {
         if (!activeChargeIsFull ||
             context == null ||
@@ -866,34 +1467,94 @@ public sealed class ActionPreviewRenderer :
             case ChargeCompletionPreviewEffectType
                 .LineEndShake:
 
-                return effect.GetTerminalOffset(
-                    targeting.Direction,
-                    Time.unscaledTime
-                );
+                return effect
+                    .GetTerminalOffset(
+                        targeting.Direction,
+                        Time.unscaledTime
+                    );
 
             case ChargeCompletionPreviewEffectType.None:
             default:
+
                 return Vector2.zero;
         }
     }
 
-    private void LateUpdate()
+    // =========================================================
+    // CLEAR
+    // =========================================================
+
+    private void RefreshPresentation()
     {
-        if (!activeChargeIsFull ||
-            actionController == null ||
-            !actionController.IsCharging)
+        if (actionController != null &&
+            ShouldRenderActiveContext(
+                actionController.CurrentContext))
         {
+            ClearPassivePreview();
+
+            RenderActivePreview(
+                actionController
+                    .CurrentContext
+            );
+
             return;
         }
 
-        ActionContext context =
-            actionController.CurrentContext;
+        ClearActivePreview();
 
-        if (context == null)
-            return;
+        RenderPassiveBaseAttack();
+    }
 
-        RenderPreview(
-            context
-        );
+    private void ClearActivePreview()
+    {
+        activeChargeIsFull =
+            false;
+
+        activeOutlineRenderer
+            ?.Clear();
+
+        activeFillRenderer
+            ?.Clear();
+
+        if (activePreviewRoot != null)
+        {
+            activePreviewRoot
+                .SetActive(
+                    false
+                );
+        }
+    }
+
+    private void ClearPassivePreview()
+    {
+        passiveBaseRenderer
+            ?.Clear();
+
+        passiveReadinessRenderer
+            ?.Clear();
+
+        if (passivePreviewRoot != null)
+        {
+            passivePreviewRoot
+                .SetActive(
+                    false
+                );
+        }
+    }
+
+    // =========================================================
+    // HELPERS
+    // =========================================================
+
+    private static Vector2 GetSafeDirection(
+        Vector2 direction)
+    {
+        if (direction.sqrMagnitude <=
+            0.0001f)
+        {
+            return Vector2.down;
+        }
+
+        return direction.normalized;
     }
 }

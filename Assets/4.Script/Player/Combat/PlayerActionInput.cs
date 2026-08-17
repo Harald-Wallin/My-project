@@ -3,24 +3,11 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-/// <summary>
-/// Spelarens centrala inputbrygga till actionsystemet.
-///
-/// Ansvar:
-/// - vanliga abilities
-/// - base attacks
-/// - targeting-preview
-/// - Hold-and-Release
-/// - charge-aim
-/// - charge-release
-/// - charge-cancel
-/// - base attack-swap
-///
-/// All spelarinput för Charge/HoldAndRelease ska gå genom
-/// denna komponent.
-/// </summary>
 [RequireComponent(
     typeof(CharacterActionController)
+)]
+[RequireComponent(
+    typeof(PlayerAbilityCollection)
 )]
 public sealed class PlayerActionInput :
     MonoBehaviour
@@ -36,10 +23,18 @@ public sealed class PlayerActionInput :
         ActionSlotPointer
     }
 
+    // =========================================================
+    // WORLD INPUT
+    // =========================================================
+
     [Header("World Input")]
 
     [SerializeField]
     private Camera worldCamera;
+
+    // =========================================================
+    // BASE ATTACK
+    // =========================================================
 
     [Header("Base Attack")]
 
@@ -49,10 +44,14 @@ public sealed class PlayerActionInput :
 
     [SerializeField]
     [Tooltip(
-        "Förhindrar byte av base attack medan en action pågår."
+        "Förhindrar byte av Base Attack medan en action pågår."
     )]
-    private bool blockSwapDuringAction =
+    private bool blockBaseAttackSwapDuringAction =
         true;
+
+    // =========================================================
+    // TARGET DETECTION
+    // =========================================================
 
     [Header("Target Detection")]
 
@@ -60,6 +59,10 @@ public sealed class PlayerActionInput :
     [Min(1)]
     private int targetDetectionBufferSize =
         16;
+
+    // =========================================================
+    // CANCELLATION
+    // =========================================================
 
     [Header("Cancellation")]
 
@@ -71,14 +74,22 @@ public sealed class PlayerActionInput :
     private bool rightClickCancels =
         true;
 
+    // =========================================================
+    // REFERENCES
+    // =========================================================
+
     private CharacterActionController
         actionController;
 
-    private PlayerBaseAttackCollection
-        baseAttackCollection;
+    private PlayerAbilityCollection
+        collection;
 
     private Collider2D[]
         targetDetectionBuffer;
+
+    // =========================================================
+    // HELD INPUT
+    // =========================================================
 
     private AbilityData heldAbility;
 
@@ -93,6 +104,10 @@ public sealed class PlayerActionInput :
         uiRaycastResults =
             new();
 
+    // =========================================================
+    // PUBLIC
+    // =========================================================
+
     public CharacterActionController
         ActionController =>
             actionController;
@@ -102,6 +117,10 @@ public sealed class PlayerActionInput :
 
     public AbilityData HeldAbility =>
         heldAbility;
+
+    // =========================================================
+    // UNITY
+    // =========================================================
 
     private void Awake()
     {
@@ -114,26 +133,26 @@ public sealed class PlayerActionInput :
     {
         ResolveReferences();
 
-        if (actionController != null)
-        {
-            actionController.OnPreviewStarted -=
-                HandlePreviewStarted;
+        if (actionController == null)
+            return;
 
-            actionController.OnPreviewStarted +=
-                HandlePreviewStarted;
+        actionController.OnPreviewStarted -=
+            HandlePreviewStarted;
 
-            actionController.OnActionCancelled -=
-                HandleActionEnded;
+        actionController.OnPreviewStarted +=
+            HandlePreviewStarted;
 
-            actionController.OnActionCancelled +=
-                HandleActionEnded;
+        actionController.OnActionCancelled -=
+            HandleActionEnded;
 
-            actionController.OnActionCompleted -=
-                HandleActionEnded;
+        actionController.OnActionCancelled +=
+            HandleActionEnded;
 
-            actionController.OnActionCompleted +=
-                HandleActionEnded;
-        }
+        actionController.OnActionCompleted -=
+            HandleActionEnded;
+
+        actionController.OnActionCompleted +=
+            HandleActionEnded;
     }
 
     private void OnDisable()
@@ -179,37 +198,33 @@ public sealed class PlayerActionInput :
                     CharacterActionController>();
         }
 
-        if (baseAttackCollection == null)
+        if (collection == null)
         {
-            baseAttackCollection =
+            collection =
                 GetComponent<
-                    PlayerBaseAttackCollection>();
+                    PlayerAbilityCollection>();
         }
     }
 
     // =========================================================
-    // BASE ATTACK INPUT
+    // BASE ATTACK
     // =========================================================
 
     private void HandleBaseAttackMouseInput()
     {
-        if (baseAttackCollection == null ||
+        if (collection == null ||
             actionController == null)
         {
             return;
         }
 
         AbilityData attack =
-            baseAttackCollection
-                .GetActiveAttack();
+            collection
+                .GetActiveBaseAttack();
 
         if (attack == null)
             return;
 
-        /*
-         * Musknappen tillhör redan en aktiv Hold-and-Release-
-         * action från en annan inputkälla.
-         */
         if (heldInputSource !=
                 HeldActionInputSource.None &&
             heldInputSource !=
@@ -219,7 +234,8 @@ public sealed class PlayerActionInput :
             return;
         }
 
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonDown(
+                0))
         {
             if (IsPointerBlockingWorldInput())
                 return;
@@ -231,7 +247,8 @@ public sealed class PlayerActionInput :
             );
         }
 
-        if (Input.GetMouseButtonUp(0) &&
+        if (Input.GetMouseButtonUp(
+                0) &&
             heldInputSource ==
                 HeldActionInputSource
                     .BaseAttackMouse)
@@ -243,7 +260,6 @@ public sealed class PlayerActionInput :
             );
         }
     }
-
     private void HandleBaseAttackSwapInput()
     {
         if (!Input.GetKeyDown(
@@ -255,34 +271,24 @@ public sealed class PlayerActionInput :
         if (IsTypingInInputField())
             return;
 
-        if (baseAttackCollection == null)
-        {
-            baseAttackCollection =
-                GetComponent<
-                    PlayerBaseAttackCollection>();
-        }
-
-        if (baseAttackCollection == null)
+        if (collection == null)
             return;
 
-        if (blockSwapDuringAction &&
+        if (blockBaseAttackSwapDuringAction &&
             actionController != null &&
             actionController.HasActiveAction)
         {
             return;
         }
 
-        baseAttackCollection
-            .CycleActiveAttack();
+        collection
+            .SwapBaseAttacks();
     }
 
     // =========================================================
-    // GENERIC ABILITY INPUT
+    // GENERIC INPUT
     // =========================================================
 
-    /// <summary>
-    /// Används av ActionSlot för en hotkey som trycks ned.
-    /// </summary>
     public bool BeginAbilityHotkeyInput(
         AbilityData ability)
     {
@@ -293,9 +299,6 @@ public sealed class PlayerActionInput :
         );
     }
 
-    /// <summary>
-    /// Används av ActionSlot när en hotkey släpps.
-    /// </summary>
     public bool ReleaseAbilityHotkeyInput(
         AbilityData ability)
     {
@@ -306,10 +309,6 @@ public sealed class PlayerActionInput :
         );
     }
 
-    /// <summary>
-    /// Används när spelaren trycker ned vänster musknapp
-    /// på en actionbar-slot.
-    /// </summary>
     public bool BeginAbilityPointerInput(
         AbilityData ability)
     {
@@ -320,10 +319,6 @@ public sealed class PlayerActionInput :
         );
     }
 
-    /// <summary>
-    /// Används när spelaren släpper vänster musknapp
-    /// efter att ha hållit på en actionbar-slot.
-    /// </summary>
     public bool ReleaseAbilityPointerInput(
         AbilityData ability)
     {
@@ -334,17 +329,6 @@ public sealed class PlayerActionInput :
         );
     }
 
-    /// <summary>
-    /// Startar inputen för en ability.
-    ///
-    /// Vanliga abilities:
-    /// - aktiveras direkt
-    ///
-    /// HoldAndRelease:
-    /// - startar charge
-    /// - sparas som heldAbility
-    /// - exekveras först vid ReleaseAbilityInput
-    /// </summary>
     private bool BeginAbilityInput(
         AbilityData ability,
         HeldActionInputSource source)
@@ -407,10 +391,6 @@ public sealed class PlayerActionInput :
             return false;
         }
 
-        /*
-         * Targetingen uppdateras på release-framen innan
-         * CharacterActionController skapar execution-contexten.
-         */
         UpdateActiveChargeTargeting();
 
         bool released =
@@ -424,14 +404,11 @@ public sealed class PlayerActionInput :
                 .CancelCurrentAction();
         }
 
-        return releasedAbility != null &&
-               released;
+        return
+            releasedAbility != null &&
+            released;
     }
 
-    /// <summary>
-    /// Kan användas av drag-and-drop eller annan UI-kod för
-    /// att avbryta en pågående Hold-and-Release-input.
-    /// </summary>
     public bool CancelHeldAbilityInput()
     {
         bool hadHeldInput =
@@ -449,10 +426,6 @@ public sealed class PlayerActionInput :
         return hadHeldInput;
     }
 
-    /// <summary>
-    /// Avbryter endast om den angivna abilityn är den som
-    /// för närvarande hålls.
-    /// </summary>
     public bool CancelHeldAbilityInput(
         AbilityData ability)
     {
@@ -467,15 +440,14 @@ public sealed class PlayerActionInput :
 
     private void ClearHeldInputState()
     {
-        heldAbility =
-            null;
+        heldAbility = null;
 
         heldInputSource =
             HeldActionInputSource.None;
     }
 
     // =========================================================
-    // HELD ACTION UPDATE
+    // HELD ACTION
     // =========================================================
 
     private void HandleHeldActionInput()
@@ -487,19 +459,17 @@ public sealed class PlayerActionInput :
             !actionController.IsCharging)
         {
             ClearHeldInputState();
+
             return;
         }
 
         if (ShouldCancelActiveAction())
         {
             CancelHeldAbilityInput();
+
             return;
         }
 
-        /*
-         * Aim uppdateras varje frame oavsett om charge påverkar
-         * damage, range eller båda.
-         */
         UpdateActiveChargeTargeting();
     }
 
@@ -512,8 +482,7 @@ public sealed class PlayerActionInput :
         }
 
         ActionContext context =
-            actionController
-                .CurrentContext;
+            actionController.CurrentContext;
 
         if (context == null ||
             context.Ability == null)
@@ -557,27 +526,20 @@ public sealed class PlayerActionInput :
         if (!rightClickCancels)
             return false;
 
-        if (!Input.GetMouseButtonDown(1))
+        if (!Input.GetMouseButtonDown(
+                1))
+        {
             return false;
+        }
 
-        return !IsPointerBlockingWorldInput();
+        return
+            !IsPointerBlockingWorldInput();
     }
 
     // =========================================================
     // ABILITY START
     // =========================================================
 
-    /// <summary>
-    /// Startar vilken migrerad ability som helst.
-    ///
-    /// Metoden fungerar både för:
-    /// - base attacks
-    /// - vanliga abilities
-    /// - instant
-    /// - cast
-    /// - charge
-    /// - samtliga targetingformer
-    /// </summary>
     public bool TryStartAbility(
         AbilityData ability)
     {
@@ -590,7 +552,7 @@ public sealed class PlayerActionInput :
         if (!ability.UsesActionSettings)
         {
             Debug.LogWarning(
-                $"'{ability.abilityName}' använder inte det nya " +
+                $"'{ability.abilityName}' använder inte " +
                 $"actionsystemets inställningar.",
                 this
             );
@@ -635,7 +597,7 @@ public sealed class PlayerActionInput :
     }
 
     // =========================================================
-    // CONFIRMED PREVIEW
+    // PREVIEW
     // =========================================================
 
     private void HandlePreviewInput()
@@ -723,8 +685,11 @@ public sealed class PlayerActionInput :
 
     private bool ShouldConfirmPreview()
     {
-        if (!Input.GetMouseButtonDown(0))
+        if (!Input.GetMouseButtonDown(
+                0))
+        {
             return false;
+        }
 
         if (Time.frameCount <=
             previewStartedFrame)
@@ -732,7 +697,8 @@ public sealed class PlayerActionInput :
             return false;
         }
 
-        return !IsPointerBlockingWorldInput();
+        return
+            !IsPointerBlockingWorldInput();
     }
 
     private bool ShouldCancelPreview()
@@ -746,10 +712,14 @@ public sealed class PlayerActionInput :
         if (!rightClickCancels)
             return false;
 
-        if (!Input.GetMouseButtonDown(1))
+        if (!Input.GetMouseButtonDown(
+                1))
+        {
             return false;
+        }
 
-        return !IsPointerBlockingWorldInput();
+        return
+            !IsPointerBlockingWorldInput();
     }
 
     // =========================================================
@@ -829,22 +799,26 @@ public sealed class PlayerActionInput :
             transform.position;
 
         Vector2 direction =
-            aimPoint - origin;
+            aimPoint -
+            origin;
 
         if (direction.sqrMagnitude >
             Mathf.Epsilon)
         {
-            return direction.normalized;
+            return
+                direction.normalized;
         }
 
         ActionContext context =
             actionController != null
-                ? actionController.CurrentContext
+                ? actionController
+                    .CurrentContext
                 : null;
 
         if (context != null)
         {
-            return context.AimDirection;
+            return context
+                .AimDirection;
         }
 
         return Vector2.down;
@@ -864,9 +838,10 @@ public sealed class PlayerActionInput :
         }
 
         Vector3 mouseWorldPosition =
-            worldCamera.ScreenToWorldPoint(
-                Input.mousePosition
-            );
+            worldCamera
+                .ScreenToWorldPoint(
+                    Input.mousePosition
+                );
 
         worldPosition =
             new Vector2(
@@ -890,12 +865,6 @@ public sealed class PlayerActionInput :
     // UI BLOCKING
     // =========================================================
 
-    /// <summary>
-    /// Nameplates får ta emot hover-raycasts men blockerar inte
-    /// world input.
-    ///
-    /// Övrigt UI blockerar world actions.
-    /// </summary>
     private bool IsPointerBlockingWorldInput()
     {
         EventSystem eventSystem =
@@ -931,10 +900,6 @@ public sealed class PlayerActionInput :
             if (hitObject == null)
                 continue;
 
-            /*
-             * Nameplates kan reagera på hover men räknas inte
-             * som klickblockerande UI.
-             */
             if (hitObject.GetComponentInParent<
                     NameplateUI>() != null)
             {
@@ -962,6 +927,10 @@ public sealed class PlayerActionInput :
         return selected.GetComponent<
                    TMP_InputField>() != null;
     }
+
+    // =========================================================
+    // BUFFER
+    // =========================================================
 
     private void CreateTargetDetectionBuffer()
     {

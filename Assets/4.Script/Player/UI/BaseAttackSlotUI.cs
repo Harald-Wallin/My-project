@@ -16,8 +16,8 @@ public sealed class BaseAttackSlotUI :
     [SerializeField]
     [Range(
         0,
-        PlayerBaseAttackCollection
-            .SlotCount - 1)]
+        PlayerAbilityCollection
+            .BaseAttackSlotCount - 1)]
     private int slotIndex;
 
     [Header("Visuals")]
@@ -32,20 +32,13 @@ public sealed class BaseAttackSlotUI :
     private TMP_Text cooldownText;
 
     [SerializeField]
-    [Tooltip(
-        "Overlay som markerar primary-slotten. " +
-        "Primary-slotten är alltid den aktiva attacken."
-    )]
     private Image activeIndicator;
 
-    private BaseAttackController
-        baseAttackController;
+    private PlayerAbilityCollection
+        collection;
 
     private CharacterActionController
         actionController;
-
-    private PlayerBaseAttackCollection
-        collection;
 
     private AbilityData attack;
 
@@ -56,34 +49,25 @@ public sealed class BaseAttackSlotUI :
         attack;
 
     public void Initialize(
-        BaseAttackController controller,
-        PlayerBaseAttackCollection
-            attackCollection,
+        PlayerAbilityCollection abilityCollection,
+        CharacterActionController controller,
         int index)
     {
         Unsubscribe();
 
-        baseAttackController =
-            controller;
-
         collection =
-            attackCollection;
+            abilityCollection;
+
+        actionController =
+            controller;
 
         slotIndex =
             Mathf.Clamp(
                 index,
                 0,
-                PlayerBaseAttackCollection
-                    .SlotCount - 1
+                PlayerAbilityCollection
+                    .BaseAttackSlotCount - 1
             );
-
-        if (baseAttackController != null)
-        {
-            actionController =
-                baseAttackController
-                    .GetComponent<
-                        CharacterActionController>();
-        }
 
         Subscribe();
         Refresh();
@@ -117,17 +101,17 @@ public sealed class BaseAttackSlotUI :
         if (collection == null)
             return;
 
-        collection.OnAttackSlotChanged -=
-            HandleAttackSlotChanged;
+        collection.OnBaseAttackSlotChanged -=
+            HandleBaseAttackSlotChanged;
 
-        collection.OnActiveAttackChanged -=
-            HandleActiveAttackChanged;
+        collection.OnActiveBaseAttackChanged -=
+            HandleActiveBaseAttackChanged;
 
-        collection.OnAttackSlotChanged +=
-            HandleAttackSlotChanged;
+        collection.OnBaseAttackSlotChanged +=
+            HandleBaseAttackSlotChanged;
 
-        collection.OnActiveAttackChanged +=
-            HandleActiveAttackChanged;
+        collection.OnActiveBaseAttackChanged +=
+            HandleActiveBaseAttackChanged;
     }
 
     private void Unsubscribe()
@@ -135,14 +119,14 @@ public sealed class BaseAttackSlotUI :
         if (collection == null)
             return;
 
-        collection.OnAttackSlotChanged -=
-            HandleAttackSlotChanged;
+        collection.OnBaseAttackSlotChanged -=
+            HandleBaseAttackSlotChanged;
 
-        collection.OnActiveAttackChanged -=
-            HandleActiveAttackChanged;
+        collection.OnActiveBaseAttackChanged -=
+            HandleActiveBaseAttackChanged;
     }
 
-    private void HandleAttackSlotChanged(
+    private void HandleBaseAttackSlotChanged(
         int changedSlotIndex,
         AbilityData changedAttack)
     {
@@ -155,29 +139,19 @@ public sealed class BaseAttackSlotUI :
         Refresh();
     }
 
-    private void HandleActiveAttackChanged(
-        int activeSlotIndex,
+    private void HandleActiveBaseAttackChanged(
         AbilityData activeAttack)
     {
-        /*
-         * Primary är alltid aktiv, men eventet kan användas
-         * för att garantera att markeringen är korrekt.
-         */
         RefreshActiveIndicator();
     }
 
     private void UpdateCooldown()
     {
-        if (cooldownOverlay == null ||
-            cooldownText == null)
-        {
-            return;
-        }
-
         if (attack == null ||
             actionController == null)
         {
             ClearCooldown();
+
             return;
         }
 
@@ -197,19 +171,26 @@ public sealed class BaseAttackSlotUI :
             maximum <= 0f)
         {
             ClearCooldown();
+
             return;
         }
 
-        cooldownOverlay.fillAmount =
-            Mathf.Clamp01(
-                remaining /
-                maximum
-            );
+        if (cooldownOverlay != null)
+        {
+            cooldownOverlay.fillAmount =
+                Mathf.Clamp01(
+                    remaining /
+                    maximum
+                );
+        }
 
-        cooldownText.text =
-            Mathf.CeilToInt(
-                remaining
-            ).ToString();
+        if (cooldownText != null)
+        {
+            cooldownText.text =
+                Mathf.CeilToInt(
+                    remaining
+                ).ToString();
+        }
     }
 
     private void ClearCooldown()
@@ -239,27 +220,22 @@ public sealed class BaseAttackSlotUI :
                     DraggableAbility>();
 
         if (dragged == null ||
-            dragged.ability == null)
+            dragged.ability == null ||
+            !dragged.ability.IsBaseAttack)
         {
             return;
         }
 
-        if (!dragged.ability.IsBaseAttack)
-            return;
-
         bool equipped =
-            collection.EquipAttack(
-                slotIndex,
-                dragged.ability
-            );
+            collection
+                .EquipBaseAttack(
+                    slotIndex,
+                    dragged.ability
+                );
 
         if (!equipped)
             return;
 
-        /*
-         * Förhindrar att DraggableAbility tömmer sin
-         * ursprungsslot efter en lyckad drop.
-         */
         dragged.wasDroppedOnSlot =
             true;
     }
@@ -277,30 +253,25 @@ public sealed class BaseAttackSlotUI :
         if (collection == null)
             return;
 
-        /*
-         * Primary är redan aktiv.
-         */
         if (slotIndex ==
-            PlayerBaseAttackCollection
-                .PrimarySlotIndex)
+            PlayerAbilityCollection
+                .PrimaryBaseAttackSlotIndex)
         {
             return;
         }
 
-        /*
-         * Klick på secondary gör att dess attack kommer
-         * fram till primary-positionen.
-         */
-        collection.SwapAttacks();
+        collection
+            .SwapBaseAttacks();
     }
 
     private void Refresh()
     {
         attack =
             collection != null
-                ? collection.GetAttack(
-                    slotIndex
-                )
+                ? collection
+                    .GetBaseAttack(
+                        slotIndex
+                    )
                 : null;
 
         RefreshIcon();
@@ -363,13 +334,10 @@ public sealed class BaseAttackSlotUI :
         if (activeIndicator == null)
             return;
 
-        /*
-         * Den visuellt främre primary-slotten är alltid aktiv.
-         */
         activeIndicator.enabled =
             slotIndex ==
-            PlayerBaseAttackCollection
-                .PrimarySlotIndex;
+            PlayerAbilityCollection
+                .PrimaryBaseAttackSlotIndex;
     }
 
     public void OnPointerEnter(
@@ -401,7 +369,7 @@ public sealed class BaseAttackSlotUI :
 
     public void ClearSlot()
     {
-        collection?.ClearAttack(
+        collection?.ClearBaseAttack(
             slotIndex
         );
     }

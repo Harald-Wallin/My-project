@@ -62,11 +62,6 @@ public sealed class PlayerFavourManager :
         private set;
     }
 
-    public PlayerBaseAttackCollection PlayerBaseAttacks
-    {
-        get;
-        private set;
-    }
 
     public event Action<FavourRuntime>
         FavourRegistered;
@@ -191,19 +186,6 @@ public sealed class PlayerFavourManager :
                     true
                 );
         }
-
-        PlayerBaseAttacks =
-            GetComponent<
-                PlayerBaseAttackCollection>();
-
-        if (PlayerBaseAttacks == null)
-        {
-            PlayerBaseAttacks =
-                GetComponentInChildren<
-                    PlayerBaseAttackCollection>(
-                    true
-                );
-        }
     }
 
     private void ResolveReferences()
@@ -240,16 +222,6 @@ public sealed class PlayerFavourManager :
             PlayerAbilities =
                 Player.GetComponentInChildren<
                     PlayerAbilityCollection>(
-                    true
-                );
-        }
-
-        if (PlayerBaseAttacks == null &&
-            Player != null)
-        {
-            PlayerBaseAttacks =
-                Player.GetComponentInChildren<
-                    PlayerBaseAttackCollection>(
                     true
                 );
         }
@@ -501,41 +473,22 @@ public sealed class PlayerFavourManager :
     }
 
     public bool CanGrantAbility(
-        AbilityData ability)
+    AbilityData ability)
     {
-        if (ability == null)
-            return false;
-
-        return ability.IsBaseAttack
-            ? PlayerBaseAttacks != null
-            : PlayerAbilities != null;
+        return
+            ability != null &&
+            PlayerAbilities != null;
     }
 
     public bool TryGrantAbility(
-        AbilityData ability)
+    AbilityData ability)
     {
         if (ability == null)
             return false;
 
-        if (ability.IsBaseAttack)
+        if (PlayerAbilities == null)
         {
-            if (PlayerBaseAttacks == null)
-            {
-                Debug.LogError(
-                    $"Kan inte dela ut base attack " +
-                    $"'{ability.name}': spelaren saknar " +
-                    $"{nameof(PlayerBaseAttackCollection)}.",
-                    this
-                );
-
-                return false;
-            }
-
-            PlayerBaseAttacks.LearnAttack(
-                ability
-            );
-
-            return true;
+            ResolveReferences();
         }
 
         if (PlayerAbilities == null)
@@ -550,11 +503,9 @@ public sealed class PlayerFavourManager :
             return false;
         }
 
-        PlayerAbilities.LearnAbility(
+        return PlayerAbilities.LearnAbility(
             ability
         );
-
-        return true;
     }
 
     private void HandleCharacterDefeated(

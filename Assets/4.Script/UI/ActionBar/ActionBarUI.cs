@@ -1,52 +1,62 @@
-using UnityEngine;
 using System.Collections;
+using UnityEngine;
 
-public class ActionBarUI : MonoBehaviour
+public sealed class ActionBarUI :
+    MonoBehaviour
 {
-    [SerializeField] private ActionSlot[] slots;
+    [SerializeField]
+    private ActionSlot[] slots;
 
-    private AbilityController abilityController;
-    private PlayerAbilityCollection collection;
+    private PlayerAbilityCollection
+        collection;
 
-    IEnumerator Start()
+    private IEnumerator Start()
     {
-        yield return null; // 🔥 vänta 1 frame
+        yield return null;
 
-        var player = PlayerReference.Player;
+        PlayerStats player =
+            PlayerReference.Player;
 
         if (player == null)
-        {
             yield break;
-        }
 
-        collection = player.GetComponent<PlayerAbilityCollection>();
+        collection =
+            player.GetComponent<
+                PlayerAbilityCollection>();
 
         if (collection == null)
         {
+            Debug.LogWarning(
+                $"{nameof(ActionBarUI)} kunde inte hitta " +
+                $"{nameof(PlayerAbilityCollection)}.",
+                this
+            );
+
             yield break;
         }
 
-        abilityController = player.GetComponent<AbilityController>();
+        AbilityData[] abilities =
+            collection
+                .GetEquippedAbilities();
 
-        if (abilityController == null)
+        for (int i = 0;
+             i < slots.Length;
+             i++)
         {
-            yield break;
-        }
+            ActionSlot slot =
+                slots[i];
 
-        var abilities = collection.GetEquippedAbilities();
-
-        for (int i = 0; i < slots.Length; i++)
-        {
-            if (slots[i] == null)
-            {
+            if (slot == null)
                 continue;
-            }
 
             AbilityData ability =
-                i < abilities.Length ? abilities[i] : null;
+                abilities != null &&
+                i < abilities.Length
+                    ? abilities[i]
+                    : null;
 
-            slots[i].Initialize(
-                abilityController,
+            slot.Initialize(
+                collection,
                 ability,
                 i
             );

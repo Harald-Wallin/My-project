@@ -2,20 +2,25 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Gemensam hit- och dodge-resolution för actionsystemet.
+/// Auktoritativ hit- och dodge-resolution för actionsystemet.
 ///
 /// Samma resolver används av:
-/// - omedelbara melee- och spell-attacker
-/// - projektiler
-/// - framtida traps
-/// - framtida delayed impacts
-/// - framtida secondary effects
+/// - melee
+/// - spells
+/// - projectiles
+/// - traps
+/// - delayed impacts
+/// - secondary effects
 ///
-/// Ett target får aldrig göra fler än ett hit/dodge-slag per
-/// faktisk träffhändelse.
+/// Varje faktisk impact får exakt ETT gemensamt
+/// hit/dodge-resultat som återanvänds av samtliga effects.
 /// </summary>
 public static class AbilityHitResolver
 {
+    // =========================================================
+    // ACTION TARGETS
+    // =========================================================
+
     public static List<AbilityTargetHitResult>
         ResolveActionTargets(
             ActionExecutionContext action)
@@ -23,11 +28,17 @@ public static class AbilityHitResolver
         List<AbilityTargetHitResult> results =
             new();
 
-        if (action == null)
+        if (action == null ||
+            action.Ability == null)
+        {
             return results;
+        }
 
         IReadOnlyList<CharacterStats> targets =
             action.AffectedCharacters;
+
+        if (targets == null)
+            return results;
 
         bool shouldResolveImmediately =
             action.Ability.ExecutionSettings == null ||
@@ -54,11 +65,20 @@ public static class AbilityHitResolver
                     shouldResolveImmediately
                 );
 
-            results.Add(result);
+            if (result != null)
+            {
+                results.Add(
+                    result
+                );
+            }
         }
 
         return results;
     }
+
+    // =========================================================
+    // SINGLE TARGET
+    // =========================================================
 
     public static AbilityTargetHitResult ResolveTarget(
         ActionExecutionContext action,
@@ -68,6 +88,8 @@ public static class AbilityHitResolver
         bool resolveHitNow = true)
     {
         if (action == null ||
+            action.Ability == null ||
+            action.Caster == null ||
             target == null)
         {
             return null;
@@ -75,9 +97,10 @@ public static class AbilityHitResolver
 
         targetObject =
             targetObject != null
-                ? TargetUtility.ResolveCharacterTarget(
-                    targetObject
-                )
+                ? TargetUtility
+                    .ResolveCharacterTarget(
+                        targetObject
+                    )
                 : target.gameObject;
 
         AbilityTargetHitOutcome outcome =
@@ -95,6 +118,30 @@ public static class AbilityHitResolver
         );
     }
 
+    // =========================================================
+    // HIT RESOLUTION
+    // =========================================================
+
+    /// <summary>
+    /// Avgör resultatet av EN faktisk träffhändelse.
+    ///
+    /// ACTIONSYSTEMETS REGLER:
+    ///
+    /// alwaysHits
+    ///     -> automatisk success
+    ///
+    /// canMiss == false
+    ///     -> automatisk success
+    ///
+    /// canMiss == true
+    ///     -> CombatResolver.RollHit
+    ///     -> CombatResolver.RollDodge
+    ///
+    /// requiresHitCheck används INTE här.
+    ///
+    /// Det fältet tillhör legacy-systemet och ska inte kunna
+    /// råka stänga av hit-resolution för nya actions.
+    /// </summary>
     public static AbilityTargetHitOutcome ResolveOutcome(
         ActionExecutionContext action,
         CharacterStats target,
@@ -108,6 +155,12 @@ public static class AbilityHitResolver
             return AbilityTargetHitOutcome.Miss;
         }
 
+        /*
+         * Exempelvis projectile:
+         *
+         * Actionen skapas nu, men själva hit-roll sker först
+         * när projektilen faktiskt kolliderar.
+         */
         if (!resolveHitNow)
         {
             return AbilityTargetHitOutcome.NotRolled;
@@ -116,15 +169,19 @@ public static class AbilityHitResolver
         AbilityData ability =
             action.Ability;
 
-        bool shouldRollHit =
-            ability.requiresHitCheck &&
-            ability.canMiss &&
-            !ability.alwaysHits;
+        // -----------------------------------------------------
+        // AUTOMATIC HIT
+        // -----------------------------------------------------
 
-        if (!shouldRollHit)
+        if (ability.alwaysHits ||
+            !ability.canMiss)
         {
-            return AbilityTargetHitOutcome.NotRolled;
+            return AbilityTargetHitOutcome.Hit;
         }
+
+        // -----------------------------------------------------
+        // HIT
+        // -----------------------------------------------------
 
         if (!CombatResolver.RollHit(
                 action.Caster,
@@ -132,6 +189,10 @@ public static class AbilityHitResolver
         {
             return AbilityTargetHitOutcome.Miss;
         }
+
+        // -----------------------------------------------------
+        // DODGE
+        // -----------------------------------------------------
 
         if (CombatResolver.RollDodge(
                 action.Caster,
