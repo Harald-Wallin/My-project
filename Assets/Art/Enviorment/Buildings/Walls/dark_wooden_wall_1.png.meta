@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: a8c516bd372d58947ad9f066a2148aad
+guid: ad92eb2ff34b17745bf13d61ad0c6e21
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 8324146539556461846
-    second: building_test1_floor_0
+      213: -28937010773325589
+    second: dark_wooden_wall_1_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -126,13 +126,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: building_test1_floor_0
+      name: dark_wooden_wall_1_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 294
-        height: 491
+        width: 128
+        height: 96
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -141,8 +141,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 61d5f8cac2f458370800000000000000
-      internalID: 8324146539556461846
+      spriteID: be88ef721f1399ff0800000000000000
+      internalID: -28937010773325589
       vertices: []
       indices: 
       edges: []

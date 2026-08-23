@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 9dee5d942823eae49a45098675df580e
+guid: 5097d59504f36be44b3819d073625b9b
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 6649862364005178718
-    second: building_test1_back_0
+      213: 6541203165474886422
+    second: roof_straw_1_right_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -126,13 +126,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: building_test1_back_0
+      name: roof_straw_1_right_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 294
-        height: 107
+        width: 85
+        height: 144
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -141,8 +141,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: e5d94cb669e094c50800000000000000
-      internalID: 6649862364005178718
+      spriteID: 6139ac94f9507ca50800000000000000
+      internalID: 6541203165474886422
       vertices: []
       indices: 
       edges: []
