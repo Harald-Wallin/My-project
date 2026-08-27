@@ -30,42 +30,60 @@ public class PlayerStats : CharacterStats
 
     private void ApplyLevelUpStats()
     {
-        float oldMaxHP = GetStat(StatType.MaxHP);
+        // =========================================================
+        // LEVEL-UP STATS
+        // =========================================================
 
-        SetBaseStat(StatType.Strength,GetBaseStatValue(StatType.Strength) + 1f);
-
-        SetBaseStat(StatType.Health,GetBaseStatValue(StatType.Health) + 4f);
-
-        float newMaxHP = GetStat(StatType.MaxHP);
-
-        float gainedHP = newMaxHP - oldMaxHP;
-
-        currentHP += Mathf.RoundToInt(gainedHP);
-
-        currentHP = Mathf.Clamp(
-            currentHP,
-            0,
-            Mathf.RoundToInt(newMaxHP)
+        SetBaseStat(
+            StatType.Strength,
+            GetBaseStatValue(
+                StatType.Strength
+            ) + 1f
         );
+
+        SetBaseStat(
+            StatType.Health,
+            GetBaseStatValue(
+                StatType.Health
+            ) + 4f
+        );
+
+        // =========================================================
+        // FULL HEAL
+        // =========================================================
+
+        /*
+         * Level-up återställer spelaren till full HP efter att
+         * alla level-up stats har applicerats.
+         *
+         * ResetHealth använder det NYA MaxHP-värdet.
+         */
+        ResetHealth();
+
+        // =========================================================
+        // TALENT POINT
+        // =========================================================
 
         if (TalentManager.Instance != null)
         {
-            TalentManager.Instance.availablePoints++;
+            TalentManager.Instance
+                .availablePoints++;
         }
 
         TalentNotificationManager.Instance
             ?.NotifyNewTalentPoints();
 
-        
-        RaiseHealthChanged();
-        GetMaxHP();
+        // =========================================================
+        // LEVEL-UP VFX
+        // =========================================================
 
         if (confettiPrefab != null)
         {
             Vector3 spawnPosition =
                 effectPoint != null
                     ? effectPoint.position
-                    : transform.position + Vector3.up * 1.5f;
+                    : transform.position +
+                      Vector3.up * 1.5f;
 
             GameObject effect =
                 Instantiate(

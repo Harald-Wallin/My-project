@@ -434,13 +434,6 @@ public sealed class PlayerFavourManager :
         if (runtime == null)
             return false;
 
-        /*
-         * Available betyder att favouren har upptäckts eller
-         * registrerats, men ännu inte accepterats.
-         *
-         * Alla senare states innebär att favouren någon gång
-         * har aktiverats/accepterats.
-         */
         return runtime.State !=
                    FavourState.Unavailable &&
                runtime.State !=
@@ -583,6 +576,14 @@ public sealed class PlayerFavourManager :
         }
     }
 
+    // =========================================================
+    // FAVOUR ITEM / COLLECT QUERIES
+    // =========================================================
+
+    /// <summary>
+    /// Returnerar true om spelaren just nu har minst ett aktivt,
+    /// ofärdigt Collect-objective som fortfarande behöver itemet.
+    /// </summary>
     public bool IsCollectObjectiveActive(
         ItemData item)
     {
@@ -592,9 +593,106 @@ public sealed class PlayerFavourManager :
         foreach (FavourRuntime favour
                  in runtimesById.Values)
         {
+            if (CanCollectItemForFavour(
+                    favour,
+                    item))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Returnerar true endast om den angivna favouren just nu
+    /// aktivt behöver det angivna itemet.
+    ///
+    /// Detta är den auktoritativa loot-regeln för FavourItems.
+    /// </summary>
+    public bool CanDropFavourItem(
+        FavourData requiredFavour,
+        ItemData item)
+    {
+        if (requiredFavour == null ||
+            item == null)
+        {
+            return false;
+        }
+
+        if (!TryGetRuntime(
+                requiredFavour,
+                out FavourRuntime runtime))
+        {
+            return false;
+        }
+
+        return CanCollectItemForFavour(
+            runtime,
+            item
+        );
+    }
+
+    private static bool CanCollectItemForFavour(
+        FavourRuntime favour,
+        ItemData item)
+    {
+        if (favour == null ||
+            item == null)
+        {
+            return false;
+        }
+
+
+        if (favour.State !=
+            FavourState.Active)
+        {
+            return false;
+        }
+
+        foreach (FavourObjectiveRuntime objective
+                 in favour.Objectives)
+        {
+            if (objective is not
+                CollectObjectiveRuntime collect)
+            {
+                continue;
+            }
+
+            if (!collect.IsActive ||
+                collect.IsComplete)
+            {
+                continue;
+            }
+
+            if (!Inventory.ItemsMatch(
+                    collect.RequiredItem,
+                    item))
+            {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public int GetRemainingCollectAmount(
+    ItemData item)
+    {
+        if (item == null)
+            return 0;
+
+        int totalRemaining =
+            0;
+
+        foreach (FavourRuntime favour
+                 in runtimesById.Values)
+        {
             if (favour == null ||
                 favour.State !=
-                FavourState.Active)
+                    FavourState.Active)
             {
                 continue;
             }
@@ -613,48 +711,6 @@ public sealed class PlayerFavourManager :
                 {
                     continue;
                 }
-
-                if (Inventory.ItemsMatch(
-                        collect.RequiredItem,
-                        item))
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    public int GetRemainingCollectAmount(
-        ItemData item)
-    {
-        if (item == null)
-            return 0;
-
-        int totalRemaining = 0;
-
-        foreach (FavourRuntime favour
-                 in runtimesById.Values)
-        {
-            if (favour == null ||
-                favour.State !=
-                FavourState.Active)
-            {
-                continue;
-            }
-
-            foreach (FavourObjectiveRuntime objective
-                     in favour.Objectives)
-            {
-                if (objective is not
-                    CollectObjectiveRuntime collect)
-                {
-                    continue;
-                }
-
-                if (!collect.IsActive)
-                    continue;
 
                 if (!Inventory.ItemsMatch(
                         collect.RequiredItem,

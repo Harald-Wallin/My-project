@@ -405,14 +405,15 @@ public class ItemData :
     {
         /*
          * Vanliga items påverkas aldrig av favour-systemet.
-         * De kan fortsätta droppa precis som tidigare.
          */
-        if (itemType != ItemType.FavourItem)
+        if (itemType !=
+            ItemType.FavourItem)
+        {
             return true;
+        }
 
         /*
-         * Ett FavourItem utan konfigurerad favour betraktas som
-         * felkonfigurerat och får inte droppa.
+         * FavourItems måste uttryckligen tillhöra en favour.
          */
         if (requiredFavour == null)
             return false;
@@ -420,8 +421,16 @@ public class ItemData :
         if (favourManager == null)
             return false;
 
-        return favourManager.HasAccepted(
-            requiredFavour);
+        /*
+         * Itemet får endast droppa medan den angivna favouren
+         * faktiskt är ACTIVE och har ett aktivt, ofärdigt
+         * Collect-objective som behöver just detta item.
+         */
+        return favourManager
+            .CanDropFavourItem(
+                requiredFavour,
+                this
+            );
     }
 
 #if UNITY_EDITOR

@@ -119,6 +119,10 @@ public sealed class NameplateUI :
     private void OnEnable()
     {
         ResolveReferences();
+
+        player =
+            PlayerReference.Player;
+
         Register();
         Subscribe();
     }
@@ -286,25 +290,31 @@ public sealed class NameplateUI :
                 HandleCombatStateChanged;
         }
 
+        if (player != null)
+        {
+            player.OnLevelChanged +=
+                HandlePlayerLevelChanged;
+        }
+
         subscribed = true;
     }
 
     private void Unsubscribe()
     {
-        if (!subscribed ||
-            target == null)
-        {
+        if (!subscribed)
             return;
+
+        if (target != null)
+        {
+            target.OnHealthChanged -=
+                HandleHealthChanged;
+
+            target.OnStatsChanged -=
+                HandleStatsChanged;
+
+            target.OnDied -=
+                HandleDied;
         }
-
-        target.OnHealthChanged -=
-            HandleHealthChanged;
-
-        target.OnStatsChanged -=
-            HandleStatsChanged;
-
-        target.OnDied -=
-            HandleDied;
 
         if (stateController != null)
         {
@@ -313,7 +323,18 @@ public sealed class NameplateUI :
                 HandleCombatStateChanged;
         }
 
+        if (player != null)
+        {
+            player.OnLevelChanged -=
+                HandlePlayerLevelChanged;
+        }
+
         subscribed = false;
+    }
+
+    private void HandlePlayerLevelChanged()
+    {
+        RefreshIdentity();
     }
 
     private void HandleHealthChanged()

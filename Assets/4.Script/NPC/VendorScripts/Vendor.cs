@@ -295,86 +295,178 @@ public class Vendor : MonoBehaviour, IInteractionOption
         AddBuybackItem(item, quantity, totalPrice);
     }
 
-    void AddBuybackItem(ItemData item, int quantity, int price)
+    private void AddBuybackItem(
+    ItemData item,
+    int quantity,
+    int totalPrice)
     {
-        PlayerReputationManager rep =
-            FindFirstObjectByType<PlayerReputationManager>();
-
-        if (rep == null || faction == null)
+        if (item == null ||
+            quantity <= 0)
+        {
             return;
+        }
 
-        if (rep.GetReputationState(faction) < ReputationState.Favoured)
-            return;
+        int safeQuantity =
+            Mathf.Max(
+                1,
+                quantity
+            );
 
-        int remaining = quantity;
+        int pricePerItem =
+            Mathf.Max(
+                0,
+                totalPrice / safeQuantity
+            );
 
-        // 🔹 STACKABLE ITEMS
+        int remaining =
+            safeQuantity;
+
+        // =========================================================
+        // STACKABLE
+        // =========================================================
+
         if (item.stackable)
         {
-            // Försök fylla befintliga stacks
-            foreach (var entry in buybackItems)
+            int maxStack =
+                Mathf.Max(
+                    1,
+                    item.maxStack
+                );
+
+            /*
+             * Fyll först befintliga buyback-stacks
+             * av samma item.
+             */
+            for (int i = 0;
+                 i < buybackItems.Count &&
+                 remaining > 0;
+                 i++)
             {
-                if (entry.item == item && entry.quantity < item.maxStack)
+                BuybackEntry entry =
+                    buybackItems[i];
+
+                if (entry == null ||
+                    entry.item != item ||
+                    entry.quantity >= maxStack)
                 {
-                    int space = item.maxStack - entry.quantity;
-                    int add = Mathf.Min(space, remaining);
-
-                    entry.quantity += add;
-
-                    // proportionell price
-                    int pricePerItem = price / quantity;
-                    entry.pricePaid += pricePerItem * add;
-
-                    entry.expiryTime = Time.time + buybackLifetime;
-
-                    remaining -= add;
-
-                    if (remaining <= 0)
-                        return;
+                    continue;
                 }
+
+                int availableSpace =
+                    maxStack -
+                    entry.quantity;
+
+                int amountToAdd =
+                    Mathf.Min(
+                        availableSpace,
+                        remaining
+                    );
+
+                entry.quantity +=
+                    amountToAdd;
+
+                entry.pricePaid +=
+                    pricePerItem *
+                    amountToAdd;
+
+                entry.expiryTime =
+                    Time.time +
+                    buybackLifetime;
+
+                remaining -=
+                    amountToAdd;
             }
 
-            // Skapa nya stacks om det finns kvar
+            /*
+             * Skapa nya buyback-stacks för
+             * eventuell återstående mängd.
+             */
             while (remaining > 0)
             {
-                int add = Mathf.Min(item.maxStack, remaining);
+                int amountToAdd =
+                    Mathf.Min(
+                        maxStack,
+                        remaining
+                    );
 
-                int pricePerItem = price / quantity;
+                BuybackEntry newEntry =
+                    new BuybackEntry
+                    {
+                        item =
+                            item,
 
-                BuybackEntry newEntry = new BuybackEntry
-                {
-                    item = item,
-                    quantity = add,
-                    pricePaid = pricePerItem * add,
-                    expiryTime = Time.time + buybackLifetime
-                };
+                        quantity =
+                            amountToAdd,
 
-                buybackItems.Insert(0, newEntry);
+                        pricePaid =
+                            pricePerItem *
+                            amountToAdd,
 
-                remaining -= add;
+                        expiryTime =
+                            Time.time +
+                            buybackLifetime
+                    };
+
+                buybackItems.Insert(
+                    0,
+                    newEntry
+                );
+
+                remaining -=
+                    amountToAdd;
             }
         }
+
+        // =========================================================
+        // NON-STACKABLE
+        // =========================================================
+
         else
         {
-            // 🔹 NON-STACKABLE ITEMS
-            for (int i = 0; i < quantity; i++)
+            for (int i = 0;
+                 i < safeQuantity;
+                 i++)
             {
-                BuybackEntry newEntry = new BuybackEntry
-                {
-                    item = item,
-                    quantity = 1,
-                    pricePaid = price / quantity,
-                    expiryTime = Time.time + buybackLifetime
-                };
+                BuybackEntry newEntry =
+                    new BuybackEntry
+                    {
+                        item =
+                            item,
 
-                buybackItems.Insert(0, newEntry);
+                        quantity =
+                            1,
+
+                        pricePaid =
+                            pricePerItem,
+
+                        expiryTime =
+                            Time.time +
+                            buybackLifetime
+                    };
+
+                buybackItems.Insert(
+                    0,
+                    newEntry
+                );
             }
         }
 
-        // 🔻 Trim list
-        while (buybackItems.Count > maxBuybackSlots)
+        // =========================================================
+        // BUYBACK LIMIT
+        // =========================================================
+
+        int safeMaxSlots =
+            Mathf.Max(
+                1,
+                maxBuybackSlots
+            );
+
+        while (buybackItems.Count >
+            safeMaxSlots)
         {
-            buybackItems.RemoveAt(buybackItems.Count - 1);
+            buybackItems.RemoveAt(
+                buybackItems.Count - 1
+            );
         }
     }
 

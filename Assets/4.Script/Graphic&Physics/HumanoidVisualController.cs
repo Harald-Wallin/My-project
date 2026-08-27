@@ -38,14 +38,32 @@ public class HumanoidVisualController : MonoBehaviour
 
     private void Awake()
     {
-        characterState = transform.root.GetComponent<CharacterStateController>();
-        equipment = GetComponentInParent<HumanoidEquipment>();
+        characterState =
+            GetComponentInParent<CharacterStateController>(
+                true
+            );
 
-        if (characterState != null)
+        equipment =
+            GetComponentInParent<HumanoidEquipment>(
+                true
+            );
+
+        if (characterState == null)
         {
-            inCombat = characterState.InCombat;
-            characterState.OnCombatStateChanged += HandleCombatStateChanged;
+            Debug.LogError(
+                $"HumanoidVisualController on '{name}' could not find " +
+                $"{nameof(CharacterStateController)} in its parent hierarchy.",
+                this
+            );
+
+            return;
         }
+
+        inCombat =
+            characterState.InCombat;
+
+        characterState.OnCombatStateChanged +=
+            HandleCombatStateChanged;
     }
 
     private void Start()
@@ -89,9 +107,17 @@ public class HumanoidVisualController : MonoBehaviour
         RefreshAnimation();
     }
 
-    public void SetCombatState(bool state)
+    public void SetCombatState(
+    bool state)
     {
+        if (inCombat == state)
+            return;
+
         inCombat = state;
+
+        animationFrame = 0;
+
+        RefreshAnimation();
     }
 
     private void UpdateSprites(Vector2 dir)
@@ -211,11 +237,12 @@ public class HumanoidVisualController : MonoBehaviour
             skinFeet.enabled = state;
     }
 
-    private void HandleCombatStateChanged(bool combat)
+    private void HandleCombatStateChanged(
+    bool combat)
     {
-        inCombat = combat;
-
-        RefreshAnimation();
+        SetCombatState(
+            combat
+        );
     }
 
     void ApplyInitialFacing()

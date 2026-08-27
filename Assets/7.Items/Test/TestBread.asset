@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: TestBread
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   id: 
-  itemName: Yesterdays test bread
+  itemName: Small oat bisquits
   worldSprite: {fileID: 0}
   rarity: 1
   frontSprite: {fileID: 0}
@@ -27,8 +27,8 @@ MonoBehaviour:
   hideTorso: 0
   hideLegs: 0
   hideFeet: 0
-  description: Dry and bland
-  icon: {fileID: 21300000, guid: 43b6554babfdb8c45b706d1a46e8e918, type: 3}
+  description: It's not much, but it will fill the stomach.
+  icon: {fileID: 21300000, guid: 3da23a9164441944ab8b5128e0e38729, type: 3}
   itemType: 16
   requiredFavour: {fileID: 0}
   foodHealingPerTick: 10
