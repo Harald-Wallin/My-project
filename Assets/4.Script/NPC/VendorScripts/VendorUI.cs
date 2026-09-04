@@ -115,27 +115,69 @@ public class VendorUI : MonoBehaviour, IUIWindow
     }
 
 
-    public void SellItem(ItemData item, int inventorySlot, int quantity = 1)
+    public void SellItem(
+    ItemData item,
+    int inventorySlot,
+    int quantity = 1)
     {
-        if (item == null || ActiveVendor == null)
+        if (item == null ||
+            ActiveVendor == null ||
+            quantity <= 0)
+        {
             return;
+        }
 
-        ActiveVendor.BuyFromPlayer(item, quantity);
+        bool sold =
+            ActiveVendor.TryBuyFromPlayer(
+                item,
+                inventorySlot,
+                quantity
+            );
 
-        Inventory.Instance.RemoveItemAt(inventorySlot, quantity);
+        if (!sold)
+        {
+            Debug.LogWarning(
+                $"Kunde inte sälja '{item.DisplayName}' " +
+                $"från inventory-slot {inventorySlot}.",
+                this
+            );
+
+            return;
+        }
 
         RefreshBuybackUI();
-        Inventory.Instance.NotifyChanged();
     }
 
-    public void SellItemStack(ItemData item, int inventorySlot, int quantity)
+    public void SellItemStack(
+    ItemData item,
+    int inventorySlot,
+    int quantity)
     {
-        if (item == null || quantity <= 0)
+        if (item == null ||
+            ActiveVendor == null ||
+            quantity <= 0)
+        {
             return;
+        }
 
-        ActiveVendor.BuyFromPlayer(item, quantity);
+        bool sold =
+            ActiveVendor.TryBuyFromPlayer(
+                item,
+                inventorySlot,
+                quantity
+            );
 
-        Inventory.Instance.RemoveItemAt(inventorySlot, quantity);
+        if (!sold)
+        {
+            Debug.LogWarning(
+                $"Kunde inte sälja stacken '{item.DisplayName}' " +
+                $"från inventory-slot {inventorySlot}.",
+                this
+            );
+
+            return;
+        }
+
         RefreshBuybackUI();
     }
 

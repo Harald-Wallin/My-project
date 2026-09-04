@@ -283,16 +283,64 @@ public class Vendor : MonoBehaviour, IInteractionOption
         return Mathf.RoundToInt(basePrice * modifier);
     }
 
-    public void BuyFromPlayer(ItemData item, int quantity)
+    public bool TryBuyFromPlayer(
+    ItemData item,
+    int inventorySlot,
+    int quantity)
     {
-        if (item == null)
-            return;
+        if (item == null ||
+            quantity <= 0)
+        {
+            return false;
+        }
 
-        int totalPrice = item.SellPrice * quantity;
+        Inventory inventory =
+            Inventory.Instance;
 
-        PlayerCurrency.Instance.AddCoins(totalPrice);
+        PlayerCurrency currency =
+            PlayerCurrency.Instance;
 
-        AddBuybackItem(item, quantity, totalPrice);
+        if (inventory == null ||
+            currency == null)
+        {
+            Debug.LogError(
+                $"Vendor '{name}' kunde inte genomföra försäljningen " +
+                $"eftersom Inventory eller PlayerCurrency saknas.",
+                this
+            );
+
+            return false;
+        }
+
+        bool removed =
+            inventory.TryRemoveItemAt(
+                inventorySlot,
+                item,
+                quantity
+            );
+
+        if (!removed)
+        {
+            return false;
+        }
+
+        int totalPrice =
+            Mathf.Max(
+                0,
+                item.SellPrice * quantity
+            );
+
+        currency.AddCoins(
+            totalPrice
+        );
+
+        AddBuybackItem(
+            item,
+            quantity,
+            totalPrice
+        );
+
+        return true;
     }
 
     private void AddBuybackItem(

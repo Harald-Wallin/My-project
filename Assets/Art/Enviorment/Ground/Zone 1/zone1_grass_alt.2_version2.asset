@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 13312, guid: 0000000000000000e000000000000000, type: 0}
-  m_Name: zone1_grass2_with_effect
+  m_Name: zone1_grass_alt.2_version2
   m_EditorClassIdentifier: UnityEngine.dll::UnityEngine.Tilemaps.Tile
-  m_Sprite: {fileID: 21300000, guid: 9981e49ccdedf8f498d84b386cbb5ace, type: 3}
-  m_Color: {r: 0.7570066, g: 0.7735849, b: 0.6896582, a: 1}
+  m_Sprite: {fileID: 21300000, guid: 8cf706d1ac39d0b448f1b68444b7cbd1, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Transform:
     e00: 1
     e01: 0

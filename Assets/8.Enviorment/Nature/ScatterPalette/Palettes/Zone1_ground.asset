@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd49c120e216ee441a6efa5a8195eb54, type: 3}
+  m_Name: Zone1_ground
+  m_EditorClassIdentifier: Assembly-CSharp::WorldScatterPalette
+  groups:
+  - enabled: 1
+    groupName: Grass
+    density: 0.899
+    prefabs:
+    - {fileID: 753246755791343461, guid: b4ccf12221fbc9243bff0d57eccffaf2, type: 3}
+    - {fileID: 6188301458684280895, guid: a4517670547090442b2dd94a0aa11cb5, type: 3}
+    - {fileID: 1858358169698119059, guid: 1116ddc76fbf93347995777846e4a4e8, type: 3}
+    - {fileID: 5019118907109967700, guid: 710a5afe31eed07459271a50f0b49304, type: 3}

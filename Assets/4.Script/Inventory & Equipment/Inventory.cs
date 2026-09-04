@@ -802,6 +802,63 @@ public class Inventory : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Försöker ta bort exakt den begärda mängden av ett
+    /// förväntat item från en specifik inventory-slot.
+    ///
+    /// Operationen är all-or-nothing.
+    /// Om slot, item eller mängd inte stämmer ändras ingenting.
+    /// </summary>
+    public bool TryRemoveItemAt(
+        int slotIndex,
+        ItemData expectedItem,
+        int amount = 1)
+    {
+        if (expectedItem == null ||
+            amount <= 0)
+        {
+            return false;
+        }
+
+        if (slotIndex < 0 ||
+            slotIndex >= slots.Count)
+        {
+            return false;
+        }
+
+        InventorySlot slot =
+            slots[slotIndex];
+
+        if (slot == null ||
+            slot.IsEmpty())
+        {
+            return false;
+        }
+
+        if (!ItemsMatch(
+                slot.item,
+                expectedItem))
+        {
+            return false;
+        }
+
+        if (slot.amount < amount)
+        {
+            return false;
+        }
+
+        slot.amount -=
+            amount;
+
+        NormalizeSlot(
+            slot
+        );
+
+        NotifyChanged();
+
+        return true;
+    }
+
     public void SwapSlots(
         int indexA,
         int indexB)
