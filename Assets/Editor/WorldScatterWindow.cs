@@ -775,8 +775,8 @@ public class WorldScatterWindow :
     }
 
     private void CreatePrefabInstance(
-        GameObject prefab,
-        Vector2 position)
+    GameObject prefab,
+    Vector2 position)
     {
         if (prefab == null ||
             targetRoot == null)
@@ -800,6 +800,10 @@ public class WorldScatterWindow :
                 0f
             );
 
+        ApplyStaticYSorting(
+            instance
+        );
+
         Undo.RegisterCreatedObjectUndo(
             instance,
             "Paint World Scatter"
@@ -810,8 +814,43 @@ public class WorldScatterWindow :
         );
 
         EditorUtility.SetDirty(
+            instance
+        );
+
+        EditorUtility.SetDirty(
             targetRoot.gameObject
         );
+    }
+
+    private void ApplyStaticYSorting(
+    GameObject instance)
+    {
+        if (instance == null)
+            return;
+
+        int baseSortingOrder =
+            YSorter.CalculateSortingOrder(
+                instance.transform.position.y
+            );
+
+        SpriteRenderer[] renderers =
+            instance.GetComponentsInChildren<
+                SpriteRenderer
+            >(true);
+
+        foreach (SpriteRenderer renderer
+                 in renderers)
+        {
+            if (renderer == null)
+                continue;
+
+            int relativeOrder =
+                renderer.sortingOrder;
+
+            renderer.sortingOrder =
+                baseSortingOrder +
+                relativeOrder;
+        }
     }
 
     private void EraseInsideBrush(
