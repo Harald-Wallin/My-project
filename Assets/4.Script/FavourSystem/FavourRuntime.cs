@@ -34,20 +34,27 @@ public sealed class FavourRuntime
             new();
 
     private readonly List<
-    FavourRewardChoiceRuntime>
-    rewardChoices =
-        new();
+        FavourRewardChoiceRuntime>
+        rewardChoices =
+            new();
 
     private readonly int
-    rolledCurrencyReward;
+        rolledCurrencyReward;
+
+    private bool
+        isFinalizingCompletion;
+
+    // =========================================================
+    // CORE STATE API
+    // =========================================================
 
     public bool AreObjectivesComplete =>
-    AreAllObjectivesComplete();
+        AreAllObjectivesComplete();
 
     public bool CanAccept =>
         State == FavourState.Available &&
         AreRequirementsMet() &&
-        objectives.Count > 0;
+        HasValidObjectiveConfiguration;
 
     public bool CanTurnIn =>
         State == FavourState.ReadyToTurnIn &&
@@ -69,11 +76,41 @@ public sealed class FavourRuntime
         State != FavourState.Failed &&
         State != FavourState.Cooldown;
 
-    private bool isFinalizingCompletion;
+    public bool UsesSpecificCompletionTarget =>
+        Data != null &&
+        Data.UsesSpecificCompletionTarget;
+
+    public bool IsCourier =>
+        Data != null &&
+        Data.IsCourier;
+
+    public string CompletionTargetId =>
+        Data != null
+            ? Data.CompletionTargetId
+            : string.Empty;
+
+    public string CompletionTargetDisplayName =>
+        Data != null
+            ? Data.CompletionTargetDisplayName
+            : string.Empty;
+
+    public bool ShouldShowTurnInObjective =>
+        CompletionPolicy !=
+            FavourCompletionPolicy.Automatic &&
+        State !=
+            FavourState.Completed &&
+        State !=
+            FavourState.Failed &&
+        State !=
+            FavourState.Cooldown;
+
+    // =========================================================
+    // CONSTRUCTION
+    // =========================================================
 
     public FavourRuntime(
-    FavourData data,
-    PlayerFavourManager manager)
+        FavourData data,
+        PlayerFavourManager manager)
     {
         Data = data;
         Manager = manager;
@@ -86,6 +123,24 @@ public sealed class FavourRuntime
 
         State =
             FavourState.Unavailable;
+    }
+
+    private bool HasValidObjectiveConfiguration
+    {
+        get
+        {
+            if (!IsCourier)
+            {
+                return
+                    objectives.Count > 0;
+            }
+
+            return
+                UsesSpecificCompletionTarget &&
+                !string.IsNullOrWhiteSpace(
+                    CompletionTargetId
+                );
+        }
     }
 
     private int RollCurrencyReward()
@@ -139,7 +194,7 @@ public sealed class FavourRuntime
         ProgressChanged;
 
     public event Action<FavourRuntime>
-    RewardSelectionChanged;
+        RewardSelectionChanged;
 
     // =========================================================
     // BUILD
@@ -316,9 +371,10 @@ public sealed class FavourRuntime
                 return false;
 
             FactionReputationData reputation =
-                reputationManager.GetReputation(
-                    requirement.Faction
-                );
+                reputationManager
+                    .GetReputation(
+                        requirement.Faction
+                    );
 
             bool discovered =
                 reputation != null &&
@@ -342,8 +398,7 @@ public sealed class FavourRuntime
 
             switch (requirement.Comparison)
             {
-                case FavourReputationComparison
-                    .AtLeast:
+                case FavourReputationComparison.AtLeast:
 
                     met =
                         currentLevel >=
@@ -351,8 +406,7 @@ public sealed class FavourRuntime
 
                     break;
 
-                case FavourReputationComparison
-                    .AtMost:
+                case FavourReputationComparison.AtMost:
 
                     met =
                         currentLevel <=
@@ -360,8 +414,7 @@ public sealed class FavourRuntime
 
                     break;
 
-                case FavourReputationComparison
-                    .Exactly:
+                case FavourReputationComparison.Exactly:
 
                     met =
                         currentLevel ==
@@ -370,6 +423,7 @@ public sealed class FavourRuntime
                     break;
 
                 default:
+
                     met = false;
                     break;
             }
@@ -480,12 +534,28 @@ public sealed class FavourRuntime
             return false;
         }
 
-        if (objectives.Count == 0)
+        if (!HasValidObjectiveConfiguration)
+        {
             return false;
+        }
 
         SetState(
             FavourState.Active
         );
+
+        /*
+         * Courier har inget gameplay-objective.
+         * Den blir direkt redo att lämnas in hos
+         * sin specifika completion target.
+         */
+        if (IsCourier)
+        {
+            SetState(
+                FavourState.ReadyToTurnIn
+            );
+
+            return true;
+        }
 
         ActivateObjectives();
 
@@ -560,10 +630,11 @@ public sealed class FavourRuntime
     private bool AreAllObjectivesComplete()
     {
         if (objectives.Count == 0)
-            return false;
+        {
+            return IsCourier;
+        }
 
-        foreach (FavourObjectiveRuntime
-                 objective
+        foreach (FavourObjectiveRuntime objective
                  in objectives)
         {
             if (objective == null ||
@@ -589,9 +660,6 @@ public sealed class FavourRuntime
 
         /*
          * Requirements kontrolleras igen vid turn-in.
-         * Spelaren kan exempelvis ha spenderat pengar eller
-         * tappat ett requirement-item efter att favouren
-         * accepterades.
          */
         if (!AreRequirementsMet())
             return false;
@@ -646,10 +714,6 @@ public sealed class FavourRuntime
 
                 if (!transactionSucceeded)
                 {
-                    /*
-                     * Ingen del av transaktionen genomförs.
-                     * Favouren förblir ReadyToTurnIn.
-                     */
                     return false;
                 }
             }
@@ -697,8 +761,7 @@ public sealed class FavourRuntime
             return;
         }
 
-        foreach (FavourObjectiveRuntime
-                 objective
+        foreach (FavourObjectiveRuntime objective
                  in objectives)
         {
             objective.HandleCharacterDefeated(
@@ -722,8 +785,7 @@ public sealed class FavourRuntime
 
     private void ActivateObjectives()
     {
-        foreach (FavourObjectiveRuntime
-                 objective
+        foreach (FavourObjectiveRuntime objective
                  in objectives)
         {
             objective?.Activate();
@@ -732,8 +794,7 @@ public sealed class FavourRuntime
 
     private void DeactivateObjectives()
     {
-        foreach (FavourObjectiveRuntime
-                 objective
+        foreach (FavourObjectiveRuntime objective
                  in objectives)
         {
             objective?.Deactivate();
@@ -742,8 +803,7 @@ public sealed class FavourRuntime
 
     public void ResetObjectives()
     {
-        foreach (FavourObjectiveRuntime
-                 objective
+        foreach (FavourObjectiveRuntime objective
                  in objectives)
         {
             objective?.ResetProgress();
@@ -759,9 +819,9 @@ public sealed class FavourRuntime
     // =========================================================
 
     public bool SetRewardChoiceSelected(
-    int groupIndex,
-    int optionIndex,
-    bool selected)
+        int groupIndex,
+        int optionIndex,
+        bool selected)
     {
         if (!CanChangeRewardSelections)
             return false;
@@ -814,10 +874,6 @@ public sealed class FavourRuntime
                 return true;
             }
 
-            /*
-             * En Choose 1-grupp fungerar som en radiogrupp:
-             * det tidigare valet ersätts direkt.
-             */
             if (choicesAllowed == 1)
             {
                 if (selections.Count > 0)
@@ -834,11 +890,6 @@ public sealed class FavourRuntime
             }
             else
             {
-                /*
-                 * För Choose 2+ måste spelaren fortfarande
-                 * avmarkera något innan ytterligare val görs
-                 * när gruppen är full.
-                 */
                 if (selections.Count >=
                     choicesAllowed)
                 {
@@ -1512,7 +1563,7 @@ public sealed class FavourRuntime
             option =>
             {
                 if (option.Type !=
-                    FavourRewardChoiceType.Ability ||
+                        FavourRewardChoiceType.Ability ||
                     option.Ability == null)
                 {
                     return;
@@ -1637,10 +1688,14 @@ public sealed class FavourRuntime
         );
     }
 
+    // =========================================================
+    // PRESENTATION API
+    // =========================================================
+
     public int ExperienceReward =>
-    Data != null
-        ? Data.ExperienceReward
-        : 0;
+        Data != null
+            ? Data.ExperienceReward
+            : 0;
 
     public int CurrencyReward =>
         rolledCurrencyReward;
@@ -1686,9 +1741,9 @@ public sealed class FavourRuntime
     }
 
     public string Id =>
-    Data != null
-        ? Data.Id
-        : string.Empty;
+        Data != null
+            ? Data.Id
+            : string.Empty;
 
     public string DisplayName =>
         Data != null

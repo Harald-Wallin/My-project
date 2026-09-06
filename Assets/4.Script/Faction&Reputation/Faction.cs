@@ -10,6 +10,20 @@ public class Faction : ScriptableObject
 
     public string factionName;
     [TextArea(3, 6)]
+
+    public string Id =>
+    PersistentIdUtility
+        .FromDisplayName(
+            DisplayName
+        );
+
+    public string DisplayName =>
+        string.IsNullOrWhiteSpace(
+            factionName
+        )
+            ? name
+            : factionName;
+
     public string loreDescription;
 
     public string factionCategory;

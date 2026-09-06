@@ -65,8 +65,6 @@ public sealed class FavourGiver :
 
     private void Start()
     {
-        EnsureMarker();
-
         RegisterBackgroundFavours();
 
         TrySubscribeToManager();
@@ -76,7 +74,6 @@ public sealed class FavourGiver :
 
     private void OnEnable()
     {
-        EnsureMarker();
         TrySubscribeToManager();
     }
 
@@ -84,6 +81,33 @@ public sealed class FavourGiver :
     {
         UnsubscribeFromManager();
     }
+
+
+    // ========================================================
+    // IDENTITY
+    // =======================================================
+
+    private EntityIdentity entityIdentity;
+
+    public EntityIdentity EntityIdentity
+    {
+        get
+        {
+            if (entityIdentity == null)
+            {
+                entityIdentity =
+                    GetComponent<
+                        EntityIdentity>();
+            }
+
+            return entityIdentity;
+        }
+    }
+
+    public string EntityId =>
+        EntityIdentity != null
+            ? EntityIdentity.Id
+            : string.Empty;
 
     // =========================================================
     // INTERACTION
@@ -98,18 +122,188 @@ public sealed class FavourGiver :
     /// interaktionen sker.
     /// </summary>
     public bool CanInteract(
-        in InteractionContext context)
+    in InteractionContext context)
     {
         if (!context.IsValid)
             return false;
 
-        if (context.Target == null)
+        PlayerFavourManager manager =
+            PlayerFavourManager.Instance;
+
+        if (manager == null)
             return false;
 
-        if (PlayerFavourManager.Instance == null)
+        return
+            HasLocalInteraction(
+                manager
+            ) ||
+            HasRelevantRuntime(
+                manager
+            );
+    }
+
+    private bool HasLocalInteraction(
+    PlayerFavourManager manager)
+    {
+        if (manager == null)
             return false;
 
-        return HasConfiguredFavour();
+        foreach (FavourData favour
+                 in favours)
+        {
+            if (favour == null)
+                continue;
+
+            /*
+             * Oregistrerad favour måste kunna interageras med
+             * så att ExplicitAccept/DiscoverOnInteraction kan
+             * registrera den.
+             */
+            if (!manager.TryGetRuntime(
+                    favour,
+                    out FavourRuntime runtime))
+            {
+                return true;
+            }
+
+            if (runtime != null &&
+                ShouldShowRuntimeHere(
+                    runtime))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool HasRelevantRuntime(
+    PlayerFavourManager manager)
+    {
+        if (manager == null ||
+            string.IsNullOrWhiteSpace(
+                EntityId))
+        {
+            return false;
+        }
+
+        foreach (FavourRuntime runtime
+                 in manager.Runtimes)
+        {
+            if (runtime == null)
+                continue;
+
+            /*
+             * Ready favour som ska lämnas in här.
+             */
+            if (runtime.State ==
+                    FavourState.ReadyToTurnIn &&
+                IsCompletionTargetFor(
+                    runtime))
+            {
+                return true;
+            }
+
+            /*
+             * Optional Completed-dialogue hos completion target.
+             */
+            if (runtime.State ==
+                    FavourState.Completed &&
+                IsCompletionTargetFor(
+                    runtime) &&
+                !string.IsNullOrWhiteSpace(
+                    GetDialogueFor(
+                        runtime)))
+            {
+                return true;
+            }
+
+            /*
+             * Ett vanligt InteractObjective får också göra denna
+             * entity interagerbar medan objective't är aktivt.
+             */
+            if (runtime.State !=
+                FavourState.Active)
+            {
+                continue;
+            }
+
+            foreach (FavourObjectiveRuntime objective
+                     in runtime.Objectives)
+            {
+                if (objective is
+                        InteractObjectiveRuntime interact &&
+                    interact.RequiresTarget(
+                        EntityId))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public bool IsCompletionTargetFor(
+    FavourRuntime runtime)
+    {
+        if (runtime == null ||
+            runtime.Data == null)
+        {
+            return false;
+        }
+
+        switch (runtime.CompletionPolicy)
+        {
+            case FavourCompletionPolicy
+                .ReturnToGiver:
+
+                return ContainsFavour(
+                    runtime.Data
+                );
+
+            case FavourCompletionPolicy
+                .CompleteAtTarget:
+
+            case FavourCompletionPolicy
+                .CompleteAtWorldObject:
+
+                return EntityTargetUtility
+                    .Matches(
+                        EntityIdentity,
+                        runtime
+                            .CompletionTargetId
+                    );
+
+            default:
+
+                return false;
+        }
+    }
+
+    public bool CanTurnIn(
+    FavourData favour)
+    {
+        if (favour == null)
+            return false;
+
+        PlayerFavourManager manager =
+            PlayerFavourManager.Instance;
+
+        if (manager == null ||
+            !manager.TryGetRuntime(
+                favour,
+                out FavourRuntime runtime))
+        {
+            return false;
+        }
+
+        return runtime != null &&
+               runtime.State ==
+                   FavourState.ReadyToTurnIn &&
+               IsCompletionTargetFor(
+                   runtime
+               );
     }
 
     /// <summary>
@@ -302,16 +496,22 @@ public sealed class FavourGiver :
     private void EnsureMarker()
     {
         if (marker != null)
+        {
+            RefreshMarkerAnchor();
             return;
+        }
 
         marker =
             GetComponentInChildren<
                 FavourMarker>(
-                true
-            );
+                    true
+                );
 
         if (marker != null)
+        {
+            RefreshMarkerAnchor();
             return;
+        }
 
         if (!autoCreateMarker ||
             markerPrefab == null)
@@ -335,6 +535,8 @@ public sealed class FavourGiver :
 
         marker.transform.localRotation =
             Quaternion.identity;
+
+        RefreshMarkerAnchor();
     }
 
     private void TrySubscribeToManager()
@@ -385,37 +587,38 @@ public sealed class FavourGiver :
     }
 
     private void HandleMarkerFavourChanged(
-        FavourRuntime runtime)
+    FavourRuntime runtime)
     {
-        if (runtime == null ||
-            runtime.Data == null)
-        {
-            return;
-        }
-
-        if (!ContainsFavour(
-                runtime.Data))
-        {
-            return;
-        }
-
         RefreshMarker();
     }
 
     private void RefreshMarker()
     {
+        FavourMarkerVisualState state =
+            GetMarkerState();
+
+        /*
+         * Skapa aldrig en marker enbart för att hålla den Hidden.
+         */
+        if (state ==
+                FavourMarkerVisualState.Hidden &&
+            marker == null)
+        {
+            return;
+        }
+
         EnsureMarker();
 
         if (marker == null)
             return;
 
         marker.SetState(
-            GetMarkerState()
+            state
         );
     }
 
     private FavourMarkerVisualState
-        GetMarkerState()
+    GetMarkerState()
     {
         PlayerFavourManager manager =
             PlayerFavourManager.Instance;
@@ -430,6 +633,9 @@ public sealed class FavourGiver :
             strongestState =
                 FavourMarkerVisualState.Hidden;
 
+        /*
+         * Favours som denna entity själv erbjuder.
+         */
         foreach (FavourData favour
                  in favours)
         {
@@ -456,64 +662,77 @@ public sealed class FavourGiver :
             if (runtime == null)
                 continue;
 
-            FavourMarkerVisualState state =
-                GetMarkerStateForRuntime(
-                    runtime
-                );
-
-            strongestState =
-                GetStrongerMarkerState(
-                    strongestState,
-                    state
-                );
-
-            if (strongestState ==
-                FavourMarkerVisualState.Gold)
+            switch (runtime.State)
             {
-                return strongestState;
+                case FavourState.Available:
+
+                    strongestState =
+                        GetStrongerMarkerState(
+                            strongestState,
+                            FavourMarkerVisualState
+                                .Bronze
+                        );
+
+                    break;
+
+                case FavourState.Active:
+
+                    strongestState =
+                        GetStrongerMarkerState(
+                            strongestState,
+                            FavourMarkerVisualState
+                                .Silver
+                        );
+
+                    break;
+
+                case FavourState.ReadyToTurnIn:
+
+                    /*
+                     * GOLD visas endast där favourn faktiskt
+                     * kan lämnas in.
+                     */
+                    if (IsCompletionTargetFor(
+                            runtime))
+                    {
+                        return
+                            FavourMarkerVisualState
+                                .Gold;
+                    }
+
+                    break;
+            }
+        }
+
+        /*
+         * Denna entity kan vara completion target för en favour
+         * den INTE själv äger.
+         *
+         * Exempel:
+         * Umfrin gav favourn, Fanarik är recipient.
+         */
+        foreach (FavourRuntime runtime
+                 in manager.Runtimes)
+        {
+            if (runtime == null ||
+                runtime.State !=
+                    FavourState.ReadyToTurnIn)
+            {
+                continue;
+            }
+
+            if (IsCompletionTargetFor(
+                    runtime))
+            {
+                return
+                    FavourMarkerVisualState
+                        .Gold;
             }
         }
 
         return strongestState;
     }
 
-    private static FavourMarkerVisualState
-        GetMarkerStateForRuntime(
-            FavourRuntime runtime)
-    {
-        if (runtime == null)
-        {
-            return
-                FavourMarkerVisualState.Hidden;
-        }
-
-        switch (runtime.State)
-        {
-            case FavourState.Available:
-
-                return
-                    FavourMarkerVisualState
-                        .Bronze;
-
-            case FavourState.Active:
-
-                return
-                    FavourMarkerVisualState
-                        .Silver;
-
-            case FavourState.ReadyToTurnIn:
-
-                return
-                    FavourMarkerVisualState
-                        .Gold;
-
-            default:
-
-                return
-                    FavourMarkerVisualState
-                        .Hidden;
-        }
-    }
 
     private static FavourMarkerVisualState
         GetStrongerMarkerState(
@@ -551,6 +770,28 @@ public sealed class FavourGiver :
         }
     }
 
+    private void RefreshMarkerAnchor()
+    {
+        if (marker == null)
+            return;
+
+        InteractionTarget target =
+            GetComponentInChildren<
+                InteractionTarget>(
+                    true
+                );
+
+        if (target == null ||
+            target.InteractionCollider == null)
+        {
+            return;
+        }
+
+        marker.AnchorToColliderBottom(
+            target.InteractionCollider
+        );
+    }
+
     // =========================================================
     // FAVOUR ACCESS
     // =========================================================
@@ -573,9 +814,9 @@ public sealed class FavourGiver :
     }
 
     public bool TryTurnIn(
-        FavourData favour)
+    FavourData favour)
     {
-        if (!ContainsFavour(
+        if (!CanTurnIn(
                 favour))
         {
             return false;
@@ -586,13 +827,20 @@ public sealed class FavourGiver :
 
         return manager != null &&
                manager.TryTurnIn(
-                   favour);
+                   favour
+               );
     }
 
-    public List<FavourRuntime> GetVisibleFavours()
+    public List<FavourRuntime>
+    GetVisibleFavours()
     {
         List<FavourRuntime> result =
             new();
+
+        HashSet<string> addedIds =
+            new(
+                System.StringComparer.Ordinal
+            );
 
         PlayerFavourManager manager =
             PlayerFavourManager.Instance;
@@ -600,7 +848,11 @@ public sealed class FavourGiver :
         if (manager == null)
             return result;
 
-        foreach (FavourData favour in favours)
+        /*
+         * Favours som denna entity själv erbjuder.
+         */
+        foreach (FavourData favour
+                 in favours)
         {
             if (favour == null)
                 continue;
@@ -612,31 +864,107 @@ public sealed class FavourGiver :
                 continue;
             }
 
-            if (runtime == null ||
-                runtime.State ==
-                FavourState.Unavailable)
+            if (!ShouldShowRuntimeHere(
+                    runtime))
             {
                 continue;
             }
 
-            result.Add(
-                runtime);
+            if (addedIds.Add(
+                    runtime.Id))
+            {
+                result.Add(
+                    runtime
+                );
+            }
+        }
+
+        /*
+         * Favours som denna entity är target/recipient för,
+         * utan att själv behöva äga FavourData i Inspector.
+         */
+        foreach (FavourRuntime runtime
+                 in manager.Runtimes)
+        {
+            if (runtime == null ||
+                addedIds.Contains(
+                    runtime.Id))
+            {
+                continue;
+            }
+
+            if (!ShouldShowRuntimeHere(
+                    runtime))
+            {
+                continue;
+            }
+
+            if (addedIds.Add(
+                    runtime.Id))
+            {
+                result.Add(
+                    runtime
+                );
+            }
         }
 
         return result;
     }
 
-    public bool TryGetVisibleRuntime(
-        FavourData favour,
-        out FavourRuntime runtime)
+    private bool ShouldShowRuntimeHere(
+    FavourRuntime runtime)
     {
-        runtime = null;
-
-        if (!ContainsFavour(
-                favour))
+        if (runtime == null ||
+            runtime.Data == null ||
+            runtime.State ==
+                FavourState.Unavailable)
         {
             return false;
         }
+
+        bool localGiver =
+            ContainsFavour(
+                runtime.Data
+            );
+
+        bool completionTarget =
+            IsCompletionTargetFor(
+                runtime
+            );
+
+        if (runtime.State ==
+            FavourState.ReadyToTurnIn)
+        {
+            return completionTarget;
+        }
+
+        if (runtime.State ==
+            FavourState.Completed)
+        {
+            string dialogue =
+                GetDialogueFor(
+                    runtime
+                );
+
+            return !string.IsNullOrWhiteSpace(
+                dialogue
+            );
+        }
+
+        /*
+         * Offer och Active visas hos den ursprungliga givaren.
+         */
+        return localGiver;
+    }
+
+    public bool TryGetVisibleRuntime(
+    FavourData favour,
+    out FavourRuntime runtime)
+    {
+        runtime = null;
+
+        if (favour == null)
+            return false;
 
         PlayerFavourManager manager =
             PlayerFavourManager.Instance;
@@ -650,9 +978,8 @@ public sealed class FavourGiver :
             return false;
         }
 
-        if (runtime == null ||
-            runtime.State ==
-            FavourState.Unavailable)
+        if (!ShouldShowRuntimeHere(
+                runtime))
         {
             runtime = null;
             return false;
@@ -678,5 +1005,77 @@ public sealed class FavourGiver :
         }
 
         return false;
+    }
+
+
+    // =========================================================
+    // Dialogue
+    // =========================================================
+    public string GetDialogueFor(
+    FavourRuntime runtime)
+    {
+        if (runtime?.Data == null)
+            return string.Empty;
+
+        bool localGiver =
+            ContainsFavour(
+                runtime.Data
+            );
+
+        bool completionTarget =
+            IsCompletionTargetFor(
+                runtime
+            );
+
+        /*
+         * Ett separat completion target äger framför allt
+         * ReadyToTurnIn / Completed-dialogen.
+         */
+        if (completionTarget &&
+            runtime.Data
+                .CompletionDialogueSet != null)
+        {
+            if (runtime.State ==
+                    FavourState.ReadyToTurnIn ||
+                runtime.State ==
+                    FavourState.Completed)
+            {
+                string completionDialogue =
+                    runtime.Data
+                        .CompletionDialogueSet
+                        .GetDialogue(
+                            runtime.State
+                        );
+
+                if (!string.IsNullOrWhiteSpace(
+                        completionDialogue))
+                {
+                    return completionDialogue;
+                }
+            }
+        }
+
+        if (localGiver &&
+            runtime.Data.DialogueSet != null)
+        {
+            return runtime.Data
+                .DialogueSet
+                .GetDialogue(
+                    runtime.State
+                );
+        }
+
+        if (completionTarget &&
+            runtime.Data
+                .CompletionDialogueSet != null)
+        {
+            return runtime.Data
+                .CompletionDialogueSet
+                .GetDialogue(
+                    runtime.State
+                );
+        }
+
+        return string.Empty;
     }
 }

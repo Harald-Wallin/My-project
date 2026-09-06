@@ -536,7 +536,13 @@ public sealed class FavourWindow :
         if (dialogueText != null)
         {
             string dialogue =
-                CurrentRuntime.CurrentDialogue;
+                CurrentGiver != null
+                ? CurrentGiver
+                .GetDialogueFor(
+                CurrentRuntime
+                )
+                : CurrentRuntime
+                .CurrentDialogue;
 
             if (string.IsNullOrWhiteSpace(
                     dialogue))
@@ -608,6 +614,10 @@ public sealed class FavourWindow :
             return;
         }
 
+        /*
+         * Vanliga gameplay-objectives:
+         * Kill, Collect, Interact osv.
+         */
         foreach (FavourObjectiveRuntime objective
                  in CurrentRuntime.Objectives)
         {
@@ -629,27 +639,53 @@ public sealed class FavourWindow :
             );
         }
 
-        if (CurrentRuntime
-            .ShouldShowReturnToGiverObjective)
+        /*
+         * Separat destination / turn-in-rad.
+         *
+         * Normal ReturnToGiver:
+         * "Return to Master Umfrin"
+         *
+         * Courier / CompleteAtTarget:
+         * "Return to Hirdman Fanarik"
+         */
+        if (!CurrentRuntime
+                .ShouldShowTurnInObjective)
         {
-            FavourObjectiveRowUI returnRow =
-                Instantiate(
-                    objectiveRowPrefab,
-                    objectiveContainer
-                );
+            return;
+        }
 
-            returnRow.BindReturnToGiver(
+        string targetName;
+
+        if (CurrentRuntime
+            .UsesSpecificCompletionTarget)
+        {
+            targetName =
+                CurrentRuntime
+                    .CompletionTargetDisplayName;
+        }
+        else
+        {
+            targetName =
                 CurrentGiver != null
                     ? CurrentGiver.GiverName
-                    : string.Empty,
-                CurrentRuntime.State ==
-                    FavourState.ReadyToTurnIn
+                    : string.Empty;
+        }
+
+        FavourObjectiveRowUI returnRow =
+            Instantiate(
+                objectiveRowPrefab,
+                objectiveContainer
             );
 
-            objectiveRows.Add(
-                returnRow
-            );
-        }
+        returnRow.BindReturnToGiver(
+            targetName,
+            CurrentRuntime.State ==
+                FavourState.ReadyToTurnIn
+        );
+
+        objectiveRows.Add(
+            returnRow
+        );
     }
 
     private void ClearRewardChoices()
@@ -1135,7 +1171,11 @@ public sealed class FavourWindow :
         {
             bool visible =
                 CurrentRuntime.State ==
-                FavourState.ReadyToTurnIn;
+                    FavourState.ReadyToTurnIn &&
+                CurrentGiver != null &&
+                CurrentGiver.CanTurnIn(
+                    CurrentRuntime.Data
+                );
 
             completeButton.gameObject.SetActive(
                 visible

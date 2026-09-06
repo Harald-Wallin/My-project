@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a845d5b2ad00dc548a9a92dd453395f0, type: 3}
+  m_Name: Howls Across The Plains FAVOUR
+  m_EditorClassIdentifier: Assembly-CSharp::FavourData
+  displayName: Howls Across The Plains
+  description: 
+  category: 1
+  activationPolicy: 0
+  completionPolicy: 1
+  objectives:
+  - {fileID: 11400000, guid: 9c759d488c806474ab70183cedefe0a8, type: 2}
+  - {fileID: 11400000, guid: 8c316b9ed74268f47a684f68154e5d43, type: 2}
+  dialogueSet: {fileID: 11400000, guid: 1f5c544cbda3fad41bb8269f6fe5f6dc, type: 2}
+  experienceReward: 120
+  minimumCurrencyReward: 0
+  maximumCurrencyReward: 0
+  reputationRewards:
+  - faction: {fileID: 11400000, guid: c5488bdfa9793df41979c93540acac0b, type: 2}
+    amount: 500
+    discoverFaction: 0
+  itemRewards: []
+  abilityRewards: []
+  rewardChoiceGroups: []
+  minimumLevel: 0
+  minimumCurrency: 0
+  reputationRequirements: []
+  itemRequirements: []
+  requiredCompletedFavours: []
+  forbiddenCompletedFavours: []
+  failureSettings:
+    policy: 1
+    retryCooldownSeconds: 0
+  repeatSettings:
+    repeatable: 0
+    repeatCooldownSeconds: 0
+  followUps: []

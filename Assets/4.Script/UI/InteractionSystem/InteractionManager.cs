@@ -277,7 +277,20 @@ public sealed class InteractionManager : MonoBehaviour
             return false;
         }
 
-        option.Interact(context);
+        InteractionEvents
+    .RaiseInteractionCommitted(
+        context
+    );
+
+        option.Interact(
+            context
+        );
+
+        InteractionEvents
+            .RaiseInteractionCompleted(
+                context
+            );
+
         return true;
     }
 

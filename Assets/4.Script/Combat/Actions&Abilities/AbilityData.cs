@@ -18,6 +18,19 @@ public class AbilityData :
 
     public string abilityName;
 
+    public string Id =>
+    PersistentIdUtility
+        .FromDisplayName(
+            DisplayName
+        );
+
+    public string DisplayName =>
+        string.IsNullOrWhiteSpace(
+            abilityName
+        )
+            ? name
+            : abilityName;
+
     [TextArea]
     public string description;
 

@@ -22,11 +22,11 @@ GameObject:
   - component: {fileID: 5293376646054317175}
   - component: {fileID: -261900148879597633}
   - component: {fileID: -2890300438920332383}
-  - component: {fileID: -1018831399304009737}
   - component: {fileID: -2672624628164567342}
   - component: {fileID: 1540313279361898670}
   - component: {fileID: 8123274129049092888}
   - component: {fileID: -2316579323139889105}
+  - component: {fileID: 3480348074587073127}
   m_Layer: 8
   m_Name: Humanoid
   m_TagString: Enemy
@@ -51,7 +51,6 @@ Transform:
   - {fileID: 1370470844814314868}
   - {fileID: 5155013851662899411}
   - {fileID: 7898174353608685603}
-  - {fileID: 3693471804521312398}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &5193763684926670723
@@ -360,6 +359,7 @@ MonoBehaviour:
   maxDistanceFromSpawn: 8
   abilityDelayAfterAggro: 3
   stopDistanceDefault: 1
+  aggroDelayAfterSpawn: 2
   canAggro: 1
   aggroRange: 4
   threatDetectionLayers:
@@ -416,19 +416,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FactionDiscoverySource
   discoveryRadius: 5
---- !u!114 &-1018831399304009737
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3459725347379031730}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 255afc9569f6a7046b89bbd1e03f8fc8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AbilityController
-  equippedAbilities: []
 --- !u!114 &-2672624628164567342
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -509,6 +496,19 @@ MonoBehaviour:
   baseAttacks:
   - {fileID: 0}
   - {fileID: 0}
+--- !u!114 &3480348074587073127
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b92ed420d0f4ca14093f3d6a8161c198, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EntityIdentity
+  entityName: 
 --- !u!1 &3778626201625969471
 GameObject:
   m_ObjectHideFlags: 0
@@ -520,8 +520,9 @@ GameObject:
   - component: {fileID: 7898174353608685603}
   - component: {fileID: 5165966115764600509}
   - component: {fileID: 5114960002462248386}
+  - component: {fileID: 1459757640117062353}
   m_Layer: 6
-  m_Name: CombatHitBox
+  m_Name: Hitbox
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -592,89 +593,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatHitbox
   owner: {fileID: 0}
---- !u!1 &5730857472071540917
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 3693471804521312398}
-  - component: {fileID: 7235229465465095407}
-  - component: {fileID: 4959554259922358776}
-  m_Layer: 11
-  m_Name: InteractionCollider
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &3693471804521312398
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5730857472071540917}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 4234482838763025597}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!70 &7235229465465095407
-CapsuleCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5730857472071540917}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0.9}
-  m_Size: {x: 0.7, y: 1.7}
-  m_Direction: 0
---- !u!114 &4959554259922358776
+--- !u!114 &1459757640117062353
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5730857472071540917}
+  m_GameObject: {fileID: 3778626201625969471}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a60829bd6a2f7b74ca285e31418ccacb, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::WorldInteractionTarget
-  interactionOwner: {fileID: 3459725347379031730}
+  m_EditorClassIdentifier: Assembly-CSharp::InteractionTarget
+  interactionOwner: {fileID: 0}
   interactionDistance: 3
   windowCloseDistance: 3.5
 --- !u!1 &9027451318330781779

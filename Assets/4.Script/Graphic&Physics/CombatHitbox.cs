@@ -1,16 +1,31 @@
 using UnityEngine;
 
-public class CombatHitbox : MonoBehaviour
+[RequireComponent(typeof(Collider2D))]
+public sealed class CombatHitbox :
+    MonoBehaviour
 {
-    [SerializeField] private CharacterStats owner;
+    [SerializeField]
+    private CharacterStats owner;
 
-    public CharacterStats Owner => owner;
+    public CharacterStats Owner =>
+        owner;
 
-    void Awake()
+    public Collider2D Collider
     {
+        get;
+        private set;
+    }
+
+    private void Awake()
+    {
+        Collider =
+            GetComponent<Collider2D>();
+
         if (owner == null)
         {
-            owner = GetComponentInParent<CharacterStats>();
+            owner =
+                GetComponentInParent<
+                    CharacterStats>();
         }
     }
 }

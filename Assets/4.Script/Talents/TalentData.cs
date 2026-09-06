@@ -14,6 +14,19 @@ public sealed class TalentData :
 
     public string talentName;
 
+    public string Id =>
+    PersistentIdUtility
+        .FromDisplayName(
+            DisplayName
+        );
+
+    public string DisplayName =>
+        string.IsNullOrWhiteSpace(
+            talentName
+        )
+            ? name
+            : talentName;
+
     [TextArea]
     public string description;
 

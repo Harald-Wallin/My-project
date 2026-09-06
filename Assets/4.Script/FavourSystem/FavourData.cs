@@ -8,14 +8,9 @@ using UnityEngine;
 public sealed class FavourData :
     ScriptableObject
 {
-    [Header("Identity")]
-
-    [SerializeField]
-    [Tooltip(
-        "Permanent ID för save/load. " +
-        "Ändra inte efter release."
-    )]
-    private string id;
+    // =========================================================
+    // IDENTITY / PRESENTATION
+    // =========================================================
 
     [SerializeField]
     private string displayName;
@@ -27,6 +22,10 @@ public sealed class FavourData :
     [SerializeField]
     private FavourType category =
         FavourType.General;
+
+    // =========================================================
+    // FLOW
+    // =========================================================
 
     [Header("Flow")]
 
@@ -41,6 +40,25 @@ public sealed class FavourData :
         completionPolicy =
             FavourCompletionPolicy
                 .ReturnToGiver;
+
+    [SerializeField]
+    [Tooltip(
+        "Courier-favours har inga vanliga objectives. " +
+        "När favourn accepteras blir den omedelbart " +
+        "ReadyToTurnIn och kan lämnas in hos sin " +
+        "completion target."
+    )]
+    private bool isCourier;
+
+    [SerializeField]
+    [Tooltip(
+        "Entity som favourn ska lämnas in till när en " +
+        "specifik completion target används.\n\n" +
+        "Du kan dra ett scene object eller prefab hit. " +
+        "Endast EntityIdentity-ID:t sparas."
+    )]
+    private EntityReference completionTarget =
+        new();
 
     // =========================================================
     // OBJECTIVES
@@ -60,7 +78,20 @@ public sealed class FavourData :
     [Header("Dialogue")]
 
     [SerializeField]
+    [Tooltip(
+        "Dialog som normalt används hos den entity " +
+        "som erbjuder favourn."
+    )]
     private FavourDialogueSet dialogueSet;
+
+    [SerializeField]
+    [Tooltip(
+        "Dialog som används av ett separat completion target, " +
+        "exempelvis Hirdman Fanarik när Master Umfrin " +
+        "gav favourn."
+    )]
+    private FavourDialogueSet
+        completionDialogueSet;
 
     // =========================================================
     // REWARDS
@@ -71,7 +102,6 @@ public sealed class FavourData :
     [SerializeField]
     [Min(0)]
     private int experienceReward;
-
 
     [SerializeField]
     [Min(0)]
@@ -178,15 +208,19 @@ public sealed class FavourData :
         "Endast UX-hjälp. Requirements avgör fortfarande " +
         "om follow-up-favouren är tillgänglig."
     )]
-    private List<FavourData> followUps =
-        new();
+    private List<FavourData>
+        followUps =
+            new();
 
     // =========================================================
     // IDENTITY API
     // =========================================================
 
     public string Id =>
-        id;
+        PersistentIdUtility
+            .FromDisplayName(
+                DisplayName
+            );
 
     public string DisplayName =>
         string.IsNullOrWhiteSpace(
@@ -213,6 +247,27 @@ public sealed class FavourData :
         CompletionPolicy =>
             completionPolicy;
 
+    public bool IsCourier =>
+        isCourier;
+
+    public bool UsesSpecificCompletionTarget =>
+        completionPolicy ==
+            FavourCompletionPolicy
+                .CompleteAtTarget ||
+        completionPolicy ==
+            FavourCompletionPolicy
+                .CompleteAtWorldObject;
+
+    public string CompletionTargetId =>
+        completionTarget != null
+            ? completionTarget.Id
+            : string.Empty;
+
+    public string CompletionTargetDisplayName =>
+        completionTarget != null
+            ? completionTarget.DisplayName
+            : string.Empty;
+
     // =========================================================
     // OBJECTIVE / DIALOGUE API
     // =========================================================
@@ -225,6 +280,10 @@ public sealed class FavourData :
     public FavourDialogueSet DialogueSet =>
         dialogueSet;
 
+    public FavourDialogueSet
+        CompletionDialogueSet =>
+            completionDialogueSet;
+
     // =========================================================
     // REWARD API
     // =========================================================
@@ -236,10 +295,10 @@ public sealed class FavourData :
         );
 
     public int MinimumCurrencyReward =>
-    Mathf.Max(
-        0,
-        minimumCurrencyReward
-    );
+        Mathf.Max(
+            0,
+            minimumCurrencyReward
+        );
 
     public int MaximumCurrencyReward =>
         Mathf.Max(
@@ -322,11 +381,9 @@ public sealed class FavourData :
             followUps;
 
 #if UNITY_EDITOR
+
     private void OnValidate()
     {
-        id =
-            id?.Trim();
-
         experienceReward =
             Mathf.Max(
                 0,
@@ -335,8 +392,8 @@ public sealed class FavourData :
 
         minimumCurrencyReward =
             Mathf.Max(
-        0,
-        minimumCurrencyReward
+                0,
+                minimumCurrencyReward
             );
 
         maximumCurrencyReward =
@@ -356,6 +413,9 @@ public sealed class FavourData :
                 0,
                 minimumCurrency
             );
+
+        completionTarget ??=
+            new EntityReference();
 
         objectives ??=
             new List<FavourObjectiveData>();
@@ -392,7 +452,6 @@ public sealed class FavourData :
         followUps ??=
             new List<FavourData>();
 
-
         foreach (FavourRewardChoiceGroup
                  group
                  in rewardChoiceGroups)
@@ -400,16 +459,15 @@ public sealed class FavourData :
             group?.Normalize();
         }
 
-        if (string.IsNullOrWhiteSpace(
-                id))
-        {
-            Debug.LogWarning(
-                $"FavourData '{name}' saknar permanent ID.",
-                this
-            );
-        }
+        ValidateFlow();
+        ValidateRewardEntries();
+        ValidateRequirementEntries();
+    }
 
-        if (objectives.Count == 0)
+    private void ValidateFlow()
+    {
+        if (!isCourier &&
+            objectives.Count == 0)
         {
             Debug.LogWarning(
                 $"FavourData '{name}' saknar objectives.",
@@ -417,8 +475,51 @@ public sealed class FavourData :
             );
         }
 
-        ValidateRewardEntries();
-        ValidateRequirementEntries();
+        if (isCourier &&
+            objectives.Count > 0)
+        {
+            Debug.LogWarning(
+                $"Courier-favour '{name}' har objectives. " +
+                "En Courier ska normalt sakna vanliga objectives " +
+                "eftersom den blir ReadyToTurnIn direkt när " +
+                "den accepteras.",
+                this
+            );
+        }
+
+        if (isCourier &&
+            completionPolicy ==
+                FavourCompletionPolicy.Automatic)
+        {
+            Debug.LogWarning(
+                $"Courier-favour '{name}' använder Automatic " +
+                "completion. En Courier behöver en faktisk " +
+                "turn-in destination.",
+                this
+            );
+        }
+
+        if (isCourier &&
+            !UsesSpecificCompletionTarget)
+        {
+            Debug.LogWarning(
+                $"Courier-favour '{name}' måste använda " +
+                $"CompleteAtTarget eller CompleteAtWorldObject.",
+                this
+            );
+        }
+
+        if (UsesSpecificCompletionTarget &&
+            string.IsNullOrWhiteSpace(
+                CompletionTargetId))
+        {
+            Debug.LogWarning(
+                $"FavourData '{name}' använder en specifik " +
+                $"completion target men saknar ett giltigt " +
+                $"Completion Target.",
+                this
+            );
+        }
     }
 
     private void ValidateRewardEntries()
@@ -521,5 +622,6 @@ public sealed class FavourData :
             }
         }
     }
+
 #endif
 }

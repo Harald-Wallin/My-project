@@ -37,6 +37,23 @@ public sealed class InteractionTarget :
     public Transform InteractionTransform =>
         InteractionOwner.transform;
 
+    public EntityIdentity Identity
+    {
+        get
+        {
+            GameObject owner =
+                InteractionOwner;
+
+            if (owner == null)
+                return null;
+
+            return EntityTargetUtility
+                .GetIdentity(
+                    owner
+                );
+        }
+    }
+
     public Collider2D InteractionCollider =>
         interactionCollider;
 

@@ -466,6 +466,45 @@ public sealed class FavourMarker :
         }
     }
 
+    public void AnchorToColliderBottom(
+    Collider2D targetCollider)
+    {
+        if (targetCollider == null)
+            return;
+
+        Bounds bounds =
+            targetCollider.bounds;
+
+        Vector3 worldPosition =
+            new Vector3(
+                bounds.center.x,
+                bounds.min.y,
+                transform.position.z
+            );
+
+        Transform parent =
+            transform.parent;
+
+        if (parent != null)
+        {
+            Vector3 localPosition =
+                parent.InverseTransformPoint(
+                    worldPosition
+                );
+
+            localPosition.z =
+                transform.localPosition.z;
+
+            transform.localPosition =
+                localPosition;
+        }
+        else
+        {
+            transform.position =
+                worldPosition;
+        }
+    }
+
 #if UNITY_EDITOR
     private void OnValidate()
     {

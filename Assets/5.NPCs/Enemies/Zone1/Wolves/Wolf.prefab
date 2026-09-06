@@ -132,6 +132,7 @@ GameObject:
   - component: {fileID: 3005642618300060603}
   - component: {fileID: -7217729489899146503}
   - component: {fileID: -8855530114388049432}
+  - component: {fileID: 5288397146985976087}
   m_Layer: 8
   m_Name: Wolf
   m_TagString: Enemy
@@ -548,6 +549,19 @@ MonoBehaviour:
   baseAttacks:
   - {fileID: 11400000, guid: 83d5314be1a2a9a4697b658f29a26d08, type: 2}
   - {fileID: 0}
+--- !u!114 &5288397146985976087
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3459725347379031730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b92ed420d0f4ca14093f3d6a8161c198, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EntityIdentity
+  entityName: 
 --- !u!1 &5964683598601086679
 GameObject:
   m_ObjectHideFlags: 0
@@ -590,8 +604,9 @@ GameObject:
   - component: {fileID: 8862865810723209207}
   - component: {fileID: 8937783593349945167}
   - component: {fileID: 6123963031258113285}
+  - component: {fileID: 8503955186129141022}
   m_Layer: 6
-  m_Name: CombatHitBox
+  m_Name: Hitbox
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -662,6 +677,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatHitbox
   owner: {fileID: 0}
+--- !u!114 &8503955186129141022
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6847279752748258770}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a60829bd6a2f7b74ca285e31418ccacb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteractionTarget
+  interactionOwner: {fileID: 0}
+  interactionDistance: 3
+  windowCloseDistance: 3.5
 --- !u!1001 &3490736532686318141
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -39,14 +39,7 @@ public class ItemData :
     ScriptableObject,
     ITooltipProvider
 {
-    [Header("Identity")]
 
-    [SerializeField]
-    [Tooltip(
-        "Permanent ID för favours och save/load. " +
-        "Ändra inte efter release."
-    )]
-    private string id;
 
     [Header("Basic Info")]
 
@@ -150,7 +143,10 @@ public class ItemData :
     private float sellMultiplier = 0.6f;
 
     public string Id =>
-        id;
+    PersistentIdUtility
+        .FromDisplayName(
+            DisplayName
+        );
 
     public FavourData RequiredFavour =>
     requiredFavour;
@@ -460,7 +456,6 @@ public class ItemData :
 
     protected virtual void OnValidate()
     {
-        id = id?.Trim();
 
         maxStack = stackable
                 ? Mathf.Max(
@@ -477,14 +472,6 @@ public class ItemData :
             Debug.LogWarning(
                 $"FavourItem '{name}' saknar Required Favour.",
                 this);
-        }
-
-        if (string.IsNullOrWhiteSpace(id))
-        {
-            Debug.LogWarning(
-                $"ItemData '{name}' saknar permanent ID.",
-                this
-            );
         }
 
         foodHealingPerTick =
