@@ -30,6 +30,14 @@ public class NPCBehavior : MonoBehaviour
     float stopDistanceDefault = 1f;
 
     [Header("Aggro")]
+
+    [SerializeField]
+    [Min(0f)]
+    [Tooltip(
+    "Hur länge en NPC som spawnas av en MobSpawner " +
+    "ignorerar proximity-aggro efter spawn/respawn."
+)]
+    private float aggroDelayAfterSpawn = 2f;
     [SerializeField]
     protected bool canAggro = true;
     public float aggroRange = 4f;
@@ -44,6 +52,8 @@ public class NPCBehavior : MonoBehaviour
     [Tooltip(
     "Collider-lager som används när NPC:n söker efter hot. " +
     "Ska normalt inkludera Hitbox.")]
+
+
 
     private LayerMask threatDetectionLayers;
 
@@ -142,9 +152,6 @@ public class NPCBehavior : MonoBehaviour
         abilityCollection =
             GetComponent<PlayerAbilityCollection>();
 
-        actionController =
-            GetComponent<CharacterActionController>();
-
         selfStats =
             GetComponent<CharacterStats>();
 
@@ -227,9 +234,21 @@ public class NPCBehavior : MonoBehaviour
 
     private MobSpawner spawner;
 
-    public void SetSpawner(MobSpawner newSpawner)
+    public void SetSpawner(
+    MobSpawner newSpawner,
+    bool applySpawnAggroDelay)
     {
-        spawner = newSpawner;
+        spawner =
+            newSpawner;
+
+        if (applySpawnAggroDelay)
+        {
+            aggroDisableTimer =
+                Mathf.Max(
+                    aggroDisableTimer,
+                    aggroDelayAfterSpawn
+                );
+        }
     }
 
     public void SetPatrolPath(PatrolPath path)

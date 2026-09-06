@@ -65,7 +65,24 @@ public sealed class FavourGiver :
 
     private void Start()
     {
+        EnsureMarker();
+
         RegisterBackgroundFavours();
+
+        TrySubscribeToManager();
+
+        RefreshMarker();
+    }
+
+    private void OnEnable()
+    {
+        EnsureMarker();
+        TrySubscribeToManager();
+    }
+
+    private void OnDisable()
+    {
+        UnsubscribeFromManager();
     }
 
     // =========================================================
@@ -137,7 +154,39 @@ public sealed class FavourGiver :
         window.Open(
             this,
             context.Target);
+
+        RefreshMarker();
     }
+
+    [Header("Favour Marker")]
+
+    [SerializeField]
+    [Tooltip(
+    "Marker-prefaben som automatiskt skapas under denna " +
+    "FavourGiver om ingen FavourMarker redan finns.")]
+    private FavourMarker markerPrefab;
+
+    [SerializeField]
+    [Tooltip(
+        "Valfri parent för markern. Om tom används FavourGiver-rooten.")]
+    private Transform markerParent;
+
+    [SerializeField]
+    private bool autoCreateMarker =
+        true;
+
+    [SerializeField]
+    [Tooltip(
+        "Om aktiverad visas Bronze även för konfigurerade " +
+        "favours som ännu inte registrerats hos spelaren. " +
+        "Bra för vanliga quest/favour-givers.")]
+    private bool showUnregisteredFavours =
+        true;
+
+    private FavourMarker marker;
+
+    private PlayerFavourManager
+        subscribedManager;
 
     // =========================================================
     // REGISTRATION
@@ -243,6 +292,262 @@ public sealed class FavourGiver :
             FavourState.Available)
         {
             runtime.TryActivate();
+        }
+    }
+
+    // =========================================================
+    // FAVOUR MARKER
+    // =========================================================
+
+    private void EnsureMarker()
+    {
+        if (marker != null)
+            return;
+
+        marker =
+            GetComponentInChildren<
+                FavourMarker>(
+                true
+            );
+
+        if (marker != null)
+            return;
+
+        if (!autoCreateMarker ||
+            markerPrefab == null)
+        {
+            return;
+        }
+
+        Transform parent =
+            markerParent != null
+                ? markerParent
+                : transform;
+
+        marker =
+            Instantiate(
+                markerPrefab,
+                parent
+            );
+
+        marker.transform.localPosition =
+            Vector3.zero;
+
+        marker.transform.localRotation =
+            Quaternion.identity;
+    }
+
+    private void TrySubscribeToManager()
+    {
+        PlayerFavourManager manager =
+            PlayerFavourManager.Instance;
+
+        if (manager == null)
+            return;
+
+        if (subscribedManager ==
+            manager)
+        {
+            return;
+        }
+
+        UnsubscribeFromManager();
+
+        subscribedManager =
+            manager;
+
+        subscribedManager.FavourRegistered +=
+            HandleMarkerFavourChanged;
+
+        subscribedManager.FavourStateChanged +=
+            HandleMarkerFavourChanged;
+
+        subscribedManager.FavourProgressChanged +=
+            HandleMarkerFavourChanged;
+    }
+
+    private void UnsubscribeFromManager()
+    {
+        if (subscribedManager == null)
+            return;
+
+        subscribedManager.FavourRegistered -=
+            HandleMarkerFavourChanged;
+
+        subscribedManager.FavourStateChanged -=
+            HandleMarkerFavourChanged;
+
+        subscribedManager.FavourProgressChanged -=
+            HandleMarkerFavourChanged;
+
+        subscribedManager =
+            null;
+    }
+
+    private void HandleMarkerFavourChanged(
+        FavourRuntime runtime)
+    {
+        if (runtime == null ||
+            runtime.Data == null)
+        {
+            return;
+        }
+
+        if (!ContainsFavour(
+                runtime.Data))
+        {
+            return;
+        }
+
+        RefreshMarker();
+    }
+
+    private void RefreshMarker()
+    {
+        EnsureMarker();
+
+        if (marker == null)
+            return;
+
+        marker.SetState(
+            GetMarkerState()
+        );
+    }
+
+    private FavourMarkerVisualState
+        GetMarkerState()
+    {
+        PlayerFavourManager manager =
+            PlayerFavourManager.Instance;
+
+        if (manager == null)
+        {
+            return
+                FavourMarkerVisualState.Hidden;
+        }
+
+        FavourMarkerVisualState
+            strongestState =
+                FavourMarkerVisualState.Hidden;
+
+        foreach (FavourData favour
+                 in favours)
+        {
+            if (favour == null)
+                continue;
+
+            if (!manager.TryGetRuntime(
+                    favour,
+                    out FavourRuntime runtime))
+            {
+                if (showUnregisteredFavours)
+                {
+                    strongestState =
+                        GetStrongerMarkerState(
+                            strongestState,
+                            FavourMarkerVisualState
+                                .Bronze
+                        );
+                }
+
+                continue;
+            }
+
+            if (runtime == null)
+                continue;
+
+            FavourMarkerVisualState state =
+                GetMarkerStateForRuntime(
+                    runtime
+                );
+
+            strongestState =
+                GetStrongerMarkerState(
+                    strongestState,
+                    state
+                );
+
+            if (strongestState ==
+                FavourMarkerVisualState.Gold)
+            {
+                return strongestState;
+            }
+        }
+
+        return strongestState;
+    }
+
+    private static FavourMarkerVisualState
+        GetMarkerStateForRuntime(
+            FavourRuntime runtime)
+    {
+        if (runtime == null)
+        {
+            return
+                FavourMarkerVisualState.Hidden;
+        }
+
+        switch (runtime.State)
+        {
+            case FavourState.Available:
+
+                return
+                    FavourMarkerVisualState
+                        .Bronze;
+
+            case FavourState.Active:
+
+                return
+                    FavourMarkerVisualState
+                        .Silver;
+
+            case FavourState.ReadyToTurnIn:
+
+                return
+                    FavourMarkerVisualState
+                        .Gold;
+
+            default:
+
+                return
+                    FavourMarkerVisualState
+                        .Hidden;
+        }
+    }
+
+    private static FavourMarkerVisualState
+        GetStrongerMarkerState(
+            FavourMarkerVisualState current,
+            FavourMarkerVisualState candidate)
+    {
+        return GetMarkerPriority(candidate) >
+               GetMarkerPriority(current)
+            ? candidate
+            : current;
+    }
+
+    private static int GetMarkerPriority(
+        FavourMarkerVisualState state)
+    {
+        switch (state)
+        {
+            case FavourMarkerVisualState
+                .Gold:
+
+                return 3;
+
+            case FavourMarkerVisualState
+                .Silver:
+
+                return 2;
+
+            case FavourMarkerVisualState
+                .Bronze:
+
+                return 1;
+
+            default:
+                return 0;
         }
     }
 

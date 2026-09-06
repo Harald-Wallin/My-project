@@ -125,28 +125,6 @@ public class DeathReward :
         );
     }
 
-    /// <summary>
-    /// Legacy-ingång.
-    ///
-    /// Behålls tills alla äldre callers är migrerade.
-    /// Den delar endast ut progression och skapar INTE corpse.
-    /// </summary>
-    public void GiveRewards(
-        CharacterStats victim,
-        CharacterStats killer)
-    {
-        PlayerStats player =
-            killer as PlayerStats;
-
-        if (player == null)
-            return;
-
-        GiveRewardsInternal(
-            victim,
-            player
-        );
-    }
-
     // =========================================================
     // REWARD PAYOUT
     // =========================================================
@@ -306,6 +284,14 @@ public class DeathReward :
                 position,
                 Quaternion.identity
             );
+
+        Debug.Log(
+    $"[CORPSE] Spawned corpse '{corpse.name}' " +
+    $"for '{owner?.DisplayName ?? "Unknown"}' " +
+    $"at {position}. " +
+    $"PlayerLoot={generatePlayerLoot}",
+    corpse
+);
 
         LootContainer loot =
             corpse.GetComponent<

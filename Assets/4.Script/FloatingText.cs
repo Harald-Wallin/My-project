@@ -22,6 +22,9 @@ public class FloatingText : MonoBehaviour
     void Awake()
     {
         canvasGroup = GetComponentInParent<CanvasGroup>();
+
+        FloatingTextSorting.Apply(transform, text);
+
         timer = lifetime;
 
         originalTextScale =

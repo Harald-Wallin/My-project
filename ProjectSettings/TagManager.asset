@@ -57,5 +57,8 @@ TagManager:
   - name: UI
     uniqueID: 809265379
     locked: 0
+  - name: FloatingText
+    uniqueID: 1113990263
+    locked: 0
   m_RenderingLayers:
   - Default

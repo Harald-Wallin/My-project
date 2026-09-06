@@ -124,7 +124,6 @@ GameObject:
   - component: {fileID: 3520048928441293711}
   - component: {fileID: 6069970325683136558}
   - component: {fileID: 8211094807883814740}
-  - component: {fileID: 1898894088392311568}
   - component: {fileID: 4693989535447528578}
   - component: {fileID: 6584142422350811442}
   - component: {fileID: 1327340354901553847}
@@ -303,6 +302,7 @@ MonoBehaviour:
   maxDistanceFromSpawn: 15
   abilityDelayAfterAggro: 3
   stopDistanceDefault: 1
+  aggroDelayAfterSpawn: 2
   canAggro: 1
   aggroRange: 6
   threatDetectionLayers:
@@ -386,20 +386,6 @@ MonoBehaviour:
   alertDuration: 10
   hostilityDuration: 300
   createsFactionHostilityWhenAttacked: 0
---- !u!114 &1898894088392311568
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3459725347379031730}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 255afc9569f6a7046b89bbd1e03f8fc8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AbilityController
-  equippedAbilities:
-  - {fileID: 11400000, guid: 613ff67fc888d144bb81e6ce135926aa, type: 2}
 --- !u!114 &4693989535447528578
 MonoBehaviour:
   m_ObjectHideFlags: 0

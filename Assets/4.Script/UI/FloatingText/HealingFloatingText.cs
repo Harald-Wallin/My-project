@@ -61,6 +61,15 @@ public sealed class HealingFloatingText :
                 );
         }
 
+        if (text == null)
+        {
+            text =
+                GetComponentInChildren<
+                    TMP_Text>(
+                    true
+                );
+        }
+
         startPosition =
             transform.position;
 

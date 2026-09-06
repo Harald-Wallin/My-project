@@ -11,6 +11,7 @@ public class MobSpawner : MonoBehaviour
     [SerializeField] private PatrolPath patrolPath;
 
     private GameObject currentMob;
+    private bool hasSpawnedOnce;
 
     void Start()
     {
@@ -19,20 +20,38 @@ public class MobSpawner : MonoBehaviour
 
     void SpawnMob()
     {
-        currentMob = Instantiate(
-            mobPrefab,
-            transform.position,
-            Quaternion.identity);
+        bool isRespawn =
+            hasSpawnedOnce;
 
-        NPCBehavior ai = currentMob.GetComponent<NPCBehavior>();
+        currentMob =
+            Instantiate(
+                mobPrefab,
+                transform.position,
+                Quaternion.identity
+            );
+
+        NPCBehavior ai =
+            currentMob.GetComponent<
+                NPCBehavior>();
 
         if (ai != null)
         {
-            ai.SetSpawner(this);
+            ai.SetSpawner(
+                this,
+                applySpawnAggroDelay:
+                    isRespawn
+            );
 
             if (patrolPath != null)
-                ai.SetPatrolPath(patrolPath);
+            {
+                ai.SetPatrolPath(
+                    patrolPath
+                );
+            }
         }
+
+        hasSpawnedOnce =
+            true;
     }
 
     public void OnMobDied()
