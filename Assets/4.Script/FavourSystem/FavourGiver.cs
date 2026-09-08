@@ -700,6 +700,23 @@ public sealed class FavourGiver :
                                 .Gold;
                     }
 
+                    /*
+                     * Courier är tekniskt ReadyToTurnIn direkt,
+                     * men hos originalgivaren är den fortfarande
+                     * en aktiv favour/påminnelse.
+                     */
+                    if (runtime.IsCourier &&
+                        ContainsFavour(
+                            runtime.Data))
+                    {
+                        strongestState =
+                            GetStrongerMarkerState(
+                                strongestState,
+                                FavourMarkerVisualState
+                                    .Silver
+                            );
+                    }
+
                     break;
             }
         }
@@ -825,10 +842,24 @@ public sealed class FavourGiver :
         PlayerFavourManager manager =
             PlayerFavourManager.Instance;
 
-        return manager != null &&
-               manager.TryTurnIn(
-                   favour
-               );
+        if (manager == null)
+            return false;
+
+        bool completed =
+            manager.TryTurnIn(
+                favour
+            );
+
+        if (!completed)
+            return false;
+
+        RegisterInteractionFavours(
+            manager
+        );
+
+        RefreshMarker();
+
+        return true;
     }
 
     public List<FavourRuntime>
@@ -932,27 +963,55 @@ public sealed class FavourGiver :
                 runtime
             );
 
+        /*
+         * ReadyToTurnIn visas hos den entity där favourn
+         * faktiskt kan lämnas in.
+         *
+         * Courier är specialfallet:
+         * originalgivaren får också fortsätta visa favourn
+         * så att spelaren kan få instruktionerna igen.
+         */
         if (runtime.State ==
             FavourState.ReadyToTurnIn)
         {
-            return completionTarget;
+            if (completionTarget)
+                return true;
+
+            return
+                runtime.IsCourier &&
+                localGiver;
         }
 
+        /*
+         * Om en favour har ett separat completion target
+         * tillhör Completed-presentationen endast det targetet.
+         */
         if (runtime.State ==
             FavourState.Completed)
         {
+            if (runtime.UsesSpecificCompletionTarget)
+            {
+                if (!completionTarget)
+                    return false;
+            }
+            else if (!localGiver)
+            {
+                return false;
+            }
+
             string dialogue =
                 GetDialogueFor(
                     runtime
                 );
 
-            return !string.IsNullOrWhiteSpace(
-                dialogue
-            );
+            return
+                !string.IsNullOrWhiteSpace(
+                    dialogue
+                );
         }
 
         /*
-         * Offer och Active visas hos den ursprungliga givaren.
+         * Available och Active visas hos den ursprungliga givaren.
          */
         return localGiver;
     }
@@ -1028,8 +1087,8 @@ public sealed class FavourGiver :
             );
 
         /*
-         * Ett separat completion target äger framför allt
-         * ReadyToTurnIn / Completed-dialogen.
+         * Completion target äger ReadyToTurnIn-
+         * och Completed-dialogen.
          */
         if (completionTarget &&
             runtime.Data
@@ -1053,6 +1112,40 @@ public sealed class FavourGiver :
                     return completionDialogue;
                 }
             }
+        }
+
+        /*
+         * Courier blir ReadyToTurnIn direkt i runtime,
+         * men hos originalgivaren ska den presenteras
+         * som Active.
+         *
+         * Exempel:
+         * "Did you talk to Hirdman Fanarik yet?"
+         */
+        if (runtime.IsCourier &&
+            runtime.State ==
+                FavourState.ReadyToTurnIn &&
+            localGiver &&
+            !completionTarget &&
+            runtime.Data.DialogueSet != null)
+        {
+            return runtime.Data
+                .DialogueSet
+                .GetDialogue(
+                    FavourState.Active
+                );
+        }
+
+        /*
+         * Har favourn ett separat completion target
+         * får originalgivaren ingen Completed-dialog.
+         */
+        if (runtime.State ==
+                FavourState.Completed &&
+            runtime.UsesSpecificCompletionTarget &&
+            !completionTarget)
+        {
+            return string.Empty;
         }
 
         if (localGiver &&

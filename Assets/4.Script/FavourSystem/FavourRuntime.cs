@@ -741,11 +741,11 @@ public sealed class FavourRuntime
 
         DeactivateObjectives();
 
+        RegisterFollowUps();
+
         SetState(
             FavourState.Completed
         );
-
-        RegisterFollowUps();
     }
 
     // =========================================================

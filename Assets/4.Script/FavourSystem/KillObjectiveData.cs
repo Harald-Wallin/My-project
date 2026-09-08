@@ -10,7 +10,13 @@ public sealed class KillObjectiveData :
     [Header("Target")]
 
     [SerializeField]
-    private CreatureDefinition creature;
+    [Tooltip(
+        "Entity-typen som ska dödas.\n\n" +
+        "Dra en prefab eller ett scene object med " +
+        "EntityIdentity hit. Endast dess stabila Entity ID sparas."
+    )]
+    private EntityReference target =
+        new();
 
     [SerializeField]
     [Min(1)]
@@ -22,8 +28,15 @@ public sealed class KillObjectiveData :
     [Range(0f, 1f)]
     private float minimumDamageShare = 0.5f;
 
-    public CreatureDefinition Creature =>
-        creature;
+    public string TargetEntityId =>
+        target != null
+            ? target.Id
+            : string.Empty;
+
+    public string TargetDisplayName =>
+        target != null
+            ? target.DisplayName
+            : string.Empty;
 
     public int RequiredKills =>
         Mathf.Max(
@@ -47,8 +60,12 @@ public sealed class KillObjectiveData :
     }
 
 #if UNITY_EDITOR
+
     private void OnValidate()
     {
+        target ??=
+            new EntityReference();
+
         requiredKills =
             Mathf.Max(
                 1,
@@ -60,13 +77,15 @@ public sealed class KillObjectiveData :
                 minimumDamageShare
             );
 
-        if (creature == null)
+        if (string.IsNullOrWhiteSpace(
+                TargetEntityId))
         {
             Debug.LogWarning(
-                $"KillObjective '{name}' saknar CreatureDefinition.",
+                $"KillObjective '{name}' saknar ett giltigt target Entity ID.",
                 this
             );
         }
     }
+
 #endif
 }

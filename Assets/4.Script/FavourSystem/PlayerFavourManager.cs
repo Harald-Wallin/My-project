@@ -535,11 +535,17 @@ public sealed class PlayerFavourManager :
 
     public void RefreshAllAvailability()
     {
-        CreateRuntimeSnapshot();
+        List<FavourRuntime> snapshot =
+            new List<FavourRuntime>(
+                runtimesById.Values
+            );
 
         foreach (FavourRuntime runtime
-                 in runtimeSnapshot)
+                 in snapshot)
         {
+            if (runtime == null)
+                continue;
+
             runtime.RefreshAvailability();
         }
     }

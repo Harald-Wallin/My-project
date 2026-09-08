@@ -367,6 +367,7 @@ public sealed class FavourWindow :
             HandleRewardSelectionChanged;
     }
 
+
     private void HandleRuntimeStateChanged(
     FavourRuntime runtime)
     {
@@ -1223,20 +1224,258 @@ public sealed class FavourWindow :
         if (CurrentRuntime == null ||
             CurrentGiver == null)
         {
+            Debug.LogError(
+                "[FavourWindow] Complete clicked, men CurrentRuntime eller CurrentGiver saknas."
+            );
+
             return;
         }
 
+        FavourRuntime completedRuntime =
+            CurrentRuntime;
+
+        FavourGiver giver =
+            CurrentGiver;
+
         FavourData favour =
-            CurrentRuntime.Data;
+            completedRuntime.Data;
+
+        Debug.Log(
+            $"[FavourWindow] TURN IN START\n" +
+            $"Completed favour candidate: {completedRuntime.DisplayName}\n" +
+            $"State before: {completedRuntime.State}\n" +
+            $"Current giver: {giver.GiverName}"
+        );
 
         bool completed =
-            CurrentGiver.TryTurnIn(
-                favour);
+            giver.TryTurnIn(
+                favour
+            );
 
-        if (completed)
+        Debug.Log(
+            $"[FavourWindow] TURN IN RESULT\n" +
+            $"Success: {completed}\n" +
+            $"State after: {completedRuntime.State}\n" +
+            $"Current giver still: {(CurrentGiver != null ? CurrentGiver.GiverName : "NULL")}"
+        );
+
+        if (!completed)
+            return;
+
+        bool switched =
+            TryShowNextFavour(
+                giver,
+                completedRuntime
+            );
+
+        Debug.Log(
+            $"[FavourWindow] NEXT FAVOUR RESULT\n" +
+            $"Switched: {switched}\n" +
+            $"Current runtime now: {(CurrentRuntime != null ? CurrentRuntime.DisplayName : "NULL")}\n" +
+            $"Current runtime state: {(CurrentRuntime != null ? CurrentRuntime.State.ToString() : "NULL")}"
+        );
+
+        if (switched)
+            return;
+
+        RebuildAll();
+    }
+
+    private bool TryShowNextFavour(
+    FavourGiver giver,
+    FavourRuntime completedRuntime)
+    {
+        if (giver == null ||
+            completedRuntime == null)
         {
-            Close();
+            Debug.LogError(
+                "[FavourWindow] TryShowNextFavour saknar giver eller completedRuntime."
+            );
+
+            return false;
         }
+
+        PlayerFavourManager manager =
+            PlayerFavourManager.Instance;
+
+        Debug.Log(
+            $"[FavourWindow] SEARCH NEXT FAVOUR\n" +
+            $"Giver: {giver.GiverName}\n" +
+            $"Completed: {completedRuntime.DisplayName}\n" +
+            $"Manager: {(manager != null ? "OK" : "NULL")}"
+        );
+
+        /*
+         * --------------------------------------------------------
+         * 1. EXPLICITA FOLLOW-UPS
+         * --------------------------------------------------------
+         */
+
+        IReadOnlyList<FavourData> followUps =
+            completedRuntime.Data != null
+                ? completedRuntime.Data.FollowUps
+                : null;
+
+        Debug.Log(
+            $"[FavourWindow] FollowUps count: " +
+            $"{(followUps != null ? followUps.Count : 0)}"
+        );
+
+        if (followUps != null &&
+            manager != null)
+        {
+            foreach (FavourData followUp
+                     in followUps)
+            {
+                if (followUp == null)
+                {
+                    Debug.Log(
+                        "[FavourWindow] FollowUp entry = NULL"
+                    );
+
+                    continue;
+                }
+
+                Debug.Log(
+                    $"[FavourWindow] Checking FollowUp: {followUp.DisplayName}"
+                );
+
+                bool foundRuntime =
+                    manager.TryGetRuntime(
+                        followUp,
+                        out FavourRuntime runtime
+                    );
+
+                Debug.Log(
+                    $"[FavourWindow]   Runtime registered: {foundRuntime}\n" +
+                    $"[FavourWindow]   Runtime state: " +
+                    $"{(runtime != null ? runtime.State.ToString() : "NULL")}"
+                );
+
+                if (!foundRuntime ||
+                    runtime == null)
+                {
+                    continue;
+                }
+
+                if (runtime == completedRuntime)
+                {
+                    Debug.LogWarning(
+                        "[FavourWindow] FollowUp pekar på samma runtime som precis completed."
+                    );
+
+                    continue;
+                }
+
+                bool visible =
+                    giver.TryGetVisibleRuntime(
+                        followUp,
+                        out FavourRuntime visibleRuntime
+                    );
+
+                Debug.Log(
+                    $"[FavourWindow]   Visible at {giver.GiverName}: {visible}\n" +
+                    $"[FavourWindow]   Visible runtime: " +
+                    $"{(visibleRuntime != null ? visibleRuntime.DisplayName : "NULL")}"
+                );
+
+                if (!visible ||
+                    visibleRuntime == null)
+                {
+                    continue;
+                }
+
+                Debug.Log(
+                    $"[FavourWindow] SWITCHING TO FOLLOW-UP: " +
+                    $"{visibleRuntime.DisplayName}"
+                );
+
+                SwitchRuntime(
+                    visibleRuntime
+                );
+
+                return true;
+            }
+        }
+
+        /*
+         * --------------------------------------------------------
+         * 2. ALLA FAVOURS SOM GIVAREN JUST NU ANSER SYNLIGA
+         * --------------------------------------------------------
+         */
+
+        List<FavourRuntime> visibleFavours =
+            giver.GetVisibleFavours();
+
+        Debug.Log(
+            $"[FavourWindow] GetVisibleFavours() count: " +
+            $"{(visibleFavours != null ? visibleFavours.Count : 0)}"
+        );
+
+        if (visibleFavours == null)
+            return false;
+
+        foreach (FavourRuntime runtime
+                 in visibleFavours)
+        {
+            if (runtime == null)
+            {
+                Debug.Log(
+                    "[FavourWindow]   Visible entry = NULL"
+                );
+
+                continue;
+            }
+
+            Debug.Log(
+                $"[FavourWindow]   Visible: " +
+                $"{runtime.DisplayName} | State: {runtime.State} | " +
+                $"Same as completed: {runtime == completedRuntime}"
+            );
+
+            if (runtime == completedRuntime ||
+                runtime.State ==
+                    FavourState.Completed)
+            {
+                continue;
+            }
+
+            Debug.Log(
+                $"[FavourWindow] SWITCHING TO VISIBLE FAVOUR: " +
+                $"{runtime.DisplayName}"
+            );
+
+            SwitchRuntime(
+                runtime
+            );
+
+            return true;
+        }
+
+        Debug.LogWarning(
+            "[FavourWindow] Ingen nästa favour kunde hittas."
+        );
+
+        return false;
+    }
+
+    private void SwitchRuntime(
+        FavourRuntime runtime)
+    {
+        if (runtime == null ||
+            runtime == CurrentRuntime)
+        {
+            return;
+        }
+
+        UnsubscribeFromRuntime();
+
+        CurrentRuntime =
+            runtime;
+
+        SubscribeToRuntime();
+
+        RebuildAll();
     }
 
     private void ClearDynamicContent()

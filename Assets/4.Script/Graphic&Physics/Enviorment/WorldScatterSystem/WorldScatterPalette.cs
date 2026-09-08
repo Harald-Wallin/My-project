@@ -20,6 +20,10 @@ public class WorldScatterPalette :
 [Serializable]
 public class ScatterGroup
 {
+    // =========================================================
+    // GENERAL
+    // =========================================================
+
     [SerializeField]
     private bool enabled =
         true;
@@ -37,6 +41,42 @@ public class ScatterGroup
     private List<GameObject> prefabs =
         new();
 
+    // =========================================================
+    // VARIATION
+    // =========================================================
+
+    [Header("Variation")]
+
+    [SerializeField]
+    [Tooltip(
+        "Om aktiverad får varje placerad prefab en slumpmässig " +
+        "uniform storlek mellan Min Scale och Max Scale."
+    )]
+    private bool randomizeScale =
+        true;
+
+    [SerializeField]
+    [Min(0.01f)]
+    private float minScale =
+        0.9f;
+
+    [SerializeField]
+    [Min(0.01f)]
+    private float maxScale =
+        1.1f;
+
+    [SerializeField]
+    [Tooltip(
+        "Om aktiverad har varje placerad prefab 50% chans " +
+        "att spegelvändas horisontellt via SpriteRenderer.flipX."
+    )]
+    private bool randomFlipX =
+        true;
+
+    // =========================================================
+    // API
+    // =========================================================
+
     public bool Enabled =>
         enabled;
 
@@ -50,6 +90,34 @@ public class ScatterGroup
 
     public IReadOnlyList<GameObject> Prefabs =>
         prefabs;
+
+    public bool RandomizeScale =>
+        randomizeScale;
+
+    public float MinScale =>
+        Mathf.Max(
+            0.01f,
+            Mathf.Min(
+                minScale,
+                maxScale
+            )
+        );
+
+    public float MaxScale =>
+        Mathf.Max(
+            MinScale,
+            Mathf.Max(
+                minScale,
+                maxScale
+            )
+        );
+
+    public bool RandomFlipX =>
+        randomFlipX;
+
+    // =========================================================
+    // RANDOMIZATION
+    // =========================================================
 
     public GameObject GetRandomPrefab()
     {
@@ -103,4 +171,52 @@ public class ScatterGroup
 
         return null;
     }
+
+    public float GetRandomScale()
+    {
+        if (!randomizeScale)
+        {
+            return 1f;
+        }
+
+        return UnityEngine.Random.Range(
+            MinScale,
+            MaxScale
+        );
+    }
+
+    public bool GetRandomFlipX()
+    {
+        return
+            randomFlipX &&
+            UnityEngine.Random.value <
+            0.5f;
+    }
+
+#if UNITY_EDITOR
+
+    public void Normalize()
+    {
+        density =
+            Mathf.Clamp01(
+                density
+            );
+
+        minScale =
+            Mathf.Max(
+                0.01f,
+                minScale
+            );
+
+        maxScale =
+            Mathf.Max(
+                minScale,
+                maxScale
+            );
+
+        prefabs ??=
+            new List<GameObject>();
+    }
+
+#endif
 }

@@ -685,6 +685,7 @@ public class WorldScatterWindow :
 
                 CreatePrefabInstance(
                     prefab,
+                    group,
                     position
                 );
             }
@@ -775,10 +776,12 @@ public class WorldScatterWindow :
     }
 
     private void CreatePrefabInstance(
-    GameObject prefab,
-    Vector2 position)
+        GameObject prefab,
+        ScatterGroup group,
+        Vector2 position)
     {
         if (prefab == null ||
+            group == null ||
             targetRoot == null)
         {
             return;
@@ -799,6 +802,11 @@ public class WorldScatterWindow :
                 position.y,
                 0f
             );
+
+        ApplyVariation(
+            instance,
+            group
+        );
 
         ApplyStaticYSorting(
             instance
@@ -822,8 +830,96 @@ public class WorldScatterWindow :
         );
     }
 
+    // =========================================================
+    // VARIATION
+    // =========================================================
+
+    private static void ApplyVariation(
+        GameObject instance,
+        ScatterGroup group)
+    {
+        if (instance == null ||
+            group == null)
+        {
+            return;
+        }
+
+        ApplyRandomScale(
+            instance,
+            group
+        );
+
+        ApplyRandomFlipX(
+            instance,
+            group
+        );
+    }
+
+    private static void ApplyRandomScale(
+        GameObject instance,
+        ScatterGroup group)
+    {
+        if (instance == null ||
+            group == null)
+        {
+            return;
+        }
+
+        float randomScale =
+            group.GetRandomScale();
+
+        Vector3 originalScale =
+            instance.transform.localScale;
+
+        instance.transform.localScale =
+            new Vector3(
+                originalScale.x *
+                randomScale,
+
+                originalScale.y *
+                randomScale,
+
+                originalScale.z
+            );
+    }
+
+    private static void ApplyRandomFlipX(
+        GameObject instance,
+        ScatterGroup group)
+    {
+        if (instance == null ||
+            group == null ||
+            !group.GetRandomFlipX())
+        {
+            return;
+        }
+
+        SpriteRenderer[] renderers =
+            instance.GetComponentsInChildren<
+                SpriteRenderer
+            >(true);
+
+        foreach (SpriteRenderer renderer
+                 in renderers)
+        {
+            if (renderer == null)
+                continue;
+
+            /*
+             * Vi inverterar prefabens befintliga flipX
+             * i stället för att anta att den alltid är false.
+             */
+            renderer.flipX =
+                !renderer.flipX;
+        }
+    }
+
+    // =========================================================
+    // STATIC Y SORTING
+    // =========================================================
+
     private void ApplyStaticYSorting(
-    GameObject instance)
+        GameObject instance)
     {
         if (instance == null)
             return;
@@ -852,6 +948,10 @@ public class WorldScatterWindow :
                 relativeOrder;
         }
     }
+
+    // =========================================================
+    // ERASE
+    // =========================================================
 
     private void EraseInsideBrush(
         Vector3 center)

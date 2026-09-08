@@ -4,6 +4,8 @@ public sealed class CharacterDefeatedResult
 
     public CreatureDefinition Creature { get; }
 
+    public string VictimEntityId { get; }
+
     public DamageSourceContext FinalBlow { get; }
 
     public DamageContributionSnapshot Contributions { get; }
@@ -15,8 +17,8 @@ public sealed class CharacterDefeatedResult
         FinalBlow.CreditOwner;
 
     public bool IsTopDamageContributor(
-    CharacterStats creditOwner,
-    bool allowTies = true)
+        CharacterStats creditOwner,
+        bool allowTies = true)
     {
         return Contributions
             .IsTopContributor(
@@ -35,12 +37,34 @@ public sealed class CharacterDefeatedResult
         Creature = creature;
         FinalBlow = finalBlow;
 
+        VictimEntityId =
+            ResolveVictimEntityId(
+                victim
+            );
+
         Contributions =
             contributions ??
             new DamageContributionSnapshot(
                 null,
                 0
             );
+    }
+
+    private static string ResolveVictimEntityId(
+        CharacterStats victim)
+    {
+        if (victim == null)
+            return string.Empty;
+
+        EntityIdentity identity =
+            EntityTargetUtility
+                .GetIdentity(
+                    victim.gameObject
+                );
+
+        return identity != null
+            ? identity.Id
+            : string.Empty;
     }
 
     public float GetDamageShare(

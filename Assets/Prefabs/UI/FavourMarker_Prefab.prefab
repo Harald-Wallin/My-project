@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 666611373372852311}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: -0.05, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -9840,6 +9840,8 @@ GameObject:
   m_Component:
   - component: {fileID: 5194383152751038725}
   - component: {fileID: 3796779794810595314}
+  - component: {fileID: 50785393248626448}
+  - component: {fileID: 7783297332156445457}
   m_Layer: 0
   m_Name: FavourMarker_Prefab
   m_TagString: Untagged
@@ -9888,14 +9890,41 @@ MonoBehaviour:
   baseOrbitRadius: {x: 0.6, y: 0.25}
   orbitSpeed: 120
   startingAngle: 0
-  orbitBackSortingOrder: 0
-  orbitFrontSortingOrder: 20
-  bronzeColor: {r: 0.72, g: 0.4, b: 0.16, a: 1}
+  orbitBackSortingOrder: -100
+  orbitFrontSortingOrder: 100
+  bronzeColor: {r: 0.49056602, g: 0.2944894, b: 0.1504094, a: 1}
   silverColor: {r: 0.78, g: 0.84, b: 0.88, a: 1}
   goldColor: {r: 1, g: 0.72, b: 0.16, a: 1}
   ringOpacity: 0
   nodeOpacity: 1
   particleOpacity: 1
+--- !u!210 &50785393248626448
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5865509124412928677}
+  m_Enabled: 1
+  m_SortingLayerID: 1959689973
+  m_SortingLayer: 3
+  m_SortingOrder: 0
+  m_SortAtRoot: 0
+  m_Sort3DAs2D: 0
+--- !u!114 &7783297332156445457
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5865509124412928677}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30721642fa7cc7f4589cb9c3b81b9415, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::YSorter
+  sortingOrderOffset: 0
+  yOffset: 0
 --- !u!1 &8019475844710319620
 GameObject:
   m_ObjectHideFlags: 0

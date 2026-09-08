@@ -1,5 +1,4 @@
 using System;
-using UnityEngine;
 
 public sealed class KillObjectiveRuntime :
     FavourObjectiveRuntime
@@ -36,14 +35,29 @@ public sealed class KillObjectiveRuntime :
         CharacterDefeatedResult result)
     {
         if (killData == null ||
-            killData.Creature == null)
+            result == null)
         {
             return;
         }
 
-        if (!IsMatchingCreature(
-                result.Creature,
-                killData.Creature))
+        string requiredEntityId =
+            killData.TargetEntityId;
+
+        string defeatedEntityId =
+            result.VictimEntityId;
+
+        if (string.IsNullOrWhiteSpace(
+                requiredEntityId) ||
+            string.IsNullOrWhiteSpace(
+                defeatedEntityId))
+        {
+            return;
+        }
+
+        if (!string.Equals(
+                defeatedEntityId,
+                requiredEntityId,
+                StringComparison.Ordinal))
         {
             return;
         }
@@ -62,40 +76,12 @@ public sealed class KillObjectiveRuntime :
         }
 
         currentKills =
-            Mathf.Min(
+            System.Math.Min(
                 currentKills + 1,
                 RequiredProgress
             );
 
         RaiseProgressChanged();
-    }
-
-    private static bool IsMatchingCreature(
-        CreatureDefinition defeated,
-        CreatureDefinition required)
-    {
-        if (defeated == null ||
-            required == null)
-        {
-            return false;
-        }
-
-        if (defeated == required)
-            return true;
-
-        if (string.IsNullOrWhiteSpace(
-                defeated.Id) ||
-            string.IsNullOrWhiteSpace(
-                required.Id))
-        {
-            return false;
-        }
-
-        return string.Equals(
-            defeated.Id,
-            required.Id,
-            StringComparison.Ordinal
-        );
     }
 
     public override void ResetProgress()

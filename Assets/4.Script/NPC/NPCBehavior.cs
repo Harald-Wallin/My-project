@@ -633,14 +633,14 @@ public class NPCBehavior : MonoBehaviour
         if (preferredTarget !=
             currentTargetStats)
         {
-            Debug.Log(
+           /* Debug.Log(
                 $"[COMBAT TARGET] {name} SWITCH | " +
                 $"from=" +
                 $"{(currentTargetStats != null ? currentTargetStats.name : "NULL")} | " +
                 $"to={preferredTarget.name} | " +
                 $"threat={threatTracker.GetThreat(preferredTarget):F1}",
                 this
-            );
+            );*/
 
             SetCurrentCombatTarget(
                 preferredTarget
@@ -2683,7 +2683,7 @@ private AbilityData[] GetEquippedAbilities()
                 ? threatTracker.ThreatSourceCount
                 : -1;
 
-        Debug.Log(
+       /* Debug.Log(
             $"[COMBAT DEBUG] {name} | " +
             $"reason={reason} | " +
             $"state={currentState} | " +
@@ -2691,6 +2691,6 @@ private AbilityData[] GetEquippedAbilities()
             $"threats={threatCount} | " +
             $"pos={transform.position}",
             this
-        );
+        );*/
     }
 }
