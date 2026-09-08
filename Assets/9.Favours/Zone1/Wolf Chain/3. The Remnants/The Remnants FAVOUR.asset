@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a845d5b2ad00dc548a9a92dd453395f0, type: 3}
+  m_Name: The Remnants FAVOUR
+  m_EditorClassIdentifier: Assembly-CSharp::FavourData
+  displayName: The Remnants
+  description: 
+  category: 6
+  activationPolicy: 0
+  completionPolicy: 1
+  isCourier: 0
+  completionTarget:
+    entityId: 
+    displayName: 
+  objectives:
+  - {fileID: 11400000, guid: be1132b8e7b2c684a9ee27a0b001f77c, type: 2}
+  dialogueSet: {fileID: 11400000, guid: 768a52b5f59199c43b3a140957aa3624, type: 2}
+  completionDialogueSet: {fileID: 0}
+  experienceReward: 100
+  minimumCurrencyReward: 25
+  maximumCurrencyReward: 25
+  reputationRewards:
+  - faction: {fileID: 11400000, guid: c5488bdfa9793df41979c93540acac0b, type: 2}
+    amount: 255
+    discoverFaction: 0
+  itemRewards:
+  - item: {fileID: 11400000, guid: 9e9fc7b42a9352844983038aed178174, type: 2}
+    amount: 5
+  abilityRewards: []
+  rewardChoiceGroups: []
+  minimumLevel: 0
+  minimumCurrency: 0
+  reputationRequirements: []
+  itemRequirements: []
+  requiredCompletedFavours:
+  - {fileID: 11400000, guid: 3c4229c9b4643824980f93a675377aff, type: 2}
+  forbiddenCompletedFavours: []
+  failureSettings:
+    policy: 0
+    retryCooldownSeconds: 0
+  repeatSettings:
+    repeatable: 0
+    repeatCooldownSeconds: 0
+  followUps: []
