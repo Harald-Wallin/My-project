@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05bc19b3ecb135c42ac63f5173f2ded6, type: 3}
+  m_Name: Patrolls' Rations DIALOGUE SET
+  m_EditorClassIdentifier: Assembly-CSharp::FavourDialogueSet
+  unavailable: 
+  offer: Well, we cannot forget our defences. For starters, we need to keep our patrollers
+    on their feet. Speaking of, Patroll master Bjursig should be low on rations by
+    now- he has been patrolling the south for days. Give him some rations, will ye?
+  active: Did you found patroll master Bjursig yet? If he is still alive, he should
+    be patrolling the southern regions of the realm.
+  readyToTurnIn: Who are you? Oh, some fresh food finally! Mm, well maybe not fresh-
+    but still food. Thank you stranger.
+  completed: 
+  failed: 
+  cooldown: 

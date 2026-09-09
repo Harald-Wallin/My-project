@@ -1,24 +1,35 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-
 public interface ITooltipProvider
 {
-    TooltipData GetTooltipData(CharacterStats viewer = null);
+    TooltipData GetTooltipData(
+        CharacterStats viewer = null
+    );
 }
-
 
 public class TooltipData
 {
     public string title;
-    public Color titleColor = Color.white;
+
+    public Color titleColor =
+        Color.white;
 
     public string subtitle;
+
     public string description;
 
-    public List<string> stats = new List<string>();
-    public List<string> requirements = new();
+    public List<string> stats =
+        new();
 
-    public string footer; // t.ex price eller requirements
-    public bool showFooter = false;
+    public List<string> requirements =
+        new();
+
+    public List<string> favourContext =
+        new();
+
+    public string footer;
+
+    public bool showFooter =
+        false;
 }

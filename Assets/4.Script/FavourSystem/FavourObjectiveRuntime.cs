@@ -172,5 +172,35 @@ public abstract class FavourObjectiveRuntime
     {
     }
 
+    // =========================================================
+    // PRESENTATION TARGETING
+    // =========================================================
+
+    /// <summary>
+    /// Returnerar true om detta objective fortfarande är relevant
+    /// för en world entity med angivet EntityIdentity-ID.
+    ///
+    /// Basklassen matchar ingenting. Objective-typer som arbetar
+    /// mot world entities overridar detta.
+    /// </summary>
+    public virtual bool IsRelevantToEntity(
+        string entityId)
+    {
+        return false;
+    }
+
+    /// <summary>
+    /// Returnerar true om detta objective fortfarande är relevant
+    /// för angivet item.
+    ///
+    /// Basklassen matchar ingenting. Objective-typer som arbetar
+    /// mot items overridar detta.
+    /// </summary>
+    public virtual bool IsRelevantToItem(
+        ItemData item)
+    {
+        return false;
+    }
+
     public abstract void ResetProgress();
 }

@@ -23,6 +23,7 @@ MonoBehaviour:
     displayName: 
   objectives:
   - {fileID: 11400000, guid: be1132b8e7b2c684a9ee27a0b001f77c, type: 2}
+  - {fileID: 11400000, guid: 2ec005764d78fe64993d28ac679b9926, type: 2}
   dialogueSet: {fileID: 11400000, guid: 768a52b5f59199c43b3a140957aa3624, type: 2}
   completionDialogueSet: {fileID: 0}
   experienceReward: 100
@@ -50,4 +51,5 @@ MonoBehaviour:
   repeatSettings:
     repeatable: 0
     repeatCooldownSeconds: 0
-  followUps: []
+  followUps:
+  - {fileID: 11400000, guid: 3ed2144a4f6776745b0975f887089389, type: 2}

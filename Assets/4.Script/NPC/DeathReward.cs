@@ -232,6 +232,70 @@ public class DeathReward :
     // LOOT GENERATION
     // =========================================================
 
+    public void GetPossibleLootItems(
+    List<ItemData> results)
+    {
+        if (results == null)
+            return;
+
+        results.Clear();
+
+        if (lootTables == null)
+            return;
+
+        foreach (LootTable table
+                 in lootTables)
+        {
+            if (table == null ||
+                table.entries == null)
+            {
+                continue;
+            }
+
+            foreach (LootEntry entry
+                     in table.entries)
+            {
+                if (entry == null ||
+                    !entry.IsValid ||
+                    entry.Type !=
+                        LootEntryType.Item)
+                {
+                    continue;
+                }
+
+                ItemData item =
+                    entry.Item;
+
+                if (item == null)
+                    continue;
+
+                bool alreadyAdded =
+                    false;
+
+                foreach (ItemData existing
+                         in results)
+                {
+                    if (Inventory.ItemsMatch(
+                            existing,
+                            item))
+                    {
+                        alreadyAdded =
+                            true;
+
+                        break;
+                    }
+                }
+
+                if (!alreadyAdded)
+                {
+                    results.Add(
+                        item
+                    );
+                }
+            }
+        }
+    }
+
     public void GenerateLoot(
         LootContainer container)
     {

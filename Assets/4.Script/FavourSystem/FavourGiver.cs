@@ -67,6 +67,8 @@ public sealed class FavourGiver :
     {
         RegisterBackgroundFavours();
 
+        RegisterMarkerTrackedFavours();
+
         TrySubscribeToManager();
 
         RefreshMarker();
@@ -193,9 +195,6 @@ public sealed class FavourGiver :
             if (runtime == null)
                 continue;
 
-            /*
-             * Ready favour som ska lämnas in här.
-             */
             if (runtime.State ==
                     FavourState.ReadyToTurnIn &&
                 IsCompletionTargetFor(
@@ -204,9 +203,6 @@ public sealed class FavourGiver :
                 return true;
             }
 
-            /*
-             * Optional Completed-dialogue hos completion target.
-             */
             if (runtime.State ==
                     FavourState.Completed &&
                 IsCompletionTargetFor(
@@ -218,10 +214,6 @@ public sealed class FavourGiver :
                 return true;
             }
 
-            /*
-             * Ett vanligt InteractObjective får också göra denna
-             * entity interagerbar medan objective't är aktivt.
-             */
             if (runtime.State !=
                 FavourState.Active)
             {
@@ -234,6 +226,14 @@ public sealed class FavourGiver :
                 if (objective is
                         InteractObjectiveRuntime interact &&
                     interact.RequiresTarget(
+                        EntityId))
+                {
+                    return true;
+                }
+
+                if (objective is
+                        DeliverObjectiveRuntime deliver &&
+                    deliver.RequiresTarget(
                         EntityId))
                 {
                     return true;
@@ -418,6 +418,42 @@ public sealed class FavourGiver :
                 FavourState.Available)
             {
                 runtime.TryActivate();
+            }
+        }
+    }
+
+    private void RegisterMarkerTrackedFavours()
+    {
+        if (!showUnregisteredFavours)
+            return;
+
+        PlayerFavourManager manager =
+            PlayerFavourManager.Instance;
+
+        if (manager == null)
+            return;
+
+        foreach (FavourData favour
+                 in favours)
+        {
+            if (favour == null)
+                continue;
+
+            /*
+             * TrackBeforeDiscovery hanteras redan av
+             * RegisterBackgroundFavours().
+             */
+            if (favour.ActivationPolicy ==
+                FavourActivationPolicy.TrackBeforeDiscovery)
+            {
+                continue;
+            }
+            if (favour.ActivationPolicy ==
+                FavourActivationPolicy.ExplicitAccept)
+            {
+                manager.RegisterFavour(
+                    favour
+                );
             }
         }
     }
@@ -618,7 +654,7 @@ public sealed class FavourGiver :
     }
 
     private FavourMarkerVisualState
-    GetMarkerState()
+GetMarkerState()
     {
         PlayerFavourManager manager =
             PlayerFavourManager.Instance;
@@ -643,19 +679,9 @@ public sealed class FavourGiver :
                 continue;
 
             if (!manager.TryGetRuntime(
-                    favour,
-                    out FavourRuntime runtime))
+                favour,
+                out FavourRuntime runtime))
             {
-                if (showUnregisteredFavours)
-                {
-                    strongestState =
-                        GetStrongerMarkerState(
-                            strongestState,
-                            FavourMarkerVisualState
-                                .Bronze
-                        );
-                }
-
                 continue;
             }
 
@@ -677,6 +703,21 @@ public sealed class FavourGiver :
 
                 case FavourState.Active:
 
+                    /*
+                     * Om denna entity är en delivery-recipient
+                     * och spelaren just nu har alla items som
+                     * behövs för leveransen:
+                     *
+                     * GOLD.
+                     */
+                    if (CanDeliver(
+                            runtime))
+                    {
+                        return
+                            FavourMarkerVisualState
+                                .Gold;
+                    }
+
                     strongestState =
                         GetStrongerMarkerState(
                             strongestState,
@@ -689,8 +730,8 @@ public sealed class FavourGiver :
                 case FavourState.ReadyToTurnIn:
 
                     /*
-                     * GOLD visas endast där favourn faktiskt
-                     * kan lämnas in.
+                     * GOLD visas där favourn faktiskt kan
+                     * lämnas in.
                      */
                     if (IsCompletionTargetFor(
                             runtime))
@@ -701,9 +742,9 @@ public sealed class FavourGiver :
                     }
 
                     /*
-                     * Courier är tekniskt ReadyToTurnIn direkt,
-                     * men hos originalgivaren är den fortfarande
-                     * en aktiv favour/påminnelse.
+                     * Courier är tekniskt ReadyToTurnIn
+                     * direkt, men hos originalgivaren är
+                     * den fortfarande en aktiv favour.
                      */
                     if (runtime.IsCourier &&
                         ContainsFavour(
@@ -721,24 +762,26 @@ public sealed class FavourGiver :
             }
         }
 
-        /*
-         * Denna entity kan vara completion target för en favour
-         * den INTE själv äger.
-         *
-         * Exempel:
-         * Umfrin gav favourn, Fanarik är recipient.
-         */
         foreach (FavourRuntime runtime
                  in manager.Runtimes)
         {
-            if (runtime == null ||
-                runtime.State !=
-                    FavourState.ReadyToTurnIn)
-            {
+            if (runtime == null)
                 continue;
+
+
+            if (runtime.State ==
+                    FavourState.ReadyToTurnIn &&
+                IsCompletionTargetFor(
+                    runtime))
+            {
+                return
+                    FavourMarkerVisualState
+                        .Gold;
             }
 
-            if (IsCompletionTargetFor(
+            if (runtime.State ==
+                    FavourState.Active &&
+                CanDeliver(
                     runtime))
             {
                 return
@@ -963,14 +1006,11 @@ public sealed class FavourGiver :
                 runtime
             );
 
-        /*
-         * ReadyToTurnIn visas hos den entity där favourn
-         * faktiskt kan lämnas in.
-         *
-         * Courier är specialfallet:
-         * originalgivaren får också fortsätta visa favourn
-         * så att spelaren kan få instruktionerna igen.
-         */
+        bool deliveryTarget =
+            IsDeliveryTargetFor(
+                runtime
+            );
+
         if (runtime.State ==
             FavourState.ReadyToTurnIn)
         {
@@ -982,10 +1022,6 @@ public sealed class FavourGiver :
                 localGiver;
         }
 
-        /*
-         * Om en favour har ett separat completion target
-         * tillhör Completed-presentationen endast det targetet.
-         */
         if (runtime.State ==
             FavourState.Completed)
         {
@@ -1011,8 +1047,18 @@ public sealed class FavourGiver :
         }
 
         /*
-         * Available och Active visas hos den ursprungliga givaren.
+         * Active favours visas:
+         * - hos originalgivaren
+         * - hos en aktiv delivery-recipient.
          */
+        if (runtime.State ==
+            FavourState.Active)
+        {
+            return
+                localGiver ||
+                deliveryTarget;
+        }
+
         return localGiver;
     }
 
@@ -1170,5 +1216,104 @@ public sealed class FavourGiver :
         }
 
         return string.Empty;
+    }
+
+    public bool IsDeliveryTargetFor(
+    FavourRuntime runtime)
+    {
+        if (runtime == null ||
+            runtime.State !=
+                FavourState.Active ||
+            string.IsNullOrWhiteSpace(
+                EntityId))
+        {
+            return false;
+        }
+
+        foreach (FavourObjectiveRuntime objective
+                 in runtime.Objectives)
+        {
+            if (objective is not
+                DeliverObjectiveRuntime deliver)
+            {
+                continue;
+            }
+
+            if (deliver.RequiresTarget(
+                    EntityId))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public bool CanDeliver(
+    FavourRuntime runtime)
+    {
+        if (runtime == null ||
+            runtime.State !=
+                FavourState.Active ||
+            string.IsNullOrWhiteSpace(
+                EntityId))
+        {
+            return false;
+        }
+
+        foreach (FavourObjectiveRuntime objective
+                 in runtime.Objectives)
+        {
+            if (objective is
+                    DeliverObjectiveRuntime deliver &&
+                deliver.CanDeliverTo(
+                    EntityId))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public bool TryDeliver(
+        FavourRuntime runtime)
+    {
+        if (runtime == null ||
+            runtime.State !=
+                FavourState.Active ||
+            string.IsNullOrWhiteSpace(
+                EntityId))
+        {
+            return false;
+        }
+
+        bool delivered =
+            false;
+
+        foreach (FavourObjectiveRuntime objective
+                 in runtime.Objectives)
+        {
+            if (objective is not
+                DeliverObjectiveRuntime deliver)
+            {
+                continue;
+            }
+
+            if (!deliver.TryDeliverTo(
+                    EntityId))
+            {
+                continue;
+            }
+
+            delivered = true;
+        }
+
+        if (delivered)
+        {
+            RefreshMarker();
+        }
+
+        return delivered;
     }
 }

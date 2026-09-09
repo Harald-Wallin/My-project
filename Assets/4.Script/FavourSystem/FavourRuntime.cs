@@ -38,6 +38,10 @@ public sealed class FavourRuntime
         rewardChoices =
             new();
 
+    private readonly List<InventoryItemAmount>
+    activationInventoryAdditions =
+        new();
+
     private readonly int
         rolledCurrencyReward;
 
@@ -192,6 +196,11 @@ public sealed class FavourRuntime
 
     public event Action<FavourRuntime>
         ProgressChanged;
+
+    public event Action<
+    FavourRuntime,
+    FavourObjectiveRuntime>
+    ObjectiveProgressChanged;
 
     public event Action<FavourRuntime>
         RewardSelectionChanged;
@@ -539,15 +548,22 @@ public sealed class FavourRuntime
             return false;
         }
 
+        /*
+         * Delivery-objectives kan behöva ge spelaren items
+         * vid accept.
+         *
+         * Hela utdelningen sker atomiskt innan favourn
+         * faktiskt aktiveras.
+         */
+        if (!TryGrantActivationItems())
+        {
+            return false;
+        }
+
         SetState(
             FavourState.Active
         );
 
-        /*
-         * Courier har inget gameplay-objective.
-         * Den blir direkt redo att lämnas in hos
-         * sin specifika completion target.
-         */
         if (IsCourier)
         {
             SetState(
@@ -559,9 +575,64 @@ public sealed class FavourRuntime
 
         ActivateObjectives();
 
+        ProgressChanged?.Invoke(
+            this
+        );
+
         EvaluateCompletion();
 
         return true;
+    }
+
+    private bool TryGrantActivationItems()
+    {
+        activationInventoryAdditions.Clear();
+
+        Inventory inventory =
+            ResolveInventory();
+
+        bool hasDeliveryObjective =
+            false;
+
+        foreach (FavourObjectiveRuntime objective
+                 in objectives)
+        {
+            if (objective is not
+                DeliverObjectiveRuntime deliver)
+            {
+                continue;
+            }
+
+            hasDeliveryObjective =
+                true;
+
+            if (inventory == null)
+            {
+                Debug.LogError(
+                    $"Favour '{DisplayName}' har ett Deliver-objective, " +
+                    $"men inget Inventory kunde hittas."
+                );
+
+                return false;
+            }
+
+            deliver.CollectMissingStartingItems(
+                activationInventoryAdditions,
+                inventory
+            );
+        }
+
+        if (!hasDeliveryObjective)
+            return true;
+
+        if (activationInventoryAdditions.Count == 0)
+            return true;
+
+        return inventory.TryApplyTransaction(
+            Array.Empty<InventoryItemAmount>(),
+            activationInventoryAdditions,
+            notifyIfInventoryFull: true
+        );
     }
 
     public bool TryTurnIn()
@@ -645,6 +716,50 @@ public sealed class FavourRuntime
         }
 
         return true;
+    }
+
+    private static void MergeInventoryAmount(
+    List<InventoryItemAmount> amounts,
+    ItemData item,
+    int amount)
+    {
+        if (amounts == null ||
+            item == null ||
+            amount <= 0)
+        {
+            return;
+        }
+
+        for (int i = 0;
+             i < amounts.Count;
+             i++)
+        {
+            InventoryItemAmount existing =
+                amounts[i];
+
+            if (!Inventory.ItemsMatch(
+                    existing.Item,
+                    item))
+            {
+                continue;
+            }
+
+            amounts[i] =
+                new InventoryItemAmount(
+                    existing.Item,
+                    existing.Amount +
+                    amount
+                );
+
+            return;
+        }
+
+        amounts.Add(
+            new InventoryItemAmount(
+                item,
+                amount
+            )
+        );
     }
 
     private bool TryFinalizeCompletion()
@@ -771,10 +886,15 @@ public sealed class FavourRuntime
     }
 
     private void HandleObjectiveProgressChanged(
-        FavourObjectiveRuntime objective)
+    FavourObjectiveRuntime objective)
     {
         ProgressChanged?.Invoke(
             this
+        );
+
+        ObjectiveProgressChanged?.Invoke(
+            this,
+            objective
         );
 
         if (isFinalizingCompletion)
@@ -1686,6 +1806,42 @@ public sealed class FavourRuntime
         StateChanged?.Invoke(
             this
         );
+    }
+
+    internal void ResetForReaccept()
+    {
+        if (State != FavourState.Active &&
+            State != FavourState.ReadyToTurnIn)
+        {
+            return;
+        }
+
+        DeactivateObjectives();
+
+        /*
+         * Vi sätter state först så att ResetProgress-signaler
+         * inte försöker evaluera favouren som en aktiv favour.
+         */
+        SetState(
+            FavourState.Unavailable
+        );
+
+        foreach (FavourObjectiveRuntime objective
+                 in objectives)
+        {
+            objective?.ResetProgress();
+        }
+
+        ClearRewardSelections();
+
+        /*
+         * RefreshAvailability avgör om requirements fortfarande
+         * är uppfyllda.
+         *
+         * Normalt blir resultatet Available och favouren kan
+         * accepteras igen hos originalgivaren.
+         */
+        RefreshAvailability();
     }
 
     // =========================================================

@@ -38,6 +38,30 @@ public sealed class InteractObjectiveRuntime :
                 .RequiredInteractions
             : 0;
 
+    public override bool IsRelevantToEntity(
+    string entityId)
+    {
+        if (interactData == null ||
+            string.IsNullOrWhiteSpace(
+                entityId))
+        {
+            return false;
+        }
+
+        if (!interactData.ContainsTarget(
+                entityId))
+        {
+            return false;
+        }
+
+        if (IsComplete)
+            return true;
+
+        return !completedTargetIds.Contains(
+            entityId
+        );
+    }
+
     protected override void OnActivated()
     {
         InteractionEvents

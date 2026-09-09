@@ -31,13 +31,7 @@ public class NPCBehavior : MonoBehaviour
 
     [Header("Aggro")]
 
-    [SerializeField]
-    [Min(0f)]
-    [Tooltip(
-    "Hur länge en NPC som spawnas av en MobSpawner " +
-    "ignorerar proximity-aggro efter spawn/respawn."
-)]
-    private float aggroDelayAfterSpawn = 2f;
+
     [SerializeField]
     protected bool canAggro = true;
     public float aggroRange = 4f;
@@ -101,10 +95,42 @@ public class NPCBehavior : MonoBehaviour
     private Vector3 lowHealthRetreatStartPosition;
 
     [Header("Death & Respawn")]
+
+    [SerializeField]
+    [Tooltip(
+    "Om NPC:n ska återuppstå efter död.")]
+    private bool canRespawn = false;
+
+    [SerializeField]
+    [Min(0f)]
+    [Tooltip(
+        "Antal sekunder från död tills NPC:n återuppstår.")]
+    private float respawnTime = 30f;
+
+    private const float
+        RespawnAggroGraceTime =
+            2f;
+
     private bool isDead = false;
 
+    private Quaternion spawnRotation;
+
     private float aggroDisableTimer;
-    //private bool wasMovingLastFrame;
+
+    public bool CanRespawn =>
+        canRespawn;
+
+    public float RespawnTime =>
+        Mathf.Max(
+            0f,
+            respawnTime
+        );
+
+    public Vector3 SpawnPosition =>
+        spawnPosition;
+
+    public Quaternion SpawnRotation =>
+        spawnRotation;
 
     private bool wasPatrollingBeforeCombat;
     private bool restartPatrolOnNextEnter;
@@ -167,6 +193,9 @@ public class NPCBehavior : MonoBehaviour
         spawnPosition =
             transform.position;
 
+        spawnRotation =
+            transform.rotation;
+
         combatAnchorPosition =
             spawnPosition;
 
@@ -181,13 +210,6 @@ public class NPCBehavior : MonoBehaviour
 
         if (selfStats != null)
         {
-            /*
-             * NPCReactionController hanterar den generella
-             * Aggro/Flee/None-reaktionen.
-             *
-             * Denna hook används av specialiserade AI-klasser,
-             * exempelvis HumanoidAI och GuardAI.
-             */
             selfStats.OnDamagedBy +=
                 HandleDamaged;
 
@@ -232,23 +254,13 @@ public class NPCBehavior : MonoBehaviour
         }
     }
 
-    private MobSpawner spawner;
-
-    public void SetSpawner(
-    MobSpawner newSpawner,
-    bool applySpawnAggroDelay)
+    public void PrepareForRespawn()
     {
-        spawner =
-            newSpawner;
-
-        if (applySpawnAggroDelay)
-        {
-            aggroDisableTimer =
-                Mathf.Max(
-                    aggroDisableTimer,
-                    aggroDelayAfterSpawn
-                );
-        }
+        aggroDisableTimer =
+            Mathf.Max(
+                aggroDisableTimer,
+                RespawnAggroGraceTime
+            );
     }
 
     public void SetPatrolPath(PatrolPath path)
@@ -2636,16 +2648,24 @@ private AbilityData[] GetEquippedAbilities()
         EndCombatNaturally();
     }
 
-    void HandleDeath(CharacterStats deadCharacter)
+    void HandleDeath(
+    CharacterStats deadCharacter)
     {
         if (isDead)
             return;
 
-        isDead = true;
+        isDead =
+            true;
+
+        if (canRespawn)
+        {
+            NPCRespawnSystem
+                .ScheduleRespawn(
+                    this
+                );
+        }
 
         DisableBehaviour();
-
-        spawner?.OnMobDied();
     }
 
     void DisableBehaviour()
@@ -2682,15 +2702,5 @@ private AbilityData[] GetEquippedAbilities()
             threatTracker != null
                 ? threatTracker.ThreatSourceCount
                 : -1;
-
-       /* Debug.Log(
-            $"[COMBAT DEBUG] {name} | " +
-            $"reason={reason} | " +
-            $"state={currentState} | " +
-            $"target={targetName} | " +
-            $"threats={threatCount} | " +
-            $"pos={transform.position}",
-            this
-        );*/
     }
 }

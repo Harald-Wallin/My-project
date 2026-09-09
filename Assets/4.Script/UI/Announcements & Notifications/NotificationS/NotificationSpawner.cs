@@ -1,9 +1,14 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class NotificationSpawner : MonoBehaviour
+public sealed class NotificationSpawner :
+    MonoBehaviour
 {
-    public static NotificationSpawner Instance;
+    public static NotificationSpawner Instance
+    {
+        get;
+        private set;
+    }
 
     [SerializeField]
     private NotificationInstance prefab;
@@ -14,52 +19,136 @@ public class NotificationSpawner : MonoBehaviour
     [SerializeField]
     private NotificationDatabase database;
 
-    public NotificationDatabase Database => database;
+    public NotificationDatabase Database =>
+        database;
 
-    private Dictionary<NotificationData, float> cooldowns = new Dictionary<NotificationData, float>();
+    private readonly Dictionary<string, float>
+        cooldowns =
+            new();
 
-    void Awake()
+    private const float
+        DuplicateCooldown =
+            0.5f;
+
+    private void Awake()
     {
-        Instance = this;
-    }
-
-    public void Show(NotificationData data)
-    {
-        if (cooldowns.ContainsKey(data))
+        if (Instance != null &&
+            Instance != this)
         {
+            Destroy(
+                gameObject
+            );
+
             return;
         }
 
+        Instance =
+            this;
+    }
+
+    // =========================================================
+    // STATIC NOTIFICATION
+    // =========================================================
+
+    public void Show(
+        NotificationData data)
+    {
         if (data == null)
             return;
 
-        NotificationInstance notification = Instantiate(prefab,parentContainer);
-
-        // Alert Cooldown, spam-prevention for the same notification
-        cooldowns[data] = 0.5f;
-        notification.Initialize(data);
-
-        UISoundManager.Instance?.Play(data.sound);
+        Show(
+            data,
+            data.message
+        );
     }
 
-    void Update()
+    // =========================================================
+    // DYNAMIC NOTIFICATION
+    // =========================================================
+
+    public void Show(
+        NotificationData data,
+        string message)
     {
-        List<NotificationData> keys =
-            new List<NotificationData>(cooldowns.Keys);
-
-        foreach (var key in keys)
+        if (data == null ||
+            prefab == null ||
+            parentContainer == null)
         {
-            cooldowns[key] -= Time.deltaTime;
+            return;
+        }
 
-            if (cooldowns[key] <= 0)
+        string resolvedMessage =
+            string.IsNullOrWhiteSpace(
+                message)
+                ? data.message
+                : message;
+
+        string cooldownKey =
+            BuildCooldownKey(
+                data,
+                resolvedMessage
+            );
+
+        if (cooldowns.ContainsKey(
+                cooldownKey))
+        {
+            return;
+        }
+
+        NotificationInstance notification =
+            Instantiate(
+                prefab,
+                parentContainer
+            );
+
+        notification.Initialize(
+            data,
+            resolvedMessage
+        );
+
+        cooldowns[cooldownKey] =
+            DuplicateCooldown;
+
+        UISoundManager.Instance?.Play(
+            data.sound
+        );
+    }
+
+    private void Update()
+    {
+        if (cooldowns.Count == 0)
+            return;
+
+        float deltaTime =
+            Time.unscaledDeltaTime;
+
+        List<string> keys =
+            new List<string>(
+                cooldowns.Keys
+            );
+
+        foreach (string key
+                 in keys)
+        {
+            cooldowns[key] -=
+                deltaTime;
+
+            if (cooldowns[key] <= 0f)
             {
-                cooldowns.Remove(key);
+                cooldowns.Remove(
+                    key
+                );
             }
         }
+    }
 
-        if (Input.GetKeyDown(KeyCode.O))
-        {
-            Show(database.inventoryFull);
-        }
+    private static string BuildCooldownKey(
+        NotificationData data,
+        string message)
+    {
+        return
+            data.GetInstanceID() +
+            "|" +
+            message;
     }
 }

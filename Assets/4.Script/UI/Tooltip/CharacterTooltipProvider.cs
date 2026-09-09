@@ -30,7 +30,7 @@ public sealed class CharacterTooltipProvider :
             $"Level {target.level}";
 
         string roleName =
-    target.RoleName;
+            target.RoleName;
 
         if (!string.IsNullOrWhiteSpace(
                 roleName))
@@ -51,7 +51,14 @@ public sealed class CharacterTooltipProvider :
             $"{target.GetMaxHP()}"
         );
 
-        data.showFooter = false;
+        FavourPresentationUtility
+            .AppendForEntity(
+                data,
+                target.gameObject
+            );
+
+        data.showFooter =
+            false;
 
         return data;
     }

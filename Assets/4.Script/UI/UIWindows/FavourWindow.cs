@@ -1157,7 +1157,7 @@ public sealed class FavourWindow :
         {
             bool visible =
                 CurrentRuntime.State ==
-                FavourState.Available;
+                    FavourState.Available;
 
             acceptButton.gameObject.SetActive(
                 visible
@@ -1170,7 +1170,15 @@ public sealed class FavourWindow :
 
         if (completeButton != null)
         {
-            bool visible =
+            bool canDeliver =
+                CurrentRuntime.State ==
+                    FavourState.Active &&
+                CurrentGiver != null &&
+                CurrentGiver.CanDeliver(
+                    CurrentRuntime
+                );
+
+            bool canTurnIn =
                 CurrentRuntime.State ==
                     FavourState.ReadyToTurnIn &&
                 CurrentGiver != null &&
@@ -1178,13 +1186,28 @@ public sealed class FavourWindow :
                     CurrentRuntime.Data
                 );
 
+            bool visible =
+                canDeliver ||
+                canTurnIn;
+
             completeButton.gameObject.SetActive(
                 visible
             );
 
             completeButton.interactable =
-                visible &&
-                CurrentRuntime.CanTurnIn;
+                visible;
+
+            TMP_Text buttonText =
+                completeButton.GetComponentInChildren<
+                    TMP_Text>();
+
+            if (buttonText != null)
+            {
+                buttonText.text =
+                    canDeliver
+                        ? "Deliver"
+                        : "Complete";
+            }
         }
 
         if (closeButton != null)
@@ -1224,12 +1247,40 @@ public sealed class FavourWindow :
         if (CurrentRuntime == null ||
             CurrentGiver == null)
         {
-            Debug.LogError(
-                "[FavourWindow] Complete clicked, men CurrentRuntime eller CurrentGiver saknas."
-            );
+            return;
+        }
+
+        /*
+         * ---------------------------------------------------------
+         * DELIVERY
+         * ---------------------------------------------------------
+         *
+         * Om vi står hos en aktiv delivery-recipient betyder
+         * knappen Deliver, inte favour turn-in.
+         */
+        if (CurrentRuntime.State ==
+                FavourState.Active &&
+            CurrentGiver.CanDeliver(
+                CurrentRuntime))
+        {
+            bool delivered =
+                CurrentGiver.TryDeliver(
+                    CurrentRuntime
+                );
+
+            if (!delivered)
+                return;
+
+            RebuildAll();
 
             return;
         }
+
+        /*
+         * ---------------------------------------------------------
+         * NORMAL FAVOUR TURN-IN
+         * ---------------------------------------------------------
+         */
 
         FavourRuntime completedRuntime =
             CurrentRuntime;
@@ -1240,43 +1291,20 @@ public sealed class FavourWindow :
         FavourData favour =
             completedRuntime.Data;
 
-        Debug.Log(
-            $"[FavourWindow] TURN IN START\n" +
-            $"Completed favour candidate: {completedRuntime.DisplayName}\n" +
-            $"State before: {completedRuntime.State}\n" +
-            $"Current giver: {giver.GiverName}"
-        );
-
         bool completed =
             giver.TryTurnIn(
                 favour
             );
 
-        Debug.Log(
-            $"[FavourWindow] TURN IN RESULT\n" +
-            $"Success: {completed}\n" +
-            $"State after: {completedRuntime.State}\n" +
-            $"Current giver still: {(CurrentGiver != null ? CurrentGiver.GiverName : "NULL")}"
-        );
-
         if (!completed)
             return;
 
-        bool switched =
-            TryShowNextFavour(
+        if (TryShowNextFavour(
                 giver,
-                completedRuntime
-            );
-
-        Debug.Log(
-            $"[FavourWindow] NEXT FAVOUR RESULT\n" +
-            $"Switched: {switched}\n" +
-            $"Current runtime now: {(CurrentRuntime != null ? CurrentRuntime.DisplayName : "NULL")}\n" +
-            $"Current runtime state: {(CurrentRuntime != null ? CurrentRuntime.State.ToString() : "NULL")}"
-        );
-
-        if (switched)
+                completedRuntime))
+        {
             return;
+        }
 
         RebuildAll();
     }

@@ -20,6 +20,6 @@ MonoBehaviour:
   active: Did you talk to Hirdman Fanarik yet? He usually stands outside the great
     hall.
   readyToTurnIn: What is this? A dire bears' fang? No? A wolf?!
-  completed: PLACEHOLDER Thank you for telling me PLACEHOLDER
-  failed: '-'
-  cooldown: '-'
+  completed: 
+  failed: 
+  cooldown: 

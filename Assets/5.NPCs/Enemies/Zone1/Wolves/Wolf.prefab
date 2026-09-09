@@ -303,7 +303,6 @@ MonoBehaviour:
   maxDistanceFromSpawn: 15
   abilityDelayAfterAggro: 3
   stopDistanceDefault: 1
-  aggroDelayAfterSpawn: 2
   canAggro: 1
   aggroRange: 6
   threatDetectionLayers:
@@ -318,6 +317,8 @@ MonoBehaviour:
   safeDistanceFromThreat: 0
   resumeFleeDistance: 0
   maxHoldDistanceFromSpawn: 0
+  canRespawn: 1
+  respawnTime: 10
   selfStats: {fileID: 0}
   reaggroCooldown: 3
 --- !u!114 &-6503705790845319704

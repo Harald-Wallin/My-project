@@ -1,9 +1,12 @@
 using UnityEngine;
 
-[CreateAssetMenu(menuName = "RPG/Notification Database")]
-public class NotificationDatabase : ScriptableObject
+[CreateAssetMenu(
+    menuName = "RPG/Notification Database")]
+public sealed class NotificationDatabase :
+    ScriptableObject
 {
     [Header("Errors")]
+
     public NotificationData inventoryFull;
 
     public NotificationData notEnoughCoins;
@@ -13,6 +16,7 @@ public class NotificationDatabase : ScriptableObject
     public NotificationData notEnoughWard;
 
     [Header("Progression")]
+
     public NotificationData levelUp;
 
     public NotificationData reputationGain;
@@ -20,6 +24,10 @@ public class NotificationDatabase : ScriptableObject
     public NotificationData reputationLoss;
 
     public NotificationData zoneDiscovery;
+
+    [Header("Favours")]
+
+    public NotificationData favourObjectiveProgress;
 
     [Header("Combat")]
 

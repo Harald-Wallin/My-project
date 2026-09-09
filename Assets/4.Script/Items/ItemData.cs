@@ -282,6 +282,12 @@ public class ItemData :
             );
         }
 
+        FavourPresentationUtility
+            .AppendForItem(
+                data,
+                this
+            );
+
         return data;
     }
 

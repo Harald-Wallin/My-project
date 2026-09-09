@@ -38,6 +38,22 @@ public sealed class CollectObjectiveRuntime :
         currentAmount >=
         RequiredProgress;
 
+    public override bool IsRelevantToItem(
+        ItemData item)
+    {
+        if (collectData == null ||
+            collectData.Item == null ||
+            item == null)
+        {
+            return false;
+        }
+
+        return Inventory.ItemsMatch(
+            collectData.Item,
+            item
+        );
+    }
+
     protected override void OnActivated()
     {
         SubscribeToInventory();
@@ -70,10 +86,6 @@ public sealed class CollectObjectiveRuntime :
 
     public override void ResetProgress()
     {
-        /*
-         * Progressen baseras alltid på det aktuella
-         * inventoryinnehavet.
-         */
         RefreshProgress();
     }
 

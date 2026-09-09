@@ -16,5 +16,5 @@ MonoBehaviour:
   textColor: {r: 1, g: 0, b: 0, a: 1}
   fontSize: 20
   duration: 2
-  animationType: 0
+  animationType: 1
   sound: {fileID: 8300000, guid: d4dffa745b8f19346861fb063c624c9d, type: 3}

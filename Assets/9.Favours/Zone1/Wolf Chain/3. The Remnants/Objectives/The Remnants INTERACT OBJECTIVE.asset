@@ -15,5 +15,5 @@ MonoBehaviour:
   displayName: Inspect the remnants
   description: 
   targets:
-  - entityId: testcorpse
-    displayName: TestCorpse
+  - entityId: theremnants_interactobjective
+    displayName: TheRemnants_InteractObjective

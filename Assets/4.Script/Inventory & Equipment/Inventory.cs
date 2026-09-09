@@ -447,9 +447,9 @@ public class Inventory : MonoBehaviour
                 item,
                 amount))
         {
-            NotificationManager.Instance
+            NotificationSpawner.Instance
                 ?.Show(
-                    NotificationManager.Instance
+                    NotificationSpawner.Instance
                         .Database
                         .inventoryFull
                 );
@@ -619,9 +619,9 @@ public class Inventory : MonoBehaviour
         {
             if (notifyIfInventoryFull)
             {
-                NotificationManager.Instance
+                NotificationSpawner.Instance
                     ?.Show(
-                        NotificationManager.Instance
+                        NotificationSpawner.Instance
                             .Database
                             .inventoryFull
                     );

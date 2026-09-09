@@ -31,6 +31,23 @@ public sealed class KillObjectiveRuntime :
             ? killData.RequiredKills
             : 1;
 
+    public override bool IsRelevantToEntity(
+        string entityId)
+    {
+        if (killData == null ||
+            string.IsNullOrWhiteSpace(
+                entityId))
+        {
+            return false;
+        }
+
+        return string.Equals(
+            killData.TargetEntityId,
+            entityId,
+            StringComparison.Ordinal
+        );
+    }
+
     protected override void OnCharacterDefeated(
         CharacterDefeatedResult result)
     {
@@ -76,7 +93,7 @@ public sealed class KillObjectiveRuntime :
         }
 
         currentKills =
-            System.Math.Min(
+            Math.Min(
                 currentKills + 1,
                 RequiredProgress
             );

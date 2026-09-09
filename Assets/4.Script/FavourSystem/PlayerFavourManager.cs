@@ -72,6 +72,11 @@ public sealed class PlayerFavourManager :
     public event Action<FavourRuntime>
         FavourProgressChanged;
 
+    public event Action<
+    FavourRuntime,
+    FavourObjectiveRuntime>
+    FavourObjectiveProgressChanged;
+
     public IEnumerable<FavourRuntime> Runtimes =>
         runtimesById.Values;
 
@@ -354,6 +359,9 @@ public sealed class PlayerFavourManager :
         runtime.ProgressChanged +=
             HandleRuntimeProgressChanged;
 
+        runtime.ObjectiveProgressChanged +=
+            HandleRuntimeObjectiveProgressChanged;
+
         runtime.RefreshAvailability();
 
         runtime.RewardSelectionChanged +=
@@ -371,6 +379,16 @@ public sealed class PlayerFavourManager :
     {
         FavourRewardSelectionChanged?.Invoke(
             runtime
+        );
+    }
+
+    private void HandleRuntimeObjectiveProgressChanged(
+    FavourRuntime favour,
+    FavourObjectiveRuntime objective)
+    {
+        FavourObjectiveProgressChanged?.Invoke(
+            favour,
+            objective
         );
     }
 
@@ -576,6 +594,9 @@ public sealed class PlayerFavourManager :
 
             runtime.ProgressChanged -=
                 HandleRuntimeProgressChanged;
+
+            runtime.ObjectiveProgressChanged -=
+                HandleRuntimeObjectiveProgressChanged;
 
             runtime.RewardSelectionChanged -=
                 HandleRuntimeRewardSelectionChanged;

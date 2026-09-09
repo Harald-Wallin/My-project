@@ -248,27 +248,73 @@ public class ItemTooltip : MonoBehaviour
             $"<color=#ffc70f>{data.description}</color>";
         }
 
-        // STATS + REQUIREMENTS
-        if (data.stats.Count > 0 || data.requirements.Count > 0)
+        // STATS + REQUIREMENTS + FAVOUR CONTEXT
+        bool hasStats =
+            data.stats.Count > 0;
+
+        bool hasRequirements =
+            data.requirements.Count > 0;
+
+        bool hasFavourContext =
+            data.favourContext.Count > 0;
+
+        if (hasStats ||
+            hasRequirements ||
+            hasFavourContext)
         {
-            statsText.gameObject.SetActive(true);
+            statsText.gameObject.SetActive(
+                true
+            );
 
-            statsText.text = "";
+            statsText.text =
+                "";
 
-            foreach (var line in data.stats)
+            foreach (string line
+                     in data.stats)
             {
-                statsText.text += line + "\n";
+                statsText.text +=
+                    line + "\n";
             }
 
-            // spacing before requirements
-            if (data.requirements.Count > 0 && data.stats.Count > 0)
+            if (hasRequirements)
             {
-                statsText.text += "\n";
+                if (hasStats)
+                {
+                    statsText.text +=
+                        "\n";
+                }
+
+                foreach (string requirement
+                         in data.requirements)
+                {
+                    statsText.text +=
+                        requirement + "\n";
+                }
             }
 
-            foreach (var req in data.requirements)
+            if (hasFavourContext)
             {
-                statsText.text += req + "\n";
+                if (hasStats ||
+                    hasRequirements)
+                {
+                    statsText.text +=
+                        "\n";
+                }
+
+                for (int i = 0;
+                     i < data.favourContext.Count;
+                     i++)
+                {
+                    statsText.text +=
+                        data.favourContext[i];
+
+                    if (i <
+                        data.favourContext.Count - 1)
+                    {
+                        statsText.text +=
+                            "\n\n";
+                    }
+                }
             }
         }
 
