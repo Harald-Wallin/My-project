@@ -238,6 +238,15 @@ public sealed class FavourGiver :
                 {
                     return true;
                 }
+
+                if (objective is
+                        EscortObjectiveRuntime escort &&
+                    escort.IsWaitingToStart &&
+                    escort.RequiresEscortNpc(
+                        EntityId))
+                {
+                    return true;
+                }
             }
         }
 
@@ -703,19 +712,22 @@ GetMarkerState()
 
                 case FavourState.Active:
 
-                    /*
-                     * Om denna entity är en delivery-recipient
-                     * och spelaren just nu har alla items som
-                     * behövs för leveransen:
-                     *
-                     * GOLD.
-                     */
                     if (CanDeliver(
                             runtime))
                     {
                         return
                             FavourMarkerVisualState
                                 .Gold;
+                    }
+
+                    /*
+                     * En Escort-favour som nu väntar hos en ANNAN NPC
+                     * ska inte lämna kvar Silver på originalgivaren.
+                     */
+                    if (ShouldSuppressLocalEscortPresentation(
+                            runtime))
+                    {
+                        break;
                     }
 
                     strongestState =
@@ -777,6 +789,18 @@ GetMarkerState()
                 return
                     FavourMarkerVisualState
                         .Gold;
+            }
+
+            if (runtime.State ==
+                 FavourState.Active &&
+               IsEscortStartTargetFor(
+                 runtime))
+            {
+                strongestState =
+                    GetStrongerMarkerState(
+                        strongestState,
+                        FavourMarkerVisualState.Silver
+                    );
             }
 
             if (runtime.State ==
@@ -985,6 +1009,44 @@ GetMarkerState()
         return result;
     }
 
+    private bool ShouldSuppressLocalEscortPresentation(
+    FavourRuntime runtime)
+    {
+        if (runtime == null ||
+            runtime.State !=
+                FavourState.Active ||
+            !ContainsFavour(
+                runtime.Data) ||
+            string.IsNullOrWhiteSpace(
+                EntityId))
+        {
+            return false;
+        }
+
+        foreach (FavourObjectiveRuntime objective
+                 in runtime.Objectives)
+        {
+            if (objective is not
+                EscortObjectiveRuntime escort)
+            {
+                continue;
+            }
+
+            if (escort.RequiresEscortNpc(
+                    EntityId))
+            {
+                return false;
+            }
+
+            if (!escort.IsComplete)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private bool ShouldShowRuntimeHere(
     FavourRuntime runtime)
     {
@@ -1008,6 +1070,11 @@ GetMarkerState()
 
         bool deliveryTarget =
             IsDeliveryTargetFor(
+                runtime
+            );
+
+        bool escortStartTarget =
+            IsEscortStartTargetFor(
                 runtime
             );
 
@@ -1046,17 +1113,19 @@ GetMarkerState()
                 );
         }
 
-        /*
-         * Active favours visas:
-         * - hos originalgivaren
-         * - hos en aktiv delivery-recipient.
-         */
         if (runtime.State ==
             FavourState.Active)
         {
+            bool showLocalGiver =
+                localGiver &&
+                !ShouldSuppressLocalEscortPresentation(
+                    runtime
+                );
+
             return
-                localGiver ||
-                deliveryTarget;
+                showLocalGiver ||
+                deliveryTarget ||
+                escortStartTarget;
         }
 
         return localGiver;
@@ -1315,5 +1384,94 @@ GetMarkerState()
         }
 
         return delivered;
+    }
+
+    public bool IsEscortStartTargetFor(
+    FavourRuntime runtime)
+    {
+        if (runtime == null ||
+            runtime.State !=
+                FavourState.Active ||
+            string.IsNullOrWhiteSpace(
+                EntityId))
+        {
+            return false;
+        }
+
+        foreach (FavourObjectiveRuntime objective
+                 in runtime.Objectives)
+        {
+            if (objective is not
+                EscortObjectiveRuntime escort)
+            {
+                continue;
+            }
+
+            if (escort.IsWaitingToStart &&
+                escort.RequiresEscortNpc(
+                    EntityId))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+    public bool CanStartEscort(
+        FavourRuntime runtime)
+    {
+        return IsEscortStartTargetFor(
+            runtime
+        );
+    }
+
+
+    public bool TryStartEscort(
+        FavourRuntime runtime)
+    {
+        if (runtime == null ||
+            runtime.State !=
+                FavourState.Active ||
+            string.IsNullOrWhiteSpace(
+                EntityId))
+        {
+            return false;
+        }
+
+        bool started =
+            false;
+
+        foreach (FavourObjectiveRuntime objective
+                 in runtime.Objectives)
+        {
+            if (objective is not
+                EscortObjectiveRuntime escort)
+            {
+                continue;
+            }
+
+            if (!escort.TryStartEscort(
+                    EntityId))
+            {
+                continue;
+            }
+
+            started = true;
+
+            /*
+             * En favour ska normalt bara ha en aktiv escort-session.
+             * Stoppa efter den objective som faktiskt startades.
+             */
+            break;
+        }
+
+        if (started)
+        {
+            RefreshMarker();
+        }
+
+        return started;
     }
 }

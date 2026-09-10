@@ -48,15 +48,15 @@ MonoBehaviour:
   width: 32
   height: 32
   cellSize: 0.4
-  agentRadius: 0.5
-  obstacleClearancePadding: 0.25
+  agentRadius: 0.3
+  obstacleClearancePadding: 0.2
   obstacleLayers:
     serializedVersion: 2
     m_Bits: 1024
   allowDiagonalMovement: 1
   preventCornerCutting: 1
   bakeOnAwake: 1
-  drawGrid: 1
+  drawGrid: 0
   drawBlockedCells: 1
   drawRegionBounds: 1
 --- !u!114 &2402251294665221227

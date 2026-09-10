@@ -1170,6 +1170,14 @@ public sealed class FavourWindow :
 
         if (completeButton != null)
         {
+            bool canStartEscort =
+                CurrentRuntime.State ==
+                    FavourState.Active &&
+                CurrentGiver != null &&
+                CurrentGiver.CanStartEscort(
+                    CurrentRuntime
+                );
+
             bool canDeliver =
                 CurrentRuntime.State ==
                     FavourState.Active &&
@@ -1187,6 +1195,7 @@ public sealed class FavourWindow :
                 );
 
             bool visible =
+                canStartEscort ||
                 canDeliver ||
                 canTurnIn;
 
@@ -1203,10 +1212,21 @@ public sealed class FavourWindow :
 
             if (buttonText != null)
             {
-                buttonText.text =
-                    canDeliver
-                        ? "Deliver"
-                        : "Complete";
+                if (canStartEscort)
+                {
+                    buttonText.text =
+                        "Start Escort";
+                }
+                else if (canDeliver)
+                {
+                    buttonText.text =
+                        "Deliver";
+                }
+                else
+                {
+                    buttonText.text =
+                        "Complete";
+                }
             }
         }
 
@@ -1234,12 +1254,20 @@ public sealed class FavourWindow :
 
         bool accepted =
             CurrentGiver.TryAccept(
-                favour);
+                favour
+            );
 
-        if (accepted)
+        if (!accepted)
+            return;
+
+        if (CurrentGiver.CanStartEscort(
+                CurrentRuntime))
         {
-            Close();
+            RebuildAll();
+            return;
         }
+
+        Close();
     }
 
     private void HandleCompleteClicked()
@@ -1252,11 +1280,31 @@ public sealed class FavourWindow :
 
         /*
          * ---------------------------------------------------------
+         * ESCORT START
+         * ---------------------------------------------------------
+         */
+        if (CurrentRuntime.State ==
+                FavourState.Active &&
+            CurrentGiver.CanStartEscort(
+                CurrentRuntime))
+        {
+            bool started =
+                CurrentGiver.TryStartEscort(
+                    CurrentRuntime
+                );
+
+            if (!started)
+                return;
+
+            Close();
+
+            return;
+        }
+
+        /*
+         * ---------------------------------------------------------
          * DELIVERY
          * ---------------------------------------------------------
-         *
-         * Om vi står hos en aktiv delivery-recipient betyder
-         * knappen Deliver, inte favour turn-in.
          */
         if (CurrentRuntime.State ==
                 FavourState.Active &&

@@ -45,4 +45,5 @@ MonoBehaviour:
   repeatSettings:
     repeatable: 0
     repeatCooldownSeconds: 0
-  followUps: []
+  followUps:
+  - {fileID: 11400000, guid: a7e9fbfbea7d92048b0d574943be69cb, type: 2}

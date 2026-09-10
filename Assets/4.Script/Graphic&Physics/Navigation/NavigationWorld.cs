@@ -69,6 +69,15 @@ public sealed class NavigationWorld :
     [Header("World Grid")]
 
     [SerializeField]
+    [Tooltip(
+    "Om NavigationWorld automatiskt ska använda den första " +
+    "registrerade NavigationRegion som källa för Region Size " +
+    "och World Origin. Rekommenderas."
+)]
+    private bool autoConfigureFromRegions =
+    true;
+
+    [SerializeField]
     [Min(1f)]
     [Tooltip(
         "Standardstorleken på en navigation-region i world units."
@@ -247,12 +256,81 @@ public sealed class NavigationWorld :
     // =========================================================
     // REGISTRATION
     // =========================================================
+    private void TryAutoConfigureWorldGrid(
+    NavigationRegion region)
+    {
+        if (!autoConfigureFromRegions ||
+            region == null)
+        {
+            return;
+        }
 
+        /*
+         * Bara den FÖRSTA regionen definierar gridet.
+         *
+         * Därefter är World Origin och Region Size stabila,
+         * oavsett i vilken ordning resten av regionerna registreras.
+         */
+        if (regions.Count > 0 ||
+            regionsByCoordinate.Count > 0)
+        {
+            return;
+        }
+
+        float resolvedRegionSize =
+            region.Width;
+
+        if (resolvedRegionSize <= 0.001f)
+        {
+            Debug.LogError(
+                $"NavigationWorld kunde inte konfigurera sitt grid från " +
+                $"'{region.name}' eftersom regionens Width är ogiltig.",
+                region
+            );
+
+            return;
+        }
+
+        regionSize =
+            resolvedRegionSize;
+
+        /*
+         * Den första registrerade regionens centrum blir coordinate
+         * (0,0).
+         *
+         * Det eliminerar behovet av att manuellt räkna ut ett
+         * World Origin för zoner med jämnt/udda antal regions.
+         */
+        worldOrigin =
+            region.transform.position;
+
+        if (Application.isPlaying)
+        {
+            Debug.Log(
+                $"NavigationWorld auto-configured | " +
+                $"Region Size={regionSize} | " +
+                $"World Origin={worldOrigin} | " +
+                $"Source={region.name}",
+                this
+            );
+        }
+    }
     public void RegisterRegion(
-        NavigationRegion region)
+    NavigationRegion region)
     {
         if (region == null)
             return;
+
+        /*
+         * Första aktiva NavigationRegion får definiera det globala
+         * region-gridet automatiskt.
+         *
+         * Därmed behöver NavigationWorld.RegionSize och WorldOrigin
+         * inte manuellt hållas synkade med NavigationZone.
+         */
+        TryAutoConfigureWorldGrid(
+            region
+        );
 
         /*
          * Regionen kan ha flyttats sedan föregående
@@ -277,7 +355,9 @@ public sealed class NavigationWorld :
             Debug.LogError(
                 $"NavigationWorld: Region '{region.name}' försöker " +
                 $"registrera coordinate {coordinate}, men den ägs " +
-                $"redan av '{existingRegion.name}'.",
+                $"redan av '{existingRegion.name}'. " +
+                $"Kontrollera att NavigationRegions ligger på samma " +
+                $"region-grid.",
                 region
             );
 

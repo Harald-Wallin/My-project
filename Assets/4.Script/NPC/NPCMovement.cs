@@ -105,7 +105,8 @@ public class NPCMovement : MonoBehaviour
     private static int CharacterLayers =>
         LayerMask.GetMask(
             "NPC",
-            "Player"
+            "Player",
+            "World"
         );
 
     private readonly Collider2D[]

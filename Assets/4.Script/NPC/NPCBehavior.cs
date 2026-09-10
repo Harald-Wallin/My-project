@@ -132,6 +132,20 @@ public class NPCBehavior : MonoBehaviour
     public Quaternion SpawnRotation =>
         spawnRotation;
 
+    private EscortObjectiveRuntime
+        activeEscortRuntime;
+
+    private Transform
+        escortDestination;
+
+    private float
+        escortStartDelayTimer;
+
+
+    public bool IsBeingEscorted =>
+        activeEscortRuntime != null &&
+        activeEscortRuntime.IsEscorting;
+
     private bool wasPatrollingBeforeCombat;
     private bool restartPatrolOnNextEnter;
     private Vector3 combatAnchorPosition;
@@ -294,6 +308,13 @@ public class NPCBehavior : MonoBehaviour
         }
 
         UpdateTimers();
+
+        if (IsBeingEscorted)
+        {
+            UpdateEscort();
+
+            return;
+        }
 
         UpdateCurrentState();
 
@@ -1656,6 +1677,227 @@ private AbilityData[] GetEquippedAbilities()
 
         encounterResetInProgress =
             false;
+    }
+
+    // =========================================================
+    // ESCORT
+    // =========================================================
+
+    public bool TryBeginEscort(
+        EscortObjectiveRuntime runtime,
+        Transform destination)
+    {
+        if (runtime == null ||
+            destination == null)
+        {
+            return false;
+        }
+
+        if (selfStats == null ||
+            !selfStats.IsAlive)
+        {
+            return false;
+        }
+
+        /*
+         * NPC:n får inte starta en ny escort mitt under ett annat
+         * aktivt encounter/reset-flöde.
+         *
+         * Combat-integrationen kommer i nästa steg. Just nu vill vi
+         * hellre neka Start Escort än blanda två locomotion-ägare.
+         */
+        if (currentState ==
+                AIState.Aggro ||
+            currentState ==
+                AIState.Fleeing ||
+            currentState ==
+                AIState.Holding ||
+            IsEncounterResetting)
+        {
+            Debug.LogWarning(
+                $"NPC '{name}' kan inte börja escort just nu " +
+                $"eftersom den befinner sig i state {currentState}.",
+                this
+            );
+
+            return false;
+        }
+
+        if (activeEscortRuntime != null)
+        {
+            Debug.LogWarning(
+                $"NPC '{name}' har redan en aktiv escort-session.",
+                this
+            );
+
+            return false;
+        }
+
+        activeEscortRuntime =
+            runtime;
+
+        escortDestination =
+            destination;
+
+        escortStartDelayTimer =
+            Mathf.Max(
+                0f,
+                runtime.StartDelay
+            );
+
+        /*
+         * Lämna normal locomotion helt rent.
+         *
+         * Vi sätter även AI-staten till Idle så att CurrentState
+         * representerar att NPC:n inte längre patrullerar/wandrar
+         * i bakgrunden.
+         */
+        EnterIdleState();
+
+        movement?.Stop();
+
+        return true;
+    }
+
+
+    private void UpdateEscort()
+    {
+        if (activeEscortRuntime == null)
+        {
+            ClearEscortRuntime();
+
+            return;
+        }
+
+        /*
+         * Om objective av någon anledning inte längre är i Escorting
+         * ska NPCBehavior inte fortsätta äga locomotion.
+         */
+        if (!activeEscortRuntime.IsEscorting)
+        {
+            ClearEscortRuntime();
+
+            return;
+        }
+
+        if (selfStats == null ||
+            !selfStats.IsAlive)
+        {
+            movement?.HoldPosition();
+
+            return;
+        }
+
+        if (escortDestination == null)
+        {
+            movement?.HoldPosition();
+
+            return;
+        }
+
+        // =========================================================
+        // START DELAY
+        // =========================================================
+
+        if (escortStartDelayTimer > 0f)
+        {
+            escortStartDelayTimer =
+                Mathf.Max(
+                    0f,
+                    escortStartDelayTimer -
+                    Time.fixedDeltaTime
+                );
+
+            movement?.HoldPosition();
+
+            return;
+        }
+
+        // =========================================================
+        // DESTINATION CHECK
+        // =========================================================
+
+        float destinationDistance =
+            Vector2.Distance(
+                transform.position,
+                escortDestination.position
+            );
+
+        float arrivalDistance =
+            movement != null
+                ? movement.DefaultStopDistance
+                : 0.8f;
+
+        if (destinationDistance <=
+            arrivalDistance)
+        {
+            CompleteEscortTravel();
+
+            return;
+        }
+
+        // =========================================================
+        // MOVEMENT
+        // =========================================================
+
+        if (movement == null)
+            return;
+
+        movement.MoveTowards(
+            escortDestination.position,
+            activeEscortRuntime
+                .MovementSpeedMultiplier,
+            arrivalDistance
+        );
+    }
+
+
+    private void CompleteEscortTravel()
+    {
+        if (activeEscortRuntime == null)
+            return;
+
+        EscortObjectiveRuntime completedEscort =
+            activeEscortRuntime;
+
+        movement?.Stop();
+
+        /*
+         * Rensa NPCBehavior först.
+         *
+         * MarkDestinationReached triggar FavourRuntime-events och kan
+         * direkt ändra favour-state/deaktivera objectives beroende på
+         * completion policy.
+         */
+        ClearEscortRuntime();
+
+        completedEscort
+            .MarkDestinationReached();
+
+        /*
+         * I DENNA ETAPP står NPC:n kvar på destinationen.
+         *
+         * Vi startar ännu inte Wander här eftersom nuvarande
+         * NPCBehavior använder den ursprungliga spawnPosition som
+         * wander-center.
+         *
+         * Nästa destination/despawn-etapp ger oss ett temporärt
+         * destination-home utan att ändra permanent spawn.
+         */
+        EnterIdleState();
+    }
+
+
+    private void ClearEscortRuntime()
+    {
+        activeEscortRuntime =
+            null;
+
+        escortDestination =
+            null;
+
+        escortStartDelayTimer =
+            0f;
     }
 
     private void HandleAggroDetection()

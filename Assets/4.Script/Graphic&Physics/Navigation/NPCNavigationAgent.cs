@@ -790,9 +790,9 @@ public sealed class NPCNavigationAgent :
     /// - aktuell portals PointA/PointB
     /// </summary>
     private bool TryGetLocalMovementDirection(
-        Vector2 currentPosition,
-        Vector2 localDestination,
-        out Vector2 direction)
+    Vector2 currentPosition,
+    Vector2 localDestination,
+    out Vector2 direction)
     {
         direction =
             Vector2.zero;
@@ -800,17 +800,52 @@ public sealed class NPCNavigationAgent :
         if (navigationRegion == null)
             return false;
 
-        bool mayUseDirectMovement =
-            preferDirectMovement &&
-            forcedPathTimer <= 0f;
-
-        if (mayUseDirectMovement &&
+        /*
+         * ---------------------------------------------------------
+         * PROACTIVE DIRECT-PATH TEST
+         * ---------------------------------------------------------
+         *
+         * Innan NPC:n börjar röra sig mot ett lokalt mål testar vi
+         * hela sträckan med NavigationRegionens fulla clearance.
+         *
+         * Om ett statiskt hinder ligger mellan NPC:n och målet ska
+         * vi alltså veta det INNAN NPC:n går fram till hindret.
+         */
+        bool directPathClear =
             navigationRegion
                 .IsDirectPathClear(
                     currentPosition,
                     localDestination
-                ))
+                );
+
+        bool mayUseDirectMovement =
+            preferDirectMovement &&
+            forcedPathTimer <= 0f &&
+            directPathClear;
+
+        // =========================================================
+        // DIRECT MOVEMENT
+        // =========================================================
+
+        if (mayUseDirectMovement)
         {
+            /*
+             * Om NPC:n tidigare behövde A*, men nu har fått fri
+             * line-of-travel till målet, behövs pathen inte längre.
+             *
+             * Exempel:
+             *
+             * NPC
+             *   \
+             *    \       STAKET
+             *     o    ###########
+             *      \
+             *       \________ TARGET
+             *
+             * När NPC:n har rundat staketets ände kan den alltså
+             * lämna waypoint-pathen och gå naturligt direkt mot
+             * slutmålet.
+             */
             if (HasPath ||
                 pathRequestPending)
             {
@@ -828,12 +863,16 @@ public sealed class NPCNavigationAgent :
             );
         }
 
-        // -----------------------------------------------------
+        // =========================================================
         // ACTIVE LOCAL PATH
-        // -----------------------------------------------------
+        // =========================================================
 
         if (HasPath)
         {
+            /*
+             * Om target har flyttat sig tillräckligt mycket får den
+             * existerande pathen uppdateras enligt vanlig throttling.
+             */
             TryScheduleUpdatedPath(
                 currentPosition,
                 localDestination
@@ -850,6 +889,11 @@ public sealed class NPCNavigationAgent :
             }
             else
             {
+                /*
+                 * Hoppa gärna över onödiga waypoints, men endast om
+                 * hela segmentet till den senare waypointen är fritt
+                 * med NavigationRegionens clearance.
+                 */
                 AdvanceVisibleWaypoints(
                     currentPosition
                 );
@@ -868,29 +912,42 @@ public sealed class NPCNavigationAgent :
             }
         }
 
-        // -----------------------------------------------------
-        // NO ACTIVE PATH
-        // -----------------------------------------------------
+        // =========================================================
+        // NO USABLE PATH
+        // =========================================================
 
         ResetProgressTracking(
             currentPosition
         );
 
-        // -----------------------------------------------------
-        // NEED LOCAL A*
-        // -----------------------------------------------------
-
+        /*
+         * Om vi kommer hit vet vi en viktig sak:
+         *
+         * Direct movement används INTE.
+         *
+         * Det kan bero på:
+         * - ett hinder ligger mellan NPC och destination
+         * - physical blockage har temporärt tvingat grid-path
+         * - preferDirectMovement är avstängt
+         *
+         * I samtliga fall ska navigationen begära en riktig lokal
+         * grid-path istället för att låta Rigidbody:n upptäcka
+         * hindret genom att gå in i det.
+         */
         if (ShouldRequestPath(
                 localDestination))
         {
             RequestPath(
                 currentPosition,
-                localDestination
+                localDestination,
+                forceGridPath: true
             );
         }
 
         /*
-         * Resultatet kommer från NavigationPathScheduler.
+         * NavigationPathScheduler levererar resultatet asynkront.
+         * NPC:n väntar därför still den korta stund requesten tar
+         * istället för att börja gå rakt mot hindret.
          */
         return false;
     }
