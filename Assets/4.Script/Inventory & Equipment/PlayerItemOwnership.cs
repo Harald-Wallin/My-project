@@ -92,6 +92,28 @@ public sealed class PlayerItemOwnership
                amount;
     }
 
+    public bool CanReceive(
+    ItemData item,
+    int amount = 1)
+    {
+        if (item == null ||
+            amount <= 0)
+        {
+            return false;
+        }
+
+        if (!item.HasOwnershipLimit)
+            return true;
+
+        int currentAmount =
+            GetItemCount(
+                item
+            );
+
+        return currentAmount + amount <=
+               item.MaximumOwned;
+    }
+
     public bool TryApplyTransaction(
         IReadOnlyList<InventoryItemAmount> removals,
         IReadOnlyList<InventoryItemAmount> additions,

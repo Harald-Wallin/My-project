@@ -26,8 +26,8 @@ public sealed class WorldInteractable :
 
     [SerializeField]
     [Tooltip(
-        "Namnet på interaktionen. " +
-        "Används senare om objektet har flera interaction-options.")]
+        "Texten som visas för interaktionen om spelaren " +
+        "behöver välja mellan flera interaction-options.")]
     private string interactionName =
         "Inspect";
 
@@ -37,18 +37,33 @@ public sealed class WorldInteractable :
     private bool interactionEnabled =
         true;
 
-    public string InteractionName
-    {
-        get
-        {
-            if (!string.IsNullOrWhiteSpace(
-                    interactionName))
-            {
-                return interactionName;
-            }
+    /// <summary>
+    /// Generella världsföremål använder tills vidare
+    /// den generella interaction-kategorin.
+    ///
+    /// Mer specifika typer kan senare få egna kategorier
+    /// om presentationen faktiskt behöver skilja på dem.
+    /// </summary>
+    public InteractionCategory Category =>
+        InteractionCategory.Other;
 
-            return "Interact";
-        }
+    /// <summary>
+    /// Skapar den presentation som används av
+    /// interaction selection-fönstret.
+    /// </summary>
+    public InteractionPresentation
+        GetPresentation()
+    {
+        string text =
+            !string.IsNullOrWhiteSpace(
+                interactionName)
+                ? interactionName
+                : "Interact";
+
+        return new InteractionPresentation(
+            Category,
+            text
+        );
     }
 
     public bool CanInteract(

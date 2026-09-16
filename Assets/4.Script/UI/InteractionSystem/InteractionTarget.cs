@@ -104,12 +104,16 @@ public sealed class InteractionTarget :
     }
 
     public void GetInteractionOptions(
-        List<IInteractionOption> results)
+    in InteractionContext context,
+    List<IInteractionOption> results)
     {
         if (results == null)
             return;
 
         results.Clear();
+
+        if (!context.IsValid)
+            return;
 
         GameObject owner =
             InteractionOwner;
@@ -133,10 +137,39 @@ public sealed class InteractionTarget :
                 continue;
             }
 
+            /*
+             * =====================================================
+             * DIRECT OPTION
+             * =====================================================
+             *
+             * Komponenten som själva representerar exakt
+             * ett konkret interaction-alternativ.
+             */
+
             if (behaviour is
                 IInteractionOption option)
             {
-                results.Add(option);
+                results.Add(
+                    option
+                );
+            }
+
+            /*
+             * =====================================================
+             * OPTION PROVIDER
+             * =====================================================
+             *
+             * Komponenten som dynamiskt kan producera
+             * noll, ett eller flera alternativ.
+             */
+
+            if (behaviour is
+                IInteractionOptionProvider provider)
+            {
+                provider.GetInteractionOptions(
+                    context,
+                    results
+                );
             }
         }
     }

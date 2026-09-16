@@ -125,6 +125,24 @@ public class VendorItemSlot : MonoBehaviour,
         if (buybackVendor == null || buybackItem == null)
             return;
 
+        PlayerItemOwnership ownership =
+    PlayerFavourManager.Instance?
+        .PlayerItems;
+
+        if (ownership != null &&
+            !ownership.CanReceive(
+                buybackItem,
+                buybackQuantity
+            ))
+        {
+            Debug.Log(
+                $"Cannot buy back '{buybackItem.DisplayName}': " +
+                "ownership limit reached."
+            );
+
+            return;
+        }
+
         int price = buybackEntry.pricePaid;
 
         if (!PlayerCurrency.Instance.TrySpendCoins(price))
@@ -149,8 +167,6 @@ public class VendorItemSlot : MonoBehaviour,
 
         // Refresh UI direkt
         VendorUI.Instance.RefreshBuybackUI();
-
-        Debug.Log($"Bought back {buybackItem.itemName} x{buybackQuantity}");
     }
 
     public void OnPointerEnter(PointerEventData eventData)

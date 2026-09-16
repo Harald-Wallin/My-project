@@ -7,7 +7,7 @@ using UnityEngine;
 /// </summary>
 public sealed class FavourGiver :
     MonoBehaviour,
-    IInteractionOption
+    IInteractionOptionProvider
 {
     [Header("Identity")]
 
@@ -30,13 +30,6 @@ public sealed class FavourGiver :
         "Registrerar ExplicitAccept-favours när spelaren " +
         "interagerar med objektet.")]
     private bool registerOnInteraction = true;
-
-    /// <summary>
-    /// Texten som senare kan visas i ett valfönster när ett
-    /// objekt erbjuder flera interaktioner.
-    /// </summary>
-    public string InteractionName =>
-        "Favours";
 
     public string GiverName
     {
@@ -115,45 +108,6 @@ public sealed class FavourGiver :
     // INTERACTION
     // =========================================================
 
-    /// <summary>
-    /// Kontrollerar om favour-givaren för närvarande kan användas.
-    ///
-    /// Vi kontrollerar konfigurerade favours i stället för endast
-    /// redan synliga runtimes, eftersom ExplicitAccept- och
-    /// DiscoverOnInteraction-favours kan registreras först när
-    /// interaktionen sker.
-    /// </summary>
-    public bool CanInteract(
-    in InteractionContext context)
-    {
-        if (!context.IsValid)
-            return false;
-
-        NPCBehavior npcBehavior =
-            GetComponentInParent<
-                NPCBehavior>();
-
-        if (npcBehavior != null &&
-            npcBehavior
-                .IsFavourInteractionSuppressed)
-        {
-            return false;
-        }
-
-        PlayerFavourManager manager =
-            PlayerFavourManager.Instance;
-
-        if (manager == null)
-            return false;
-
-        return
-            HasLocalInteraction(
-                manager
-            ) ||
-            HasRelevantRuntime(
-                manager
-            );
-    }
 
     private bool HasLocalInteraction(
     PlayerFavourManager manager)
@@ -327,49 +281,73 @@ public sealed class FavourGiver :
     }
 
     /// <summary>
-    /// Registrerar eller upptäcker relevanta favours och öppnar
-    /// sedan favour-fönstret.
+    /// Producerar ett separat interaction-alternativ för varje
+    /// FavourRuntime som är relevant hos denna entity just nu.
     /// </summary>
-    public void Interact(
-        in InteractionContext context)
+    public void GetInteractionOptions(
+        in InteractionContext context,
+        List<IInteractionOption> results)
     {
-        if (!CanInteract(context))
+        if (results == null ||
+            !context.IsValid)
+        {
             return;
+        }
+
+        NPCBehavior npcBehavior =
+            GetComponentInParent<
+                NPCBehavior>();
+
+        if (npcBehavior != null &&
+            npcBehavior
+                .IsFavourInteractionSuppressed)
+        {
+            return;
+        }
 
         PlayerFavourManager manager =
             PlayerFavourManager.Instance;
 
         if (manager == null)
-        {
-            Debug.LogWarning(
-                $"'{name}' försökte öppna favours, men spelaren " +
-                "saknar PlayerFavourManager.",
-                this);
-
             return;
-        }
 
+        /*
+         * Viktigt:
+         *
+         * DiscoverOnInteraction kan behöva registreras först
+         * när spelaren faktiskt interagerar med givaren.
+         *
+         * Vi behåller därför FavourGivers befintliga
+         * registreringspolicy innan vi frågar efter synliga
+         * runtimes.
+         */
         RegisterInteractionFavours(
-            manager);
+            manager
+        );
 
-        FavourWindow window =
-            FavourWindow.Instance;
+        List<FavourRuntime> visibleFavours =
+            GetVisibleFavours();
 
-        if (window == null)
+        for (int i = 0;
+             i < visibleFavours.Count;
+             i++)
         {
-            Debug.LogWarning(
-                $"'{name}' försökte öppna FavourWindow, men " +
-                "inget aktivt FavourWindow hittades.",
-                this);
+            FavourRuntime runtime =
+                visibleFavours[i];
 
-            return;
+            if (runtime == null ||
+                runtime.Data == null)
+            {
+                continue;
+            }
+
+            results.Add(
+                new FavourInteractionOption(
+                    this,
+                    runtime
+                )
+            );
         }
-
-        window.Open(
-            this,
-            context.Target);
-
-        RefreshMarker();
     }
 
     [Header("Favour Marker")]
@@ -902,6 +880,55 @@ GetMarkerState()
     // =========================================================
     // FAVOUR ACCESS
     // =========================================================
+
+    /// <summary>
+    /// Öppnar FavourWindow med denna giver och väljer
+    /// en specifik FavourRuntime.
+    ///
+    /// Används av FavourInteractionOption när spelaren
+    /// väljer en Favour i den generella interaction-menyn.
+    /// </summary>
+    public void OpenFavour(
+        FavourRuntime runtime,
+        InteractionTarget target)
+    {
+        if (runtime == null ||
+            runtime.Data == null ||
+            target == null)
+        {
+            return;
+        }
+
+        if (!TryGetVisibleRuntime(
+                runtime.Data,
+                out FavourRuntime visibleRuntime) ||
+            visibleRuntime != runtime)
+        {
+            return;
+        }
+
+        FavourWindow window =
+            FavourWindow.Instance;
+
+        if (window == null)
+        {
+            Debug.LogWarning(
+                $"'{name}' försökte öppna FavourWindow, men " +
+                "inget aktivt FavourWindow hittades.",
+                this
+            );
+
+            return;
+        }
+
+        window.Open(
+            this,
+            runtime,
+            target
+        );
+
+        RefreshMarker();
+    }
 
     public bool TryAccept(
         FavourData favour)

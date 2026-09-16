@@ -189,13 +189,17 @@ public sealed class InteractionManager : MonoBehaviour
             return false;
         }
 
+        InteractionContext context =
+    new(
+        player,
+        target);
+
         target.GetInteractionOptions(
+            context,
             availableOptions);
 
-        InteractionContext context =
-            new(
-                player,
-                target);
+        RemoveUnavailableOptions(
+            context);
 
         RemoveUnavailableOptions(
             context);
@@ -314,22 +318,33 @@ public sealed class InteractionManager : MonoBehaviour
     }
 
     private void OpenSelectionWindow(
-        in InteractionContext context)
+    in InteractionContext context)
     {
-        /*
-         * Nästa implementation kopplar in
-         * InteractionSelectionWindow här.
-         *
-         * Vi kör inte det första alternativet automatiskt när
-         * flera alternativ finns. Det skulle kunna öppna exempelvis
-         * Vendor när spelaren avsåg att välja en favour.
-         */
+        if (!context.IsValid ||
+            availableOptions.Count == 0)
+        {
+            return;
+        }
 
-        Debug.Log(
-            $"'{context.Target.InteractionOwner.name}' har " +
-            $"{availableOptions.Count} tillgängliga interaktioner. " +
-            "InteractionSelectionWindow behöver öppnas.",
-            context.Target);
+        InteractionSelectionWindow window =
+            InteractionSelectionWindow.Instance;
+
+        if (window == null)
+        {
+            Debug.LogWarning(
+                $"'{context.Target.InteractionOwner.name}' har " +
+                $"{availableOptions.Count} tillgängliga interaktioner, " +
+                "men inget InteractionSelectionWindow finns i scenen.",
+                context.Target
+            );
+
+            return;
+        }
+
+        window.Open(
+            context.Target,
+            availableOptions
+        );
     }
 
     private static InteractionTarget

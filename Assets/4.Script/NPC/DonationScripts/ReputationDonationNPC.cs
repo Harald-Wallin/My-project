@@ -38,7 +38,17 @@ public sealed class ReputationDonationNPC :
     private string rejectedMessage =
         "I don't trust you enough.";
 
-    public string InteractionName => "Donate";
+    public InteractionCategory Category =>
+    InteractionCategory.Tribute;
+
+    public InteractionPresentation
+        GetPresentation()
+    {
+        return new InteractionPresentation(
+            Category,
+            "Donate"
+        );
+    }
 
     public ItemData RequiredItem =>
         requiredItem;

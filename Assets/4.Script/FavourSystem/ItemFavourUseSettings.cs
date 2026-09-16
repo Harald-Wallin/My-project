@@ -38,10 +38,7 @@ public sealed class ItemFavourUseSettings
 
 
 #if UNITY_EDITOR
-
-[UnityEditor.CustomPropertyDrawer(
-    typeof(ItemFavourUseSettings)
-)]
+[UnityEditor.CustomPropertyDrawer(typeof(ItemFavourUseSettings))]
 public sealed class ItemFavourUseSettingsDrawer :
     UnityEditor.PropertyDrawer
 {
@@ -92,18 +89,17 @@ public sealed class ItemFavourUseSettingsDrawer :
                 lineHeight +
                 Spacing,
                 position.width,
-                UnityEditor.EditorGUI.GetPropertyHeight(
-                    favours,
-                    true
-                )
+                UnityEditor.EditorGUI
+                    .GetPropertyHeight(
+                        favours,
+                        true
+                    )
             );
 
         UnityEditor.EditorGUI.PropertyField(
             favoursRect,
             favours,
-            new GUIContent(
-                "Favours"
-            ),
+            new GUIContent("Favours"),
             true
         );
     }
@@ -117,26 +113,26 @@ public sealed class ItemFavourUseSettingsDrawer :
                 "enabled"
             );
 
-        float height =
+        float lineHeight =
             UnityEditor.EditorGUIUtility
                 .singleLineHeight;
 
         if (!enabled.boolValue)
-            return height;
+            return lineHeight;
 
         UnityEditor.SerializedProperty favours =
             property.FindPropertyRelative(
                 "favours"
             );
 
-        return height +
-               Spacing +
-               UnityEditor.EditorGUI
-                   .GetPropertyHeight(
-                       favours,
-                       true
-                   );
+        return
+            lineHeight +
+            Spacing +
+            UnityEditor.EditorGUI
+                .GetPropertyHeight(
+                    favours,
+                    true
+                );
     }
 }
-
 #endif

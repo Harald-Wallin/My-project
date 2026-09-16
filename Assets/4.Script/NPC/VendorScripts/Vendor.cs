@@ -36,7 +36,17 @@ public class Vendor : MonoBehaviour, IInteractionOption
     [SerializeField] private List<VendorItem> itemsForSale = new List<VendorItem>();
 
     public VendorUI vendorUI;
-    public string InteractionName => "Trade";
+    public InteractionCategory Category =>
+    InteractionCategory.Vendor;
+
+    public InteractionPresentation
+        GetPresentation()
+    {
+        return new InteractionPresentation(
+            Category,
+            "Trade"
+        );
+    }
 
 
     void Start()
@@ -161,6 +171,24 @@ public class Vendor : MonoBehaviour, IInteractionOption
             return;
 
         PlayerStats player = PlayerReference.Player;
+
+        PlayerItemOwnership ownership =
+    PlayerFavourManager.Instance?
+        .PlayerItems;
+
+        if (ownership != null &&
+            !ownership.CanReceive(
+                entry.data.item,
+                1
+            ))
+        {
+            Debug.Log(
+                $"Cannot buy '{entry.data.item.DisplayName}': " +
+                "ownership limit reached."
+            );
+
+            return;
+        }
 
         // Kontrollera level-krav på VendorItem (VendorItem.requiredLevel)
         if (entry.data.useLevelRequirement && entry.data.requiredLevel > player.level)

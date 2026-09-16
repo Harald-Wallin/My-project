@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using System.Collections.Generic;
 
 public enum ItemRarity
 {
@@ -141,6 +140,19 @@ public class ItemData :
     public bool useReputationRequirement;
     public ReputationState requiredReputation;
 
+    [Header("Ownership")]
+
+    [SerializeField]
+    [Min(0)]
+    [Tooltip(
+    "Maximalt antal exemplar av detta item som spelaren får äga " +
+    "samtidigt över Inventory och Equipment.\n\n" +
+    "0 = Unlimited.\n" +
+    "1 = Unique.\n" +
+    "Högre värden tillåter motsvarande antal exemplar."
+)]
+    private int maximumOwned;
+
     [Header("Economy")]
 
     [SerializeField]
@@ -175,6 +187,15 @@ public class ItemData :
     public string ItemTypeDisplayName =>
         GetItemTypeDisplayName(
             itemType);
+
+    public int MaximumOwned =>
+    Mathf.Max(
+        0,
+        maximumOwned
+    );
+
+    public bool HasOwnershipLimit =>
+        MaximumOwned > 0;
 
     public string DisplayName =>
         string.IsNullOrWhiteSpace(
@@ -427,8 +448,37 @@ public class ItemData :
     PlayerFavourManager favourManager)
     {
         /*
-         * Vanliga items påverkas aldrig av favour-systemet.
+         * =====================================================
+         * OWNERSHIP LIMIT
+         * =====================================================
+         *
+         * Loot får inte generera ytterligare exemplar om
+         * spelarens generella ownership-limit skulle överskridas.
+         *
+         * PlayerItemOwnership räknar Inventory + Equipment.
          */
+
+        if (HasOwnershipLimit)
+        {
+            PlayerItemOwnership ownership =
+                favourManager?.PlayerItems;
+
+            if (ownership != null &&
+                !ownership.CanReceive(
+                    this,
+                    1
+                ))
+            {
+                return false;
+            }
+        }
+
+        /*
+         * =====================================================
+         * NORMAL ITEMS
+         * =====================================================
+         */
+
         if (itemType !=
             ItemType.FavourItem)
         {
@@ -436,19 +486,20 @@ public class ItemData :
         }
 
         /*
-         * FavourItems måste uttryckligen tillhöra en favour.
+         * =====================================================
+         * FAVOUR ITEMS
+         * =====================================================
+         *
+         * ItemType.FavourItem behåller sin gamla betydelse:
+         * itemet måste behövas av den angivna aktiva Favourn.
          */
+
         if (requiredFavour == null)
             return false;
 
         if (favourManager == null)
             return false;
 
-        /*
-         * Itemet får endast droppa medan den angivna favouren
-         * faktiskt är ACTIVE och har ett aktivt, ofärdigt
-         * Collect-objective som behöver just detta item.
-         */
         return favourManager
             .CanDropFavourItem(
                 requiredFavour,
@@ -519,6 +570,12 @@ public class ItemData :
             Mathf.Max(
                 foodTickInterval,
                 foodChannelDuration
+            );
+
+        maximumOwned =
+            Mathf.Max(
+                0,
+                maximumOwned
             );
     }
 #endif

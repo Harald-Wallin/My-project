@@ -1,17 +1,26 @@
 /// <summary>
-/// Implementeras av komponenter som erbjuder en interaktion
-/// genom ett InteractionTarget.
-///
-/// Exempel:
-/// Vendor, FavourGiver, ReputationDonationNPC,
-/// LootContainer och Harvestable.
+/// Representerar ett konkret interaktionsalternativ
+/// som spelaren kan välja genom ett InteractionTarget.
 /// </summary>
 public interface IInteractionOption
 {
     /// <summary>
-    /// Texten som visas i interaktionsmenyn.
+    /// Den semantiska typen av interaktion.
+    /// Används av presentationslagret och UI:t.
     /// </summary>
-    string InteractionName { get; }
+    InteractionCategory Category
+    {
+        get;
+    }
+
+    /// <summary>
+    /// Skapar presentationen som visas för spelaren.
+    ///
+    /// Text kan vara statisk, automatiskt genererad
+    /// eller hämtad från underliggande gameplay-data.
+    /// Status får förändras medan ett valfönster är öppet.
+    /// </summary>
+    InteractionPresentation GetPresentation();
 
     /// <summary>
     /// Avgör om alternativet för tillfället är tillgängligt.
