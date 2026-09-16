@@ -129,6 +129,17 @@ public sealed class FavourGiver :
         if (!context.IsValid)
             return false;
 
+        NPCBehavior npcBehavior =
+            GetComponentInParent<
+                NPCBehavior>();
+
+        if (npcBehavior != null &&
+            npcBehavior
+                .IsFavourInteractionSuppressed)
+        {
+            return false;
+        }
+
         PlayerFavourManager manager =
             PlayerFavourManager.Instance;
 
@@ -665,6 +676,18 @@ public sealed class FavourGiver :
     private FavourMarkerVisualState
 GetMarkerState()
     {
+        NPCBehavior npcBehavior =
+        GetComponentInParent<
+            NPCBehavior>();
+
+        if (npcBehavior != null &&
+            npcBehavior
+                .IsFavourInteractionSuppressed)
+        {
+            return
+                FavourMarkerVisualState.Hidden;
+        }
+
         PlayerFavourManager manager =
             PlayerFavourManager.Instance;
 

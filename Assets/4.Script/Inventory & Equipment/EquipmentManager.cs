@@ -1,9 +1,11 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 public class EquipmentManager : MonoBehaviour
 {
     public static EquipmentManager Instance;
+    public event Action OnEquipmentChanged;
     public List<EquipmentSlotUI> equipmentSlots = new List<EquipmentSlotUI>();
 
     [SerializeField] private Inventory inventory;
@@ -54,6 +56,34 @@ public class EquipmentManager : MonoBehaviour
         return null;
     }
 
+    public int GetEquippedItemCount(
+    ItemData item)
+    {
+        if (item == null)
+            return 0;
+
+        int total = 0;
+
+        foreach (EquipmentSlotUI slot
+                 in equipmentSlots)
+        {
+            if (slot == null)
+                continue;
+
+            ItemData equippedItem =
+                slot.GetEquippedItem();
+
+            if (Inventory.ItemsMatch(
+                    equippedItem,
+                    item))
+            {
+                total++;
+            }
+        }
+
+        return total;
+    }
+
     public void TryEquipItem(
     ItemData item,
     int fromSlotIndex)
@@ -84,22 +114,42 @@ public class EquipmentManager : MonoBehaviour
         {
             RemoveStats(targetSlot);
 
-            inventory.slots[fromSlotIndex].item = existingItem;
+            inventory.slots[fromSlotIndex].item =
+                existingItem;
 
-            inventory.slots[fromSlotIndex].amount = 1;
+            inventory.slots[fromSlotIndex].amount =
+                1;
         }
         else
         {
-            inventory.RemoveItemAt(fromSlotIndex,1);
+            InventorySlot sourceSlot =
+                inventory.slots[fromSlotIndex];
+
+            sourceSlot.amount -= 1;
+
+            if (sourceSlot.amount <= 0)
+            {
+                sourceSlot.item = null;
+                sourceSlot.amount = 0;
+            }
         }
 
+        targetSlot.SetItem(
+            item
+        );
+
+        ApplyStats(
+            item,
+            targetSlot
+        );
+
+        humanoidEquipment.Equip(
+            item
+        );
+
         inventory.NotifyChanged();
-
-        targetSlot.SetItem(item);
-
-        ApplyStats(item,targetSlot);
-
-        humanoidEquipment.Equip(item);
+        OnEquipmentChanged?.Invoke();
+        OnEquipmentChanged?.Invoke();
 
         WardSystem ward = playerStats.GetComponent<WardSystem>();
 
@@ -177,6 +227,7 @@ public class EquipmentManager : MonoBehaviour
         humanoidEquipment.Unequip(item);
 
         slot.ClearSlot();
+        OnEquipmentChanged?.Invoke();
 
         WardSystem ward =
             playerStats.GetComponent<WardSystem>();
@@ -200,6 +251,7 @@ public class EquipmentManager : MonoBehaviour
         humanoidEquipment.Unequip(item);
 
         slot.ClearSlot();
+        OnEquipmentChanged?.Invoke();
 
         WardSystem ward =
             playerStats.GetComponent<WardSystem>();

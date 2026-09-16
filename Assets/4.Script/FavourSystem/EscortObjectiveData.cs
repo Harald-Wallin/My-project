@@ -46,6 +46,17 @@ public sealed class EscortObjectiveData :
     private float startDelay = 4f;
 
 
+
+    [Header("After Success")]
+
+    [SerializeField]
+    [Min(0f)]
+    [Tooltip(
+    "Hur länge escort-NPCn stannar vid destinationen efter lyckad eskort " +
+    "innan den återvänder till sin permanenta spawnposition.")]
+    private float postSuccessStaySeconds = 3600f;
+
+
     public EntityReference EscortNpc =>
         escortNpc;
 
@@ -91,6 +102,12 @@ public sealed class EscortObjectiveData :
             startDelay
         );
 
+    public float PostSuccessStaySeconds =>
+    Mathf.Max(
+        0f,
+        postSuccessStaySeconds
+    );
+
 
     public override FavourObjectiveRuntime
         CreateRuntime(
@@ -124,6 +141,12 @@ public sealed class EscortObjectiveData :
             Mathf.Max(
                 0f,
                 startDelay
+            );
+
+        postSuccessStaySeconds =
+            Mathf.Max(
+                0f,
+                 postSuccessStaySeconds
             );
 
         if (escortNpc == null ||

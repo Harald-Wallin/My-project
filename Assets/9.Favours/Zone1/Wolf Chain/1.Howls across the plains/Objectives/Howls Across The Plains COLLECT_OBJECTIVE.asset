@@ -15,5 +15,5 @@ MonoBehaviour:
   displayName: Strange fangs collected
   description: Collect strange fangs
   item: {fileID: 11400000, guid: 28401431050b2e04ca8ab2e926815c09, type: 2}
-  requiredAmount: 1
+  requiredAmount: 3
   consumeItemsOnCompletion: 1

@@ -23,17 +23,35 @@ public class EquipmentSlotUI : MonoBehaviour,
     public static EquipmentSlotUI DraggedEquipmentSlot;
 
     private ItemData equippedItem;
+    private PlayerItemUseController itemUseController;
 
 
     private void Awake()
     {
-        rootCanvas = GetComponentInParent<Canvas>();
+        rootCanvas =
+            GetComponentInParent<Canvas>();
 
         if (border != null)
-            border.enabled = false;
+        {
+            border.enabled =
+                false;
+        }
 
         if (icon != null)
-            icon.enabled = false;
+        {
+            icon.enabled =
+                false;
+        }
+
+        PlayerStats player =
+            PlayerReference.Player;
+
+        if (player != null)
+        {
+            itemUseController =
+                player.GetComponent<
+                    PlayerItemUseController>();
+        }
     }
 
     public bool IsEmpty()
@@ -73,19 +91,61 @@ public class EquipmentSlotUI : MonoBehaviour,
         return equippedItem;
     }
 
-    public void OnPointerClick(PointerEventData eventData)
+    public void OnPointerClick(
+    PointerEventData eventData)
     {
-        if (eventData.button != PointerEventData.InputButton.Right)
+        if (eventData.button !=
+            PointerEventData.InputButton.Right)
+        {
             return;
+        }
 
         if (equippedItem == null)
             return;
 
-        EquipmentManager manager = FindFirstObjectByType<EquipmentManager>();
-        if (manager != null)
+        // =====================================================
+        // ITEM USE -> FAVOUR / FUTURE CAPABILITIES
+        // =====================================================
+
+        if (itemUseController == null)
         {
-            manager.Unequip(this);
+            PlayerStats player =
+                PlayerReference.Player;
+
+            if (player != null)
+            {
+                itemUseController =
+                    player.GetComponent<
+                        PlayerItemUseController>();
+            }
         }
+
+        if (itemUseController != null &&
+            itemUseController.TryUseItem(
+                equippedItem))
+        {
+            /*
+             * Itemets primary use tog hand om högerklicket.
+             *
+             * För ett Favour-item betyder det att FavourWindow
+             * öppnades. Itemet ska därför INTE unequippas.
+             */
+            return;
+        }
+
+        // =====================================================
+        // NORMAL -> UNEQUIP
+        // =====================================================
+
+        EquipmentManager manager =
+            EquipmentManager.Instance;
+
+        if (manager == null)
+            return;
+
+        manager.Unequip(
+            this
+        );
     }
 
     public void OnPointerEnter(PointerEventData eventData)

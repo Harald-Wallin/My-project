@@ -168,7 +168,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 98391587a57e50947892e49d03e35150, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LootableCorpse
-  corpseName: Mangy Wolf
+  corpseName: 
   lootRange: 1.5
   lootShimmer: {fileID: 3561173082310592701, guid: a0ab880cb1ec0f34fb9522ef019ddebd, type: 3}
   emptyCorpseLifetime: 10

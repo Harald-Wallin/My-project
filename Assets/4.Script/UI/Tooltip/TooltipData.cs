@@ -15,6 +15,10 @@ public class TooltipData
     public Color titleColor =
         Color.white;
 
+    public string itemFavourSource;
+
+    public string itemFavourRequirement;
+
     public string subtitle;
 
     public string description;

@@ -40,8 +40,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 3ed2144a4f6776745b0975f887089389, type: 2}
   forbiddenCompletedFavours: []
   failureSettings:
-    policy: 0
-    retryCooldownSeconds: 0
+    policy: 2
+    retryCooldownSeconds: 1
   repeatSettings:
     repeatable: 0
     repeatCooldownSeconds: 0

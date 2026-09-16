@@ -87,11 +87,11 @@ public class FloatingText : MonoBehaviour
                 break;
 
             case FloatingTextStyle.EnemyDamage:
-                text.color = new Color(
+                text.color = Color.red;/*new Color(
                     1f,
                     0.35f,
                     0.35f
-                );
+                );*/
                 break;
 
             case FloatingTextStyle.PlayerCrit:

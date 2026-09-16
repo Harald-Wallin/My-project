@@ -4,6 +4,7 @@ using UnityEngine;
 
 public sealed class FavourRuntime
 {
+
     private readonly List<
         FavourObjectiveRuntime>
         objectives =
@@ -42,15 +43,37 @@ public sealed class FavourRuntime
     activationInventoryAdditions =
         new();
 
-    private readonly int
-        rolledCurrencyReward;
+    private int
+    rolledCurrencyReward;
+
+    private float
+        cooldownRemaining;
+
+    private bool
+        hasBeenCompleted;
 
     private bool
         isFinalizingCompletion;
 
+    private ItemData sourceItem;
+
     // =========================================================
     // CORE STATE API
     // =========================================================
+
+    public ItemData SourceItem =>
+    sourceItem;
+
+    public bool HasSourceItem =>
+        sourceItem != null;
+
+    public bool RequiresSourceItemWhileActive =>
+        sourceItem != null &&
+        Data != null &&
+        Data.RequireSourceItemWhileActive;
+
+    public bool IsFinalizingCompletion =>
+        isFinalizingCompletion;
 
     public bool AreObjectivesComplete =>
         AreAllObjectivesComplete();
@@ -107,6 +130,15 @@ public sealed class FavourRuntime
             FavourState.Failed &&
         State !=
             FavourState.Cooldown;
+
+    public bool HasBeenCompleted =>
+    hasBeenCompleted;
+
+    public float CooldownRemaining =>
+        Mathf.Max(
+            0f,
+            cooldownRemaining
+        );
 
     // =========================================================
     // CONSTRUCTION
@@ -325,15 +357,7 @@ public sealed class FavourRuntime
 
     private bool IsLevelRequirementMet()
     {
-        if (Data.MinimumLevel <= 0)
-            return true;
-
-        PlayerStats player =
-            Manager.Player;
-
-        return player != null &&
-               player.Level >=
-               Data.MinimumLevel;
+        return IsMinimumLevelMet;
     }
 
     private bool IsCurrencyRequirementMet()
@@ -457,10 +481,10 @@ public sealed class FavourRuntime
             return true;
         }
 
-        Inventory inventory =
-            ResolveInventory();
+        PlayerItemOwnership items =
+            Manager?.PlayerItems;
 
-        if (inventory == null)
+        if (items == null)
             return false;
 
         foreach (FavourItemRequirement
@@ -473,7 +497,7 @@ public sealed class FavourRuntime
             if (requirement.Item == null)
                 return false;
 
-            if (inventory.GetItemCount(
+            if (items.GetItemCount(
                     requirement.Item) <
                 requirement.Amount)
             {
@@ -528,6 +552,57 @@ public sealed class FavourRuntime
 
         return true;
     }
+    public void BindSourceItem(
+    ItemData item)
+    {
+        sourceItem = item;
+    }
+
+    private void ClearSourceItem()
+    {
+        sourceItem = null;
+    }
+
+    public bool ValidateSourceItemOwnership()
+    {
+        if (!RequiresSourceItemWhileActive)
+            return true;
+
+        if (State != FavourState.Active &&
+            State != FavourState.ReadyToTurnIn)
+        {
+            return true;
+        }
+
+        /*
+         * Completion kan legitimt konsumera source-itemet.
+         * Ownership-eventet från den transaktionen får därför
+         * inte faila favouren mitt under completion.
+         */
+        if (isFinalizingCompletion)
+            return true;
+
+        PlayerItemOwnership items =
+            Manager?.PlayerItems;
+
+        if (items == null)
+        {
+            Debug.LogError(
+                $"Favour '{DisplayName}' kräver sitt source-item, " +
+                $"men PlayerItemOwnership saknas."
+            );
+
+            return true;
+        }
+
+        if (items.Contains(sourceItem))
+            return true;
+
+        TryFail();
+
+        return false;
+    }
+
 
     // =========================================================
     // ACTIVATION / COMPLETION
@@ -789,25 +864,25 @@ public sealed class FavourRuntime
         BuildInventoryRemovals();
         BuildMergedInventoryRewards();
 
-        Inventory inventory =
-            ResolveInventory();
+        PlayerItemOwnership items =
+    Manager?.PlayerItems;
 
         if (!CanPayCompletionCosts(
-                inventory))
+                items))
         {
             return false;
         }
 
-        bool requiresInventory =
+        bool requiresItemTransaction =
             inventoryRemovals.Count > 0 ||
             mergedInventoryRewards.Count > 0;
 
-        if (requiresInventory &&
-            inventory == null)
+        if (requiresItemTransaction &&
+            items == null)
         {
             Debug.LogError(
-                $"Favour '{Data?.DisplayName}' kräver Inventory, " +
-                $"men inget Inventory kunde hittas."
+                $"Favour '{Data?.DisplayName}' kräver player items, " +
+                $"men inget PlayerItemOwnership kunde hittas."
             );
 
             return false;
@@ -818,10 +893,10 @@ public sealed class FavourRuntime
 
         try
         {
-            if (requiresInventory)
+            if (requiresItemTransaction)
             {
                 bool transactionSucceeded =
-                    inventory.TryApplyTransaction(
+                    items.TryApplyTransaction(
                         inventoryRemovals,
                         mergedInventoryRewards,
                         notifyIfInventoryFull: true
@@ -849,17 +924,37 @@ public sealed class FavourRuntime
     private void Complete()
     {
         if (State ==
-            FavourState.Completed)
+                FavourState.Completed ||
+            State ==
+                FavourState.Cooldown)
         {
             return;
         }
 
         DeactivateObjectives();
 
-        RegisterFollowUps();
+        ClearSourceItem();
+
+        hasBeenCompleted =
+            true;
 
         SetState(
             FavourState.Completed
+        );
+
+        RegisterFollowUps();
+
+        FavourRepeatSettings repeat =
+            Data?.RepeatSettings;
+
+        if (repeat == null ||
+            !repeat.Repeatable)
+        {
+            return;
+        }
+
+        BeginCooldown(
+            repeat.RepeatCooldownSeconds
         );
     }
 
@@ -1441,18 +1536,24 @@ public sealed class FavourRuntime
     }
 
     private bool CanPayCompletionCosts(
-        Inventory inventory)
+    PlayerItemOwnership items)
     {
         if (mergedCompletionCosts.Count == 0)
             return true;
 
-        if (inventory == null)
+        if (items == null)
             return false;
 
         foreach (FavourItemCost cost
                  in mergedCompletionCosts)
         {
-            if (inventory.GetItemCount(
+            if (cost.Item == null ||
+                cost.Amount <= 0)
+            {
+                continue;
+            }
+
+            if (items.GetItemCount(
                     cost.Item) <
                 cost.Amount)
             {
@@ -1808,20 +1909,69 @@ public sealed class FavourRuntime
         );
     }
 
-    internal void ResetForReaccept()
+    public bool TryFail()
     {
-        if (State != FavourState.Active &&
-            State != FavourState.ReadyToTurnIn)
+        if (State !=
+                FavourState.Active &&
+            State !=
+                FavourState.ReadyToTurnIn)
         {
-            return;
+            return false;
         }
 
         DeactivateObjectives();
 
-        /*
-         * Vi sätter state först så att ResetProgress-signaler
-         * inte försöker evaluera favouren som en aktiv favour.
-         */
+        SetState(
+            FavourState.Failed
+        );
+
+        FavourFailureSettings failure =
+            Data?.FailureSettings;
+
+        FavourFailurePolicy policy =
+            failure != null
+                ? failure.Policy
+                : FavourFailurePolicy.None;
+
+        switch (policy)
+        {
+
+            case FavourFailurePolicy.None:
+
+            case FavourFailurePolicy.PermanentFailure:
+                return true;
+
+            case FavourFailurePolicy.RetryImmediately:
+
+                ResetForNewRun();
+
+                return true;
+
+            case FavourFailurePolicy.RetryAfterCooldown:
+
+                BeginCooldown(
+                    failure != null
+                        ? failure.RetryCooldownSeconds
+                        : 0f
+                );
+
+                return true;
+
+            case FavourFailurePolicy.ResetObjectivesAndRetry:
+
+                RestartAcceptedAttempt();
+
+                return true;
+
+            default:
+                return true;
+        }
+    }
+
+    private void RestartAcceptedAttempt()
+    {
+        DeactivateObjectives();
+
         SetState(
             FavourState.Unavailable
         );
@@ -1834,19 +1984,142 @@ public sealed class FavourRuntime
 
         ClearRewardSelections();
 
-        /*
-         * RefreshAvailability avgör om requirements fortfarande
-         * är uppfyllda.
-         *
-         * Normalt blir resultatet Available och favouren kan
-         * accepteras igen hos originalgivaren.
-         */
+        if (IsCourier)
+        {
+            SetState(
+                FavourState.ReadyToTurnIn
+            );
+
+            return;
+        }
+
+        SetState(
+            FavourState.Active
+        );
+
+        ActivateObjectives();
+
+        EvaluateCompletion();
+    }
+
+    internal void Tick(
+    float deltaTime)
+    {
+        if (State !=
+            FavourState.Cooldown)
+        {
+            return;
+        }
+
+        if (cooldownRemaining <=
+            0f)
+        {
+            ResetForNewRun();
+            return;
+        }
+
+        cooldownRemaining -=
+            Mathf.Max(
+                0f,
+                deltaTime
+            );
+
+        if (cooldownRemaining >
+            0f)
+        {
+            return;
+        }
+
+        cooldownRemaining =
+            0f;
+
+        ResetForNewRun();
+    }
+
+    private void BeginCooldown(
+        float duration)
+    {
+        cooldownRemaining =
+            Mathf.Max(
+                0f,
+                duration
+            );
+
+        SetState(
+            FavourState.Cooldown
+        );
+
+        if (cooldownRemaining <=
+            0f)
+        {
+            ResetForNewRun();
+        }
+    }
+
+    private void ResetForNewRun()
+    {
+        DeactivateObjectives();
+
+        ClearSourceItem();
+
+        cooldownRemaining =
+            0f;
+
+        SetState(
+            FavourState.Unavailable
+        );
+
+        foreach (FavourObjectiveRuntime objective
+                 in objectives)
+        {
+            objective?.ResetProgress();
+        }
+
+        ClearRewardSelections();
+
+        rolledCurrencyReward =
+            RollCurrencyReward();
+
         RefreshAvailability();
+    }
+
+    internal void ResetForReaccept()
+    {
+        if (State !=
+                FavourState.Active &&
+            State !=
+                FavourState.ReadyToTurnIn)
+        {
+            return;
+        }
+
+        ResetForNewRun();
     }
 
     // =========================================================
     // PRESENTATION API
     // =========================================================
+
+    public int MinimumLevel =>
+    Data != null
+        ? Data.MinimumLevel
+        : 0;
+
+    public bool IsMinimumLevelMet
+    {
+        get
+        {
+            if (MinimumLevel <= 0)
+                return true;
+
+            PlayerStats player =
+                Manager?.Player;
+
+            return player != null &&
+                   player.Level >=
+                   MinimumLevel;
+        }
+    }
 
     public int ExperienceReward =>
         Data != null

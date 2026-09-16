@@ -44,6 +44,12 @@ public sealed class PlayerFavourManager :
         private set;
     }
 
+    public PlayerItemOwnership PlayerItems
+    {
+        get;
+        private set;
+    }
+
     public PlayerCurrency PlayerCurrency
     {
         get;
@@ -100,6 +106,25 @@ public sealed class PlayerFavourManager :
         ResolveLocalReferences();
     }
 
+    private void Update()
+    {
+        if (runtimesById.Count == 0)
+            return;
+
+        CreateRuntimeSnapshot();
+
+        float deltaTime =
+            Time.deltaTime;
+
+        foreach (FavourRuntime runtime
+                 in runtimeSnapshot)
+        {
+            runtime?.Tick(
+                deltaTime
+            );
+        }
+    }
+
     private void OnEnable()
     {
         CharacterCombatEvents
@@ -110,6 +135,8 @@ public sealed class PlayerFavourManager :
     private void Start()
     {
         ResolveReferences();
+
+        ResolveItemOwnership();
 
         SubscribeToPlayerSystems();
 
@@ -130,6 +157,10 @@ public sealed class PlayerFavourManager :
     private void OnDestroy()
     {
         UnsubscribeFromRuntimes();
+
+        PlayerItems?.Dispose();
+
+        PlayerItems = null;
 
         if (Instance == this)
         {
@@ -232,15 +263,25 @@ public sealed class PlayerFavourManager :
         }
     }
 
+    private void ResolveItemOwnership()
+    {
+        PlayerItems?.Dispose();
+
+        PlayerItems =
+            new PlayerItemOwnership(
+                PlayerInventory,
+                EquipmentManager.Instance
+            );
+    }
+
     private void SubscribeToPlayerSystems()
     {
         UnsubscribeFromPlayerSystems();
 
-        if (PlayerInventory != null)
+        if (PlayerItems != null)
         {
-            PlayerInventory
-                .OnInventoryChanged +=
-                HandleRequirementSourceChanged;
+            PlayerItems.Changed +=
+                HandlePlayerItemsChanged;
         }
 
         if (PlayerCurrency != null)
@@ -266,11 +307,10 @@ public sealed class PlayerFavourManager :
 
     private void UnsubscribeFromPlayerSystems()
     {
-        if (PlayerInventory != null)
-        {
-            PlayerInventory
-                .OnInventoryChanged -=
-                HandleRequirementSourceChanged;
+            if (PlayerItems != null)
+            {
+            PlayerItems.Changed -=
+                HandlePlayerItemsChanged;
         }
 
         if (PlayerCurrency != null)
@@ -291,6 +331,29 @@ public sealed class PlayerFavourManager :
             PlayerReputation
                 .OnReputationChanged -=
                 HandleReputationChanged;
+        }
+    }
+
+    private void HandlePlayerItemsChanged()
+    {
+        RefreshAllAvailability();
+        ValidateActiveSourceItems();
+    }
+
+    private void ValidateActiveSourceItems()
+    {
+        if (PlayerItems == null ||
+            runtimesById.Count == 0)
+        {
+            return;
+        }
+
+        CreateRuntimeSnapshot();
+
+        foreach (FavourRuntime runtime
+                 in runtimeSnapshot)
+        {
+            runtime?.ValidateSourceItemOwnership();
         }
     }
 
@@ -430,14 +493,14 @@ public sealed class PlayerFavourManager :
     }
 
     public bool IsCompleted(
-        FavourData favour)
+     FavourData favour)
     {
         return TryGetRuntime(
                    favour,
                    out FavourRuntime runtime
                ) &&
-               runtime.State ==
-               FavourState.Completed;
+               runtime != null &&
+               runtime.HasBeenCompleted;
     }
 
     public bool HasAccepted(FavourData favour)
@@ -459,15 +522,48 @@ public sealed class PlayerFavourManager :
     }
 
     public bool TryAccept(
-        FavourData favour)
+    FavourData favour)
+    {
+        return TryAccept(
+            favour,
+            null
+        );
+    }
+
+    public bool TryAccept(
+    FavourData favour,
+    ItemData sourceItem)
     {
         FavourRuntime runtime =
             RegisterFavour(
                 favour
             );
 
-        return runtime != null &&
-               runtime.TryActivate();
+        if (runtime == null)
+            return false;
+
+        if (sourceItem != null &&
+            favour != null &&
+            favour.RequireSourceItemWhileActive)
+        {
+            if (PlayerItems == null ||
+                !PlayerItems.Contains(sourceItem))
+            {
+                return false;
+            }
+        }
+
+        bool activated =
+            runtime.TryActivate();
+
+        if (!activated)
+            return false;
+
+        runtime.BindSourceItem(
+            sourceItem
+        );
+
+        return true;
     }
 
     public bool TryTurnIn(
@@ -534,8 +630,20 @@ public sealed class PlayerFavourManager :
     }
 
     private void HandleRuntimeStateChanged(
-        FavourRuntime runtime)
+    FavourRuntime runtime)
     {
+        if (runtime == null)
+            return;
+
+        if (runtime.State ==
+            FavourState.Failed)
+        {
+            AnnouncementSpawner.Instance
+                ?.ShowFavourFailed(
+                    runtime.DisplayName
+                );
+        }
+
         FavourStateChanged?.Invoke(
             runtime
         );
@@ -756,5 +864,224 @@ public sealed class PlayerFavourManager :
         }
 
         return totalRemaining;
+    }
+
+    // =========================================================
+    // ITEM FAVOUR INTERACTION
+    // =========================================================
+    public bool TryResolveItemFavour(
+    ItemData item,
+    out FavourRuntime runtime)
+    {
+        runtime = null;
+
+        if (item == null ||
+            !item.HasFavourInteraction)
+        {
+            return false;
+        }
+
+        IReadOnlyList<FavourData> linkedFavours =
+            item.LinkedFavours;
+
+        if (linkedFavours == null ||
+            linkedFavours.Count == 0)
+        {
+            return false;
+        }
+
+        /*
+         * Alla item-kopplade Favours registreras när itemet
+         * faktiskt används.
+         *
+         * Vi registrerar dem INTE bara för att spelaren hoverar
+         * över itemet i inventoryt.
+         */
+        List<FavourRuntime> candidates =
+            new();
+
+        foreach (FavourData favour
+                 in linkedFavours)
+        {
+            if (favour == null)
+                continue;
+
+            FavourRuntime candidate =
+                RegisterFavour(
+                    favour
+                );
+
+            if (candidate == null)
+                continue;
+
+            candidates.Add(
+                candidate
+            );
+        }
+
+        if (candidates.Count == 0)
+            return false;
+
+        /*
+         * 1. Pågående item-favour har högst prioritet.
+         *
+         * Om spelaren exempelvis redan startat en ring-favour
+         * ska högerklick fortsätta öppna samma favour.
+         */
+        foreach (FavourRuntime candidate
+                 in candidates)
+        {
+            if (candidate.State ==
+                    FavourState.Active ||
+                candidate.State ==
+                    FavourState.ReadyToTurnIn)
+            {
+                runtime =
+                    candidate;
+
+                return true;
+            }
+        }
+
+        /*
+         * 2. Därefter första faktiskt tillgängliga favouren.
+         *
+         * Requirements i FavourRuntime bestämmer om den är
+         * Available. Listordningen i ItemData avgör vilken
+         * som väljs om flera samtidigt är möjliga.
+         */
+        foreach (FavourRuntime candidate
+                 in candidates)
+        {
+            candidate.RefreshAvailability();
+
+            if (candidate.State !=
+                FavourState.Available)
+            {
+                continue;
+            }
+
+            runtime =
+                candidate;
+
+            return true;
+        }
+
+        /*
+         * 3. Failed/Cooldown kan fortfarande vara relevant
+         * presentation för itemet.
+         */
+        foreach (FavourRuntime candidate
+                 in candidates)
+        {
+            if (candidate.State ==
+                    FavourState.Failed ||
+                candidate.State ==
+                    FavourState.Cooldown)
+            {
+                runtime =
+                    candidate;
+
+                return true;
+            }
+        }
+
+        /*
+         * 4. Till sist väljer vi första ännu inte historiskt
+         * completed favouren.
+         *
+         * Detta gör att en level-gated framtida favour fortfarande
+         * kan presenteras i tooltip/window som Locked/Unavailable.
+         */
+        foreach (FavourRuntime candidate
+                 in candidates)
+        {
+            if (candidate.HasBeenCompleted)
+                continue;
+
+            runtime =
+                candidate;
+
+            return true;
+        }
+
+        /*
+         * Alla itemets Favours är färdiga och ingen är repeatable/
+         * aktiv/cooldown-relevant.
+         */
+        return false;
+    }
+
+    public FavourData GetNextItemFavourForPresentation(
+    ItemData item)
+    {
+        if (item == null ||
+            !item.HasFavourInteraction)
+        {
+            return null;
+        }
+
+        IReadOnlyList<FavourData> linkedFavours =
+            item.LinkedFavours;
+
+        if (linkedFavours == null ||
+            linkedFavours.Count == 0)
+        {
+            return null;
+        }
+
+        /*
+         * Om en runtime redan finns och är aktiv/relevant
+         * använder vi den först.
+         */
+        foreach (FavourData favour
+                 in linkedFavours)
+        {
+            if (favour == null)
+                continue;
+
+            if (!TryGetRuntime(
+                    favour,
+                    out FavourRuntime runtime) ||
+                runtime == null)
+            {
+                continue;
+            }
+
+            if (runtime.State ==
+                    FavourState.Active ||
+                runtime.State ==
+                    FavourState.ReadyToTurnIn ||
+                runtime.State ==
+                    FavourState.Available ||
+                runtime.State ==
+                    FavourState.Failed ||
+                runtime.State ==
+                    FavourState.Cooldown)
+            {
+                return favour;
+            }
+        }
+
+        /*
+         * Därefter första länkade favouren som inte historiskt
+         * redan är completed.
+         */
+        foreach (FavourData favour
+                 in linkedFavours)
+        {
+            if (favour == null)
+                continue;
+
+            if (IsCompleted(
+                    favour))
+            {
+                continue;
+            }
+
+            return favour;
+        }
+
+        return null;
     }
 }

@@ -90,6 +90,11 @@ public sealed class EscortObjectiveRuntime :
             ? escortData.StartDelay
             : 0f;
 
+    public float PostSuccessStaySeconds =>
+    escortData != null
+        ? escortData.PostSuccessStaySeconds
+        : 0f;
+
 
     // =========================================================
     // PROGRESS

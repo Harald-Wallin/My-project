@@ -141,10 +141,44 @@ public class NPCBehavior : MonoBehaviour
     private float
         escortStartDelayTimer;
 
+    private const float
+    EscortCombatRadius =
+        5f;
+
+    private const float
+        EscortImmediateDefenseRadius =
+            2.5f;
+
+    private const float
+        EscortBackwardTolerance =
+            0.75f;
+
+    private Vector3
+        escortCombatAnchorPosition;
+
+    private PlayerStats
+        escortPlayerStats;
+
+    private CharacterStateController
+    escortPlayerState;
+
+    private bool
+    escortPostSuccessHolding;
+
+    private float
+        escortPostSuccessTimer;
+
+    private bool
+        escortHomeReturnInProgress;
+
+    public bool IsFavourInteractionSuppressed =>
+        escortHomeReturnInProgress;
+
 
     public bool IsBeingEscorted =>
         activeEscortRuntime != null &&
         activeEscortRuntime.IsEscorting;
+
 
     private bool wasPatrollingBeforeCombat;
     private bool restartPatrolOnNextEnter;
@@ -308,6 +342,13 @@ public class NPCBehavior : MonoBehaviour
         }
 
         UpdateTimers();
+
+        if (escortPostSuccessHolding)
+        {
+            UpdateEscortPostSuccessHold();
+
+            return;
+        }
 
         if (IsBeingEscorted)
         {
@@ -792,7 +833,11 @@ public class NPCBehavior : MonoBehaviour
 
     private void EndCombatNaturally()
     {
+        bool resumeEscort =
+            IsBeingEscorted;
+
         bool resumePatrol =
+            !resumeEscort &&
             wasPatrollingBeforeCombat &&
             canPatrol &&
             patrolPath != null &&
@@ -805,6 +850,13 @@ public class NPCBehavior : MonoBehaviour
 
         wasPatrollingBeforeCombat =
             false;
+
+        if (resumeEscort)
+        {
+            EnterIdleState();
+
+            return;
+        }
 
         if (resumePatrol)
         {
@@ -1178,13 +1230,12 @@ private AbilityData[] GetEquippedAbilities()
             AIState.Aggro)
         {
             /*
-             * NPC:n är redan i combat.
+             * Redan i combat:
              *
-             * Ett nytt threat får INTE direkt skriva över current target.
+             * Flytta INTE combat-anchor.
              *
-             * Damage-eventet har redan lagt till riktig threat och
-             * RefreshCombatTargetFromThreat avgör om target ska bytas
-             * enligt hysteresis-reglerna.
+             * Annars skulle en fiende kunna dra escorten längre och
+             * längre bort genom att varje nytt hit flyttar ankaret.
              */
             threatTracker
                 ?.EnsureThreat(
@@ -1196,36 +1247,60 @@ private AbilityData[] GetEquippedAbilities()
             return;
         }
 
+        bool startingEscortCombat =
+            IsBeingEscorted;
+
         wasPatrollingBeforeCombat =
+            !startingEscortCombat &&
             currentState ==
             AIState.Patrolling;
 
-        /*
-         * Patrullerande NPC:er leashar från den plats där
-         * striden började, inte från sin ursprungliga spawnpunkt.
-         */
-        combatAnchorPosition =
-            wasPatrollingBeforeCombat
-        ? transform.position
-        : spawnPosition;
+        if (startingEscortCombat)
+        {
+            /*
+             * Escortens combat-anchor är exakt den punkt på färden
+             * där striden börjar.
+             */
+            escortCombatAnchorPosition =
+                transform.position;
 
-        encounterReturnPosition =
-            combatAnchorPosition;
+            combatAnchorPosition =
+                escortCombatAnchorPosition;
 
-        hasCombatAnchor =
-            true;
+            encounterReturnPosition =
+                escortCombatAnchorPosition;
 
-        /*
-         * Ett helt nytt encounter börjar alltid med NPC:ns
-         * normala leash.
-         *
-         * Low-health retreat kan senare utöka den.
-         */
-        combatLeashRadius =
-            maxDistanceFromSpawn;
+            combatLeashRadius =
+                EscortCombatRadius;
 
-        sharesRetreatLeash =
-            false;
+            hasCombatAnchor =
+                true;
+
+            sharesRetreatLeash =
+                false;
+        }
+        else
+        {
+            /*
+             * Vanligt NPC-combat behåller sitt tidigare beteende.
+             */
+            combatAnchorPosition =
+                wasPatrollingBeforeCombat
+                    ? transform.position
+                    : spawnPosition;
+
+            encounterReturnPosition =
+                combatAnchorPosition;
+
+            hasCombatAnchor =
+                true;
+
+            combatLeashRadius =
+                maxDistanceFromSpawn;
+
+            sharesRetreatLeash =
+                false;
+        }
 
         ChangeState(
             AIState.Aggro
@@ -1677,6 +1752,15 @@ private AbilityData[] GetEquippedAbilities()
 
         encounterResetInProgress =
             false;
+
+        escortHomeReturnInProgress =
+            false;
+
+        escortPostSuccessHolding =
+            false;
+
+        escortPostSuccessTimer =
+            0f;
     }
 
     // =========================================================
@@ -1684,8 +1768,8 @@ private AbilityData[] GetEquippedAbilities()
     // =========================================================
 
     public bool TryBeginEscort(
-        EscortObjectiveRuntime runtime,
-        Transform destination)
+    EscortObjectiveRuntime runtime,
+    Transform destination)
     {
         if (runtime == null ||
             destination == null)
@@ -1700,11 +1784,8 @@ private AbilityData[] GetEquippedAbilities()
         }
 
         /*
-         * NPC:n får inte starta en ny escort mitt under ett annat
-         * aktivt encounter/reset-flöde.
-         *
-         * Combat-integrationen kommer i nästa steg. Just nu vill vi
-         * hellre neka Start Escort än blanda två locomotion-ägare.
+         * Vi startar fortfarande inte en escort mitt under ett
+         * redan existerande encounter.
          */
         if (currentState ==
                 AIState.Aggro ||
@@ -1745,16 +1826,14 @@ private AbilityData[] GetEquippedAbilities()
                 runtime.StartDelay
             );
 
-        /*
-         * Lämna normal locomotion helt rent.
-         *
-         * Vi sätter även AI-staten till Idle så att CurrentState
-         * representerar att NPC:n inte längre patrullerar/wandrar
-         * i bakgrunden.
-         */
+        escortCombatAnchorPosition =
+            transform.position;
+
         EnterIdleState();
 
         movement?.Stop();
+
+        SubscribeToEscortPlayerDamage();
 
         return true;
     }
@@ -1769,10 +1848,6 @@ private AbilityData[] GetEquippedAbilities()
             return;
         }
 
-        /*
-         * Om objective av någon anledning inte längre är i Escorting
-         * ska NPCBehavior inte fortsätta äga locomotion.
-         */
         if (!activeEscortRuntime.IsEscorting)
         {
             ClearEscortRuntime();
@@ -1789,6 +1864,95 @@ private AbilityData[] GetEquippedAbilities()
         }
 
         if (escortDestination == null)
+        {
+            movement?.HoldPosition();
+
+            return;
+        }
+
+        /*
+         * PlayerReference kan i teorin ha blivit tillgänglig efter
+         * att escort-sessionen startade.
+         */
+        if (escortPlayerStats == null)
+        {
+            SubscribeToEscortPlayerDamage();
+        }
+
+        // =========================================================
+        // PLAYER DISTANCE FAILURE
+        // =========================================================
+
+        /*
+         * Distance-regeln gäller under HELA den aktiva färden:
+         *
+         * - start delay
+         * - vanlig movement
+         * - combat
+         * - player combat pause
+         *
+         * Combat är alltså inte ett sätt att kringgå escort-radius.
+         */
+        if (HasEscortPlayerExceededMaximumDistance())
+        {
+            FailActiveEscort();
+
+            return;
+        }
+
+        // =========================================================
+        // ESCORT NPC COMBAT
+        // =========================================================
+
+        /*
+         * Om NPC:n själv fortfarande har ett giltigt lokalt
+         * combat-target ska den slåss.
+         */
+        if (currentState ==
+            AIState.Aggro)
+        {
+            UpdateEscortCombat();
+
+            return;
+        }
+
+        /*
+         * Escort får aldrig ligga kvar i vanlig:
+         *
+         * - Flee
+         * - Holding
+         * - Returning
+         *
+         * medan själva escort-sessionen fortfarande är aktiv.
+         */
+        if (currentState ==
+                AIState.Fleeing ||
+            currentState ==
+                AIState.Holding ||
+            currentState ==
+                AIState.Returning)
+        {
+            movement?.Stop();
+
+            EnterIdleState();
+        }
+
+        // =========================================================
+        // PLAYER COMBAT PAUSE
+        // =========================================================
+
+        /*
+         * NPC:n kan ha släppt sitt eget combat-target därför att
+         * fienden lämnade EscortCombatRadius.
+         *
+         * Men om SPELAREN fortfarande är i combat ska escorten
+         * inte börja gå vidare.
+         *
+         * NPC:n väntar då där den är tills spelarens riktiga
+         * CharacterStateController lämnar combat.
+         */
+        if (escortPlayerState != null &&
+            escortPlayerState.InCombat)
         {
             movement?.HoldPosition();
 
@@ -1837,7 +2001,7 @@ private AbilityData[] GetEquippedAbilities()
         }
 
         // =========================================================
-        // MOVEMENT
+        // ESCORT MOVEMENT
         // =========================================================
 
         if (movement == null)
@@ -1851,6 +2015,248 @@ private AbilityData[] GetEquippedAbilities()
         );
     }
 
+    private void UpdateEscortCombat()
+    {
+        /*
+         * Escort använder fortfarande det vanliga action/combat-
+         * systemet.
+         *
+         * Skillnaden är endast vilka combat-targets NPC:n tillåts
+         * följa.
+         */
+        if (!RefreshEscortCombatTarget())
+        {
+            EndCombatNaturally();
+
+            return;
+        }
+
+        UpdateAggroState();
+    }
+
+
+    public bool TryStartEscortCombat(
+        CharacterStats threat)
+    {
+        if (!IsBeingEscorted ||
+            threat == null ||
+            threat == selfStats ||
+            selfStats == null ||
+            !selfStats.IsAlive ||
+            !threat.IsAlive)
+        {
+            return false;
+        }
+
+        /*
+         * Friendly fire ska inte dra in escort-NPC:n i strid mot
+         * den egna factionen.
+         */
+        if (selfStats.faction != null &&
+            threat.faction != null &&
+            selfStats.faction ==
+            threat.faction)
+        {
+            return false;
+        }
+
+        Vector2 anchor =
+            currentState ==
+                    AIState.Aggro &&
+            hasCombatAnchor
+                ? (Vector2)combatAnchorPosition
+                : (Vector2)transform.position;
+
+        if (!IsEscortCombatTargetAllowed(
+                threat,
+                anchor))
+        {
+            return false;
+        }
+
+        threatTracker
+            ?.EnsureThreat(
+                threat
+            );
+
+        ForceAggro(
+            threat
+        );
+
+        return
+            currentState ==
+            AIState.Aggro;
+    }
+
+
+    private bool RefreshEscortCombatTarget()
+    {
+        if (threatTracker == null)
+        {
+            return
+                currentTargetStats != null &&
+                IsEscortCombatTargetAllowed(
+                    currentTargetStats,
+                    combatAnchorPosition
+                );
+        }
+
+        const int maximumChecks =
+            16;
+
+        for (int i = 0;
+             i < maximumChecks;
+             i++)
+        {
+            CharacterStats preferredTarget =
+                threatTracker.GetPreferredTarget(
+                    currentTargetStats
+                );
+
+            if (preferredTarget == null)
+            {
+                SetCurrentCombatTarget(
+                    null
+                );
+
+                return false;
+            }
+
+            if (IsEscortCombatTargetAllowed(
+                    preferredTarget,
+                    combatAnchorPosition))
+            {
+                if (preferredTarget !=
+                    currentTargetStats)
+                {
+                    SetCurrentCombatTarget(
+                        preferredTarget
+                    );
+                }
+
+                return true;
+            }
+
+            threatTracker.RemoveThreat(
+                preferredTarget
+            );
+
+            if (preferredTarget ==
+                currentTargetStats)
+            {
+                SetCurrentCombatTarget(
+                    null
+                );
+            }
+        }
+
+        SetCurrentCombatTarget(
+            null
+        );
+
+        return false;
+    }
+
+
+    private bool IsEscortCombatTargetAllowed(
+        CharacterStats target,
+        Vector2 combatAnchor)
+    {
+        if (target == null ||
+            !target.IsAlive ||
+            escortDestination == null)
+        {
+            return false;
+        }
+
+        Vector2 targetPosition =
+            target.transform.position;
+
+        float distanceFromCombatAnchor =
+            Vector2.Distance(
+                combatAnchor,
+                targetPosition
+            );
+
+        if (distanceFromCombatAnchor >
+            EscortCombatRadius)
+        {
+            return false;
+        }
+
+        if (distanceFromCombatAnchor <=
+            EscortImmediateDefenseRadius)
+        {
+            return true;
+        }
+
+        float anchorDistanceToDestination =
+            Vector2.Distance(
+                combatAnchor,
+                escortDestination.position
+            );
+
+        float targetDistanceToDestination =
+            Vector2.Distance(
+                targetPosition,
+                escortDestination.position
+            );
+
+        return
+            targetDistanceToDestination <=
+            anchorDistanceToDestination +
+            EscortBackwardTolerance;
+    }
+
+    private void UpdateEscortPostSuccessHold()
+    {
+        movement?.HoldPosition();
+
+        if (escortPostSuccessTimer > 0f)
+        {
+            escortPostSuccessTimer =
+                Mathf.Max(
+                    0f,
+                    escortPostSuccessTimer -
+                    Time.fixedDeltaTime
+                );
+
+            return;
+        }
+
+        BeginEscortHomeReturn();
+    }
+
+    private void BeginEscortHomeReturn()
+    {
+        if (escortHomeReturnInProgress)
+            return;
+
+        escortPostSuccessHolding =
+            false;
+
+        escortPostSuccessTimer =
+            0f;
+
+        encounterReturnPosition =
+            spawnPosition;
+
+
+        encounterResetInProgress =
+            true;
+
+        escortHomeReturnInProgress =
+            true;
+
+        wasPatrollingBeforeCombat =
+            false;
+
+        movement?.Stop();
+
+        FinishEncounter();
+
+        EnterReturnState();
+    }
 
     private void CompleteEscortTravel()
     {
@@ -1860,36 +2266,119 @@ private AbilityData[] GetEquippedAbilities()
         EscortObjectiveRuntime completedEscort =
             activeEscortRuntime;
 
+        float postSuccessStaySeconds =
+            completedEscort
+                .PostSuccessStaySeconds;
+
         movement?.Stop();
 
-        /*
-         * Rensa NPCBehavior först.
-         *
-         * MarkDestinationReached triggar FavourRuntime-events och kan
-         * direkt ändra favour-state/deaktivera objectives beroende på
-         * completion policy.
-         */
+
         ClearEscortRuntime();
 
         completedEscort
             .MarkDestinationReached();
 
-        /*
-         * I DENNA ETAPP står NPC:n kvar på destinationen.
-         *
-         * Vi startar ännu inte Wander här eftersom nuvarande
-         * NPCBehavior använder den ursprungliga spawnPosition som
-         * wander-center.
-         *
-         * Nästa destination/despawn-etapp ger oss ett temporärt
-         * destination-home utan att ändra permanent spawn.
-         */
+        escortPostSuccessHolding =
+            true;
+
+        escortPostSuccessTimer =
+            Mathf.Max(
+                0f,
+                postSuccessStaySeconds
+            );
+
         EnterIdleState();
+
+        movement?.HoldPosition();
+
+
+        if (escortPostSuccessTimer <=
+            0f)
+        {
+            BeginEscortHomeReturn();
+        }
+    }
+
+    private void SubscribeToEscortPlayerDamage()
+    {
+        UnsubscribeFromEscortPlayerDamage();
+
+        escortPlayerStats =
+            PlayerReference.Player;
+
+        if (escortPlayerStats == null)
+            return;
+
+        escortPlayerState =
+            escortPlayerStats.GetComponent<
+                CharacterStateController>();
+
+        escortPlayerStats.OnDamagedBy +=
+            HandleEscortPlayerDamaged;
+    }
+
+
+    private void UnsubscribeFromEscortPlayerDamage()
+    {
+        if (escortPlayerStats != null)
+        {
+            escortPlayerStats.OnDamagedBy -=
+                HandleEscortPlayerDamaged;
+        }
+
+        escortPlayerStats =
+            null;
+
+        escortPlayerState =
+            null;
+    }
+
+    private bool HasEscortPlayerExceededMaximumDistance()
+    {
+        if (activeEscortRuntime == null)
+            return false;
+
+        if (escortPlayerStats == null)
+            return false;
+
+        float maximumDistance =
+            activeEscortRuntime
+                .MaximumPlayerDistance;
+
+        if (maximumDistance <= 0f)
+            return false;
+
+        float distanceToPlayer =
+            Vector2.Distance(
+                transform.position,
+                escortPlayerStats.transform.position
+            );
+
+        return
+            distanceToPlayer >
+            maximumDistance;
+    }
+
+
+    private void HandleEscortPlayerDamaged(
+        CharacterStats attacker)
+    {
+        if (!IsBeingEscorted ||
+            attacker == null)
+        {
+            return;
+        }
+
+        TryStartEscortCombat(
+            attacker
+        );
     }
 
 
     private void ClearEscortRuntime()
     {
+        UnsubscribeFromEscortPlayerDamage();
+
         activeEscortRuntime =
             null;
 
@@ -1898,6 +2387,9 @@ private AbilityData[] GetEquippedAbilities()
 
         escortStartDelayTimer =
             0f;
+
+        escortCombatAnchorPosition =
+            Vector3.zero;
     }
 
     private void HandleAggroDetection()
@@ -1938,13 +2430,6 @@ private AbilityData[] GetEquippedAbilities()
             return;
         }
 
-        /*
-         * canAggro gäller endast NPC:er vars faktiska reaction
-         * är Aggro.
-         *
-         * En Flee-NPC måste fortfarande få upptäcka hot även om
-         * den själv inte tillåts gå in i Aggro.
-         */
         if (reactionController.ReactionType ==
                 NPCReactionType.Aggro &&
             !canAggro)
@@ -1952,13 +2437,6 @@ private AbilityData[] GetEquippedAbilities()
             return;
         }
 
-        /*
-         * NPCReactionController äger awareness-inställningarna.
-         *
-         * NPCBehavior äger själva spatiala scanningen.
-         *
-         * På så sätt finns bara EN auktoritativ awareness-radius.
-         */
         float detectionRadius =
             reactionController
                 .CurrentAwarenessRadius;
@@ -1996,10 +2474,6 @@ private AbilityData[] GetEquippedAbilities()
                 continue;
             }
 
-            /*
-             * Samma CharacterStats kan representeras av flera
-             * colliders.
-             */
             if (!checkedCharacters.Add(
                     threat))
             {
@@ -2009,13 +2483,6 @@ private AbilityData[] GetEquippedAbilities()
             if (!threat.IsAlive)
                 continue;
 
-            /*
-             * Proximity awareness kräver LoS.
-             *
-             * När NPC:n väl HAR reagerat/är i encounter används
-             * inte denna scan längre och combat-navigationen får
-             * fortsätta jaga target även bakom hinder.
-             */
             if (!LineOfSightUtility
                     .HasLineOfSight(
                         transform.position,
@@ -2033,6 +2500,63 @@ private AbilityData[] GetEquippedAbilities()
             if (reacted)
                 return;
         }
+    }
+
+    private void FailActiveEscort()
+    {
+        if (activeEscortRuntime == null)
+            return;
+
+        EscortObjectiveRuntime failedEscort =
+            activeEscortRuntime;
+
+        movement?.Stop();
+
+        FinishEncounter();
+
+        failedEscort.Favour?.TryFail();
+
+        ClearEscortRuntime();
+
+
+        encounterReturnPosition =
+            spawnPosition;
+
+        encounterResetInProgress =
+             true;
+
+        escortHomeReturnInProgress =
+            true;
+
+        escortPostSuccessHolding =
+            false;
+
+        escortPostSuccessTimer =
+            0f;
+
+        wasPatrollingBeforeCombat =
+            false;
+
+        movement?.Stop();
+
+        EnterReturnState();
+    }
+
+    private void FailActiveEscortOnDeath()
+    {
+        if (activeEscortRuntime == null)
+            return;
+
+        EscortObjectiveRuntime failedEscort =
+            activeEscortRuntime;
+
+        movement?.Stop();
+
+        FinishEncounter();
+
+        failedEscort.Favour?.TryFail();
+
+        ClearEscortRuntime();
     }
 
     private void UpdateFleeState()
@@ -2851,8 +3375,11 @@ private AbilityData[] GetEquippedAbilities()
 
         if (subscribedPlayer != null)
         {
-            subscribedPlayer.OnDied -= HandleTargetDied;
+            subscribedPlayer.OnDied -=
+                HandleTargetDied;
         }
+
+        UnsubscribeFromEscortPlayerDamage();
     }
 
     void SubscribeToPlayerDeath(PlayerStats playerStats)
@@ -2898,6 +3425,11 @@ private AbilityData[] GetEquippedAbilities()
 
         isDead =
             true;
+
+        if (IsBeingEscorted)
+        {
+            FailActiveEscortOnDeath();
+        }
 
         if (canRespawn)
         {

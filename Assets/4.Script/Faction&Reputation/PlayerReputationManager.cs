@@ -67,14 +67,8 @@ public class PlayerReputationManager : MonoBehaviour
         if (faction.showInReputationWindow)
         {
             AnnouncementSpawner.Instance
-                ?.QueueAnnouncement(
-                    AnnouncementSpawner.Instance
-                        .Database
-                        .factionDiscovered,
-                    AnnouncementFormatter
-                        .BuildFactionDiscoveryAnnouncement(
-                            faction.factionName
-                        )
+                ?.ShowFactionDiscovered(
+                faction.factionName
                 );
 
             FactionNotificationManager.Instance
@@ -217,20 +211,11 @@ public class PlayerReputationManager : MonoBehaviour
                     rep.level
                 );
 
-            string message =
-                AnnouncementFormatter
-                    .BuildReputationAnnouncement(
-                        tierName,
-                        tierColor,
-                        faction.factionName
-                    );
-
             AnnouncementSpawner.Instance
-                ?.QueueAnnouncement(
-                    AnnouncementSpawner.Instance
-                        .Database
-                        .reputationRankChanged,
-                    message,
+                ?.ShowReputationRankChanged(
+                    tierName,
+                    tierColor,
+                    faction.factionName,
                     rankSound
                 );
         }

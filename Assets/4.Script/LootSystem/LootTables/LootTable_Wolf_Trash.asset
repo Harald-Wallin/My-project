@@ -16,7 +16,7 @@ MonoBehaviour:
   entries:
   - type: 0
     item: {fileID: 11400000, guid: 38d0e06a3d0ed2545969943b7d55c3dd, type: 2}
-    dropChance: 0.41
+    dropChance: 0.105
     minQuantity: 1
     maxQuantity: 1
   - type: 0
@@ -26,21 +26,21 @@ MonoBehaviour:
     maxQuantity: 1
   - type: 0
     item: {fileID: 11400000, guid: a3bd8a7f7559b5947a545a93d236adbf, type: 2}
-    dropChance: 0.67
+    dropChance: 0.127
     minQuantity: 1
     maxQuantity: 1
   - type: 0
-    item: {fileID: 11400000, guid: 9e9fc7b42a9352844983038aed178174, type: 2}
-    dropChance: 1
-    minQuantity: 3
-    maxQuantity: 5
-  - type: 0
     item: {fileID: 11400000, guid: 28401431050b2e04ca8ab2e926815c09, type: 2}
-    dropChance: 0.799
+    dropChance: 0.786
     minQuantity: 1
     maxQuantity: 1
   - type: 1
     item: {fileID: 0}
+    dropChance: 0.105
+    minQuantity: 1
+    maxQuantity: 2
+  - type: 0
+    item: {fileID: 11400000, guid: 66f284ab2b492a447b89969834137162, type: 2}
     dropChance: 1
     minQuantity: 1
-    maxQuantity: 5
+    maxQuantity: 1

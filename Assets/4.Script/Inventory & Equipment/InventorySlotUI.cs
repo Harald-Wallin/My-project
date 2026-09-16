@@ -23,6 +23,8 @@ public class InventorySlotUI : MonoBehaviour,
     public static InventorySlotUI DraggedSlot;
 
     private PlayerConsumableController consumableController;
+    private PlayerItemUseController itemUseController;
+
     private ItemData currentItem;
     private ItemTooltip tooltip;
 
@@ -55,13 +57,17 @@ public class InventorySlotUI : MonoBehaviour,
                 Canvas>();
 
         PlayerStats player =
-            PlayerReference.Player;
+    PlayerReference.Player;
 
         if (player != null)
         {
             consumableController =
                 player.GetComponent<
                     PlayerConsumableController>();
+
+            itemUseController =
+                player.GetComponent<
+                    PlayerItemUseController>();
         }
     }
 
@@ -385,8 +391,8 @@ public class InventorySlotUI : MonoBehaviour,
             }
 
             if (eventData.button ==
-                PointerEventData
-                    .InputButton.Right)
+                    PointerEventData
+                        .InputButton.Right)
             {
                 VendorUI.Instance.SellItem(
                     currentItem,
@@ -394,6 +400,35 @@ public class InventorySlotUI : MonoBehaviour,
                     1
                 );
 
+                return;
+            }
+        }
+
+        // =====================================================
+        // ITEM USE -> FAVOUR / FUTURE CAPABILITIES
+        // =====================================================
+
+        if (eventData.button ==
+                PointerEventData
+                    .InputButton.Right)
+        {
+            if (itemUseController == null)
+            {
+                PlayerStats player =
+                    PlayerReference.Player;
+
+                if (player != null)
+                {
+                    itemUseController =
+                        player.GetComponent<
+                            PlayerItemUseController>();
+                }
+            }
+
+            if (itemUseController != null &&
+                itemUseController.TryUseItem(
+                    currentItem))
+            {
                 return;
             }
         }

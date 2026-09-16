@@ -139,11 +139,8 @@ public class PlayerStats : CharacterStats
             ApplyLevelUpStats();
 
             AnnouncementSpawner.Instance
-                ?.QueueAnnouncement(
-                    AnnouncementSpawner.Instance
-                        .Database
-                        .levelUp,
-                    $"Hail!\n You reached\nLevel {level}"
+                ?.ShowLevelUp(
+                level
                 );
 
             expToNextLevel =

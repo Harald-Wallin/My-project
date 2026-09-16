@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05bc19b3ecb135c42ac63f5173f2ded6, type: 3}
+  m_Name: Strange Heirlooms DIALOGUE SET
+  m_EditorClassIdentifier: Assembly-CSharp::FavourDialogueSet
+  unavailable: 
+  offer: You feel something odd under your foot. You immediately notices it, as if
+    you just reacted to some sound that was not there. You bend over and pick it
+    up - it's a ring, dirty but fine. Maybe someone would like to have a closer look
+    at this.
+  active: Find someone that might want to look closer to the ring.
+  readyToTurnIn: Why did I know you would come? You have something to show me, do
+    you not?
+  completed: 
+  failed: 
+  cooldown: 

@@ -131,6 +131,15 @@ public sealed class FavourWindow :
         private set;
     }
 
+    public ItemFavourSource CurrentItemSource
+    {
+        get;
+        private set;
+    }
+
+    public bool IsOpenedFromItem =>
+        CurrentItemSource != null;
+
     private void Awake()
     {
         if (Instance != null &&
@@ -220,7 +229,8 @@ public sealed class FavourWindow :
     {
         Open(
             giver,
-            (InteractionTarget)null);
+            (InteractionTarget)null
+        );
     }
 
     public void Open(
@@ -238,7 +248,8 @@ public sealed class FavourWindow :
         {
             Debug.Log(
                 $"{giver.GiverName} har inga synliga favours.",
-                giver);
+                giver
+            );
 
             return;
         }
@@ -246,7 +257,8 @@ public sealed class FavourWindow :
         Open(
             giver,
             visibleFavours[0],
-            interactionTarget);
+            interactionTarget
+        );
     }
 
     public void Open(
@@ -256,7 +268,8 @@ public sealed class FavourWindow :
         Open(
             giver,
             runtime,
-            null);
+            null
+        );
     }
 
     public void Open(
@@ -272,23 +285,253 @@ public sealed class FavourWindow :
 
         UnsubscribeFromRuntime();
 
-        CurrentGiver = giver;
-        CurrentRuntime = runtime;
+        /*
+         * Exakt en source får vara aktiv.
+         */
+        CurrentGiver =
+            giver;
+
+        CurrentItemSource =
+            null;
+
+        CurrentRuntime =
+            runtime;
 
         SubscribeToRuntime();
 
-        SetOpen(true);
+        SetOpen(
+            true
+        );
 
+        /*
+         * NPC/world-fönster är distance-bundna.
+         *
+         * Om ett InteractionTarget skickades in använder vi det.
+         * Annars använder vi samma fallback som tidigare.
+         */
         if (interactionTarget != null)
         {
             GlobalUIManager.Instance?
                 .RegisterInteractionWindow(
                     this,
                     interactionTarget.InteractionTransform,
-                    interactionTarget.WindowCloseDistance);
+                    interactionTarget.WindowCloseDistance
+                );
+        }
+        else
+        {
+            RegisterAsInteractionWindow(
+                giver
+            );
         }
 
         RebuildAll();
+    }
+
+    public void Open(
+    ItemData item)
+    {
+        if (item == null ||
+            !item.HasFavourInteraction)
+        {
+            return;
+        }
+
+        /*
+         * Item-interaktion är INTE en world-interaktion.
+         *
+         * Om ett gammalt NPC/vendor/etc-fönster fortfarande är
+         * registrerat ska den registreringen bort innan itemets
+         * FavourWindow öppnas.
+         */
+        GlobalUIManager.Instance?
+            .ClearInteractionWindow();
+
+        ItemFavourSource itemSource =
+            new(
+                item
+            );
+
+        List<FavourRuntime> visibleFavours =
+            itemSource.GetVisibleFavours();
+
+        if (visibleFavours == null ||
+            visibleFavours.Count == 0)
+        {
+            return;
+        }
+
+        FavourRuntime runtime =
+            ResolvePreferredItemRuntime(
+                visibleFavours
+            );
+
+        if (runtime == null)
+            return;
+
+        UnsubscribeFromRuntime();
+
+        /*
+         * Exakt en source får vara aktiv.
+         */
+        CurrentGiver =
+            null;
+
+        CurrentItemSource =
+            itemSource;
+
+        CurrentRuntime =
+            runtime;
+
+        SubscribeToRuntime();
+
+        SetOpen(
+            true
+        );
+
+        /*
+         * Ingen RegisterInteractionWindow här.
+         *
+         * Ett item i inventory/equipment har ingen world-position
+         * som spelaren kan gå för långt ifrån.
+         */
+
+        RebuildAll();
+    }
+
+    private static FavourRuntime
+    ResolvePreferredItemRuntime(
+        List<FavourRuntime> runtimes)
+    {
+        if (runtimes == null ||
+            runtimes.Count == 0)
+        {
+            return null;
+        }
+
+        /*
+         * Pågående item-favour först.
+         */
+        foreach (FavourRuntime runtime
+                 in runtimes)
+        {
+            if (runtime == null)
+                continue;
+
+            if (runtime.State ==
+                    FavourState.Active ||
+                runtime.State ==
+                    FavourState.ReadyToTurnIn)
+            {
+                return runtime;
+            }
+        }
+
+        /*
+         * Sedan nästa faktiskt tillgängliga del.
+         */
+        foreach (FavourRuntime runtime
+                 in runtimes)
+        {
+            if (runtime != null &&
+                runtime.State ==
+                    FavourState.Available)
+            {
+                return runtime;
+            }
+        }
+
+        /*
+         * Därefter locked/cooldown/failed presentation.
+         *
+         * Listordningen i ItemData fungerar som authored
+         * chain-prioritet.
+         */
+        foreach (FavourRuntime runtime
+                 in runtimes)
+        {
+            if (runtime == null)
+                continue;
+
+            if (runtime.State ==
+                    FavourState.Unavailable ||
+                runtime.State ==
+                    FavourState.Cooldown ||
+                runtime.State ==
+                    FavourState.Failed)
+            {
+                return runtime;
+            }
+        }
+
+        return null;
+    }
+
+    private string GetCurrentSourceName()
+    {
+        if (CurrentGiver != null)
+        {
+            return CurrentGiver
+                .GiverName;
+        }
+
+        if (CurrentItemSource != null)
+        {
+            return CurrentItemSource
+                .SourceName;
+        }
+
+        return string.Empty;
+    }
+
+    private string GetCurrentDialogue(
+        FavourRuntime runtime)
+    {
+        if (runtime == null)
+            return string.Empty;
+
+        if (CurrentGiver != null)
+        {
+            return CurrentGiver
+                .GetDialogueFor(
+                    runtime
+                );
+        }
+
+        if (CurrentItemSource != null)
+        {
+            return CurrentItemSource
+                .GetDialogueFor(
+                    runtime
+                );
+        }
+
+        return runtime.CurrentDialogue;
+    }
+
+    private bool TryAcceptCurrentFavour(
+        FavourData favour)
+    {
+        if (favour == null)
+            return false;
+
+        if (CurrentGiver != null)
+        {
+            return CurrentGiver
+                .TryAccept(
+                    favour
+                );
+        }
+
+        if (CurrentItemSource != null)
+        {
+            return CurrentItemSource
+                .TryAccept(
+                    favour
+                );
+        }
+
+        return false;
     }
 
     private void RegisterAsInteractionWindow(
@@ -322,15 +565,26 @@ public sealed class FavourWindow :
     {
         UnsubscribeFromRuntime();
 
-        CurrentRuntime = null;
-        CurrentGiver = null;
+        CurrentRuntime =
+            null;
+
+        CurrentGiver =
+            null;
+
+        CurrentItemSource =
+            null;
 
         ClearDynamicContent();
         ClearRewardChoices();
 
-        SetOpen(false);
+        SetOpen(
+            false
+        );
 
-        GlobalUIManager.Instance?.ClearInteractionWindow(this);
+        GlobalUIManager.Instance?
+            .ClearInteractionWindow(
+                this
+            );
     }
 
 
@@ -529,21 +783,15 @@ public sealed class FavourWindow :
         if (giverNameText != null)
         {
             giverNameText.text =
-                CurrentGiver != null
-                    ? CurrentGiver.GiverName
-                    : string.Empty;
+                GetCurrentSourceName();
         }
 
         if (dialogueText != null)
         {
             string dialogue =
-                CurrentGiver != null
-                ? CurrentGiver
-                .GetDialogueFor(
-                CurrentRuntime
-                )
-                : CurrentRuntime
-                .CurrentDialogue;
+                GetCurrentDialogue(
+                    CurrentRuntime
+                );
 
             if (string.IsNullOrWhiteSpace(
                     dialogue))
@@ -569,6 +817,19 @@ public sealed class FavourWindow :
 
         switch (CurrentRuntime.State)
         {
+            case FavourState.Unavailable:
+                statusText.text =
+                    BuildUnavailableStatusText();
+
+                statusText.gameObject
+                    .SetActive(
+                        !string.IsNullOrWhiteSpace(
+                            statusText.text
+                        )
+                    );
+
+                break;
+
             case FavourState.Failed:
                 statusText.text =
                     "This favour has failed.";
@@ -602,6 +863,27 @@ public sealed class FavourWindow :
 
                 break;
         }
+    }
+
+    private string BuildUnavailableStatusText()
+    {
+        if (CurrentRuntime?.Data == null)
+            return "This favour is not yet available.";
+
+        int minimumLevel =
+            CurrentRuntime.Data.MinimumLevel;
+
+        PlayerStats player =
+            PlayerReference.Player;
+
+        if (minimumLevel > 0 &&
+            player != null &&
+            player.Level < minimumLevel)
+        {
+            return $"Requires Level {minimumLevel}";
+        }
+
+        return "This favour is not yet available.";
     }
 
     private void RebuildObjectives()
@@ -640,15 +922,6 @@ public sealed class FavourWindow :
             );
         }
 
-        /*
-         * Separat destination / turn-in-rad.
-         *
-         * Normal ReturnToGiver:
-         * "Return to Master Umfrin"
-         *
-         * Courier / CompleteAtTarget:
-         * "Return to Hirdman Fanarik"
-         */
         if (!CurrentRuntime
                 .ShouldShowTurnInObjective)
         {
@@ -1243,30 +1516,39 @@ public sealed class FavourWindow :
 
     private void HandleAcceptClicked()
     {
-        if (CurrentRuntime == null ||
-            CurrentGiver == null)
-        {
+        if (CurrentRuntime == null)
             return;
-        }
 
         FavourData favour =
             CurrentRuntime.Data;
 
         bool accepted =
-            CurrentGiver.TryAccept(
+            TryAcceptCurrentFavour(
                 favour
             );
 
         if (!accepted)
             return;
 
-        if (CurrentGiver.CanStartEscort(
+        /*
+         * Escort är uttryckligen world/NPC-specifikt.
+         *
+         * Om Favourn accepterades genom sin riktiga FavourGiver
+         * och nu väntar på Start Escort ska fönstret ligga kvar.
+         */
+        if (CurrentGiver != null &&
+            CurrentGiver.CanStartEscort(
                 CurrentRuntime))
         {
             RebuildAll();
+
             return;
         }
 
+        /*
+         * Vanlig Favour, inklusive item-startad Favour:
+         * accept → stäng fönstret.
+         */
         Close();
     }
 

@@ -6,6 +6,12 @@ public static class FavourPresentationUtility
     private const string FavourColor =
         "#ffc70f";
 
+    private const string RequirementMetColor =
+        "#ffffff";
+
+    private const string RequirementUnmetColor =
+        "#ff5555";
+
     private static readonly List<ItemData>
         possibleLootItems =
             new();
@@ -144,10 +150,73 @@ public static class FavourPresentationUtility
     // =========================================================
     // ITEM
     // =========================================================
+    private static void AppendItemFavourSource(
+    TooltipData tooltip,
+    ItemData item,
+    PlayerFavourManager manager)
+    {
+        if (tooltip == null ||
+            item == null ||
+            manager == null ||
+            !item.HasFavourInteraction)
+        {
+            return;
+        }
+
+        FavourRuntime runtime =
+            ResolveRelevantItemFavour(
+                item,
+                manager
+            );
+
+        if (runtime == null)
+            return;
+
+        if (runtime.State ==
+                FavourState.Active ||
+            runtime.State ==
+                FavourState.ReadyToTurnIn)
+        {
+            return;
+        }
+
+        tooltip.itemFavourSource =
+    "<size=80%><color=#ffffff>" +
+    "Starts a Favour</color></size>";
+
+        AppendItemFavourRequirements(
+            tooltip,
+            runtime
+        );
+    }
+
+    private static void AppendItemFavourRequirements(
+    TooltipData tooltip,
+    FavourRuntime runtime)
+    {
+        if (tooltip == null ||
+            runtime == null)
+        {
+            return;
+        }
+
+        if (runtime.MinimumLevel <= 0)
+            return;
+
+        string color =
+            runtime.IsMinimumLevelMet
+                ? RequirementMetColor
+                : RequirementUnmetColor;
+
+        tooltip.itemFavourRequirement =
+    $"<size=80%><color={color}>" +
+    $"Requires Level " +
+    $"{runtime.MinimumLevel}</color></size>";
+    }
 
     public static void AppendForItem(
-        TooltipData tooltip,
-        ItemData item)
+    TooltipData tooltip,
+    ItemData item)
     {
         if (tooltip == null ||
             item == null)
@@ -160,6 +229,13 @@ public static class FavourPresentationUtility
 
         if (manager == null)
             return;
+
+        AppendItemFavourSource(
+            tooltip,
+            item,
+            manager
+        );
+
 
         Dictionary<
             FavourRuntime,
@@ -177,6 +253,70 @@ public static class FavourPresentationUtility
             tooltip,
             matches
         );
+    }
+
+    private static FavourRuntime
+    ResolveRelevantItemFavour(
+        ItemData item,
+        PlayerFavourManager manager)
+    {
+        if (item == null ||
+            manager == null ||
+            !item.HasFavourInteraction)
+        {
+            return null;
+        }
+
+        FavourRuntime firstLocked =
+            null;
+
+        foreach (FavourData favour
+                 in item.LinkedFavours)
+        {
+            if (favour == null)
+                continue;
+
+            FavourRuntime runtime =
+                manager.RegisterFavour(
+                    favour
+                );
+
+            if (runtime == null)
+                continue;
+
+            runtime.RefreshAvailability();
+
+            if (runtime.State ==
+                    FavourState.Active ||
+                runtime.State ==
+                    FavourState.ReadyToTurnIn)
+            {
+                return runtime;
+            }
+
+            if (runtime.State ==
+                FavourState.Available)
+            {
+                return runtime;
+            }
+
+            if (runtime.State ==
+                    FavourState.Completed &&
+                runtime.HasBeenCompleted)
+            {
+                continue;
+            }
+
+            if (firstLocked == null &&
+                runtime.State ==
+                    FavourState.Unavailable)
+            {
+                firstLocked =
+                    runtime;
+            }
+        }
+
+        return firstLocked;
     }
 
     // =========================================================

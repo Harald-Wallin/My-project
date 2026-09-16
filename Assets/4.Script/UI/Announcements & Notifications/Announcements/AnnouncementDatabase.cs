@@ -3,13 +3,16 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "RPG/Announcement Database")]
 public class AnnouncementDatabase : ScriptableObject
 {
+    [Header("Character")]
     public AnnouncementData levelUp;
 
-    //public AnnouncementData zoneDiscovery;
+    [Header("Abilities")]
+    public AnnouncementData abilityLearned;
 
+    [Header("Reputation")]
     public AnnouncementData factionDiscovered;
-
     public AnnouncementData reputationRankChanged;
 
-    public AnnouncementData abilityLearned;
+    [Header("Favours")]
+    public AnnouncementData favourFailed;
 }

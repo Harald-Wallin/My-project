@@ -350,14 +350,79 @@ public sealed class NPCReactionController :
     // =========================================================
 
     private void HandleDamaged(
-        CharacterStats attacker)
+    CharacterStats attacker)
     {
         /*
-         * Damage är ett explicit hot.
+         * =========================================================
+         * ESCORT OVERRIDE
+         * =========================================================
          *
-         * Attackern behöver därför inte vara inom awareness radius
-         * och ingen line of sight krävs.
+         * En aktiv escort-NPC använder INTE sin normala ReactionType.
+         *
+         * Även en NPC som normalt skulle Flee ska under escorten
+         * försvara sig istället.
          */
+        if (ai != null &&
+            ai.IsBeingEscorted)
+        {
+            if (attacker == null ||
+                selfStats == null ||
+                attacker == selfStats ||
+                !selfStats.IsAlive ||
+                !attacker.IsAlive)
+            {
+                return;
+            }
+
+            /*
+             * Friendly fire startar inte escort-combat.
+             */
+            if (selfStats.faction != null &&
+                attacker.faction != null &&
+                selfStats.faction ==
+                attacker.faction)
+            {
+                return;
+            }
+
+            lastThreatSource =
+                attacker;
+
+            /*
+             * Om spelaren själv attackerar escort-NPC:n behåller vi
+             * befintlig temporary-hostility-semantik.
+             *
+             * Senare kan själva Escort-favourn dessutom faila på detta.
+             */
+            if (attacker is PlayerStats
+                playerAttacker)
+            {
+                ApplyTemporaryHostility(
+                    playerAttacker
+                );
+            }
+
+            ai.TryStartEscortCombat(
+                attacker
+            );
+
+            /*
+             * Ingen:
+             * - low-health flee
+             * - normal ReactionType
+             * - alert propagation
+             *
+             * under escort.
+             */
+            return;
+        }
+
+        /*
+         * =========================================================
+         * NORMAL NPC REACTION
+         * =========================================================
+         */
+
         if (!IsValidDamageThreat(
                 attacker))
         {
@@ -369,25 +434,19 @@ public sealed class NPCReactionController :
 
         RefreshAlert();
 
-        PlayerStats playerAttacker =
+        PlayerStats playerAttackerNormal =
             attacker as PlayerStats;
 
-        if (playerAttacker != null)
+        if (playerAttackerNormal != null)
         {
             ApplyTemporaryHostility(
-                playerAttacker
+                playerAttackerNormal
             );
         }
 
-        /*
-         * Låg HP har företräde framför vanlig Aggro/Flee.
-         */
         if (TryTriggerLowHealthFlee(
                 attacker))
         {
-            /*
-             * Alert skickas bara när den faktiska boolen är aktiv.
-             */
             if (alertsNearbyNPCs)
             {
                 PropagateAlert(
@@ -639,8 +698,14 @@ public sealed class NPCReactionController :
     }
 
     private bool CanConsiderThreat(
-        CharacterStats threat)
+    CharacterStats threat)
     {
+        if (ai != null &&
+            ai.IsBeingEscorted)
+        {
+            return false;
+        }
+
         if (reactionType ==
             NPCReactionType.None)
         {

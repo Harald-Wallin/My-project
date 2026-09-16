@@ -15,8 +15,8 @@ MonoBehaviour:
   displayName: Follow Hirdman Fanarik
   description: 
   escortNpc:
-    entityId: hirdman_fanarik
-    displayName: Hirdman Fanarik
+    entityId: master_umfrin
+    displayName: Master Umfrin
   destination:
     entityId: strongertogether_escortpoint
     displayName: StrongerTogether_EscortPoint

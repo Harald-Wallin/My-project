@@ -588,6 +588,41 @@ public class Inventory : MonoBehaviour
         return true;
     }
 
+    public bool CanApplyTransaction(
+    IReadOnlyList<InventoryItemAmount> removals,
+    IReadOnlyList<InventoryItemAmount> additions,
+    bool notifyIfInventoryFull = false)
+    {
+        List<InventorySlot> simulatedSlots =
+            CloneSlots();
+
+        if (!TryRemoveFromSlots(
+                simulatedSlots,
+                removals))
+        {
+            return false;
+        }
+
+        if (!TryAddToSlots(
+                simulatedSlots,
+                additions))
+        {
+            if (notifyIfInventoryFull)
+            {
+                NotificationSpawner.Instance
+                    ?.Show(
+                        NotificationSpawner.Instance
+                            .Database
+                            .inventoryFull
+                    );
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
     /// <summary>
     /// Utför borttagningar och tillägg som en enda atomär
     /// inventory-transaktion.

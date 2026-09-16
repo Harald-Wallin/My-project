@@ -108,15 +108,8 @@ public sealed class PlayerAbilityCollection :
         );
 
         AnnouncementSpawner.Instance
-            ?.QueueAnnouncement(
-                AnnouncementSpawner
-                    .Instance
-                    .Database
-                    .abilityLearned,
-                AnnouncementFormatter
-                    .BuildAbilityLearnedAnnouncement(
-                        ability.abilityName
-                    )
+            ?.ShowAbilityLearned(
+            ability.abilityName
             );
 
         SpellbookNotificationManager.Instance

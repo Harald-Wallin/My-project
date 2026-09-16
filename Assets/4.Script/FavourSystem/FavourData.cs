@@ -212,6 +212,16 @@ public sealed class FavourData :
         followUps =
             new();
 
+    [SerializeField]
+    [Tooltip(
+    "Om favouren accepterades via ett item måste spelaren fortsätta " +
+    "äga source-itemet medan favouren är Active eller ReadyToTurnIn.\n\n" +
+    "Om itemet säljs, förstörs eller på annat sätt lämnar spelarens " +
+    "Inventory + Equipment failar favouren.\n\n" +
+    "Påverkar endast Favours som faktiskt accepterades via ett item."
+)]
+    private bool requireSourceItemWhileActive = true;
+
     // =========================================================
     // IDENTITY API
     // =========================================================
@@ -380,6 +390,9 @@ public sealed class FavourData :
         FollowUps =>
             followUps;
 
+    public bool RequireSourceItemWhileActive =>
+        requireSourceItemWhileActive;
+
 #if UNITY_EDITOR
 
     private void OnValidate()
@@ -451,6 +464,8 @@ public sealed class FavourData :
 
         followUps ??=
             new List<FavourData>();
+
+
 
         foreach (FavourRewardChoiceGroup
                  group
@@ -622,6 +637,8 @@ public sealed class FavourData :
             }
         }
     }
+
+
 
 #endif
 }

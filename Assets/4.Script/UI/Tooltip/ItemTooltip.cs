@@ -233,11 +233,64 @@ public class ItemTooltip : MonoBehaviour
         nameText.text = data.title;
         nameText.color = data.titleColor;
 
-        // SUBTITLE
-        if (!string.IsNullOrEmpty(data.subtitle))
+        // ITEM FAVOUR SOURCE + SUBTITLE
+        bool hasItemFavourSource =
+            !string.IsNullOrWhiteSpace(
+                data.itemFavourSource
+            );
+
+        bool hasItemFavourRequirement =
+            !string.IsNullOrWhiteSpace(
+                data.itemFavourRequirement
+            );
+
+        bool hasSubtitle =
+            !string.IsNullOrEmpty(
+                data.subtitle
+            );
+
+        if (hasItemFavourSource ||
+            hasItemFavourRequirement ||
+            hasSubtitle)
         {
-            typeText.gameObject.SetActive(true);
-            typeText.text = data.subtitle;
+            typeText.gameObject.SetActive(
+                true
+            );
+
+            typeText.text =
+                "";
+
+            if (hasItemFavourSource)
+            {
+                typeText.text +=
+                    data.itemFavourSource;
+            }
+
+            if (hasItemFavourRequirement)
+            {
+                if (!string.IsNullOrEmpty(
+                        typeText.text))
+                {
+                    typeText.text +=
+                        "\n";
+                }
+
+                typeText.text +=
+                    data.itemFavourRequirement;
+            }
+
+            if (hasSubtitle)
+            {
+                if (!string.IsNullOrEmpty(
+                        typeText.text))
+                {
+                    typeText.text +=
+                        "\n";
+                }
+
+                typeText.text +=
+                    data.subtitle;
+            }
         }
 
         // DESCRIPTION

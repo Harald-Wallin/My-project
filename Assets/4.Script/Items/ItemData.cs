@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
+using System.Collections.Generic;
 
 public enum ItemRarity
 {
@@ -84,6 +86,12 @@ public class ItemData :
     "får förekomma som loot. Används endast för FavourItem.")]
     private FavourData requiredFavour;
 
+    [Header("Favour Interaction")]
+
+    [SerializeField]
+    private ItemFavourUseSettings favourUse =
+    new();
+
     [Header("Food")]
 
     [SerializeField]
@@ -150,6 +158,19 @@ public class ItemData :
 
     public FavourData RequiredFavour =>
     requiredFavour;
+
+    public ItemFavourUseSettings FavourUse =>
+    favourUse;
+
+    public bool HasFavourInteraction =>
+        favourUse != null &&
+        favourUse.HasFavours;
+
+    public IReadOnlyList<FavourData>
+        LinkedFavours =>
+            favourUse != null
+                ? favourUse.Favours
+                : Array.Empty<FavourData>();
 
     public string ItemTypeDisplayName =>
         GetItemTypeDisplayName(
@@ -462,6 +483,8 @@ public class ItemData :
 
     protected virtual void OnValidate()
     {
+        favourUse ??=
+        new ItemFavourUseSettings();
 
         maxStack = stackable
                 ? Mathf.Max(
