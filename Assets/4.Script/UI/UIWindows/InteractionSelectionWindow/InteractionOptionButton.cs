@@ -34,8 +34,53 @@ public sealed class InteractionOptionButton :
     private Action<IInteractionOption>
         clickedCallback;
 
+    private InteractionCategory
+    boundCategory;
+
     public IInteractionOption Option =>
         option;
+
+    [Header("Favour Status Colors")]
+
+    [SerializeField]
+    private Color favourAvailableColor =
+    new Color32(
+        205,
+        127,
+        50,
+        255
+    );
+
+    [SerializeField]
+    private Color favourActiveColor =
+        new Color32(
+            192,
+            192,
+            192,
+            255
+        );
+
+    [SerializeField]
+    private Color favourCompleteColor =
+        new Color32(
+            212,
+            175,
+            55,
+            255
+        );
+
+    [SerializeField]
+    private Color favourFailedColor =
+        new Color32(
+            200,
+            70,
+            70,
+            255
+        );
+
+    [SerializeField]
+    private Color defaultStatusColor =
+        Color.white;
 
     private void Awake()
     {
@@ -67,8 +112,9 @@ public sealed class InteractionOptionButton :
     /// Binder knappen till ett konkret interaction-alternativ.
     /// </summary>
     public void Bind(
-        IInteractionOption interactionOption,
-        Action<IInteractionOption> onClicked)
+    IInteractionOption interactionOption,
+    Action<IInteractionOption> onClicked,
+    string textOverride = null)
     {
         option =
             interactionOption;
@@ -76,12 +122,52 @@ public sealed class InteractionOptionButton :
         clickedCallback =
             onClicked;
 
-        RefreshPresentation();
+        if (option == null)
+        {
+            ClearPresentation();
+
+            if (button != null)
+            {
+                button.interactable =
+                    false;
+            }
+
+            return;
+        }
+
+        /*
+         * Detta är vår FROZEN presentation.
+         *
+         * GetPresentation() anropas exakt när knappen binds.
+         * Huvudtexten kommer därför inte förändras när
+         * dynamisk status refreshas.
+         */
+        InteractionPresentation presentation =
+            option.GetPresentation();
+
+        if (!string.IsNullOrWhiteSpace(
+        textOverride))
+        {
+            presentation =
+                new InteractionPresentation(
+                    presentation.Category,
+                    textOverride
+                );
+        }
+
+        boundCategory =
+            presentation.Category;
+
+        ApplyFrozenPresentation(
+            presentation
+        );
+
+        RefreshDynamicStatus();
 
         if (button != null)
         {
             button.interactable =
-                option != null;
+                true;
         }
     }
 
@@ -92,17 +178,9 @@ public sealed class InteractionOptionButton :
     /// Favour-cooldown, uppdateras utan att knappen
     /// behöver skapas om.
     /// </summary>
-    public void RefreshPresentation()
+    private void ApplyFrozenPresentation(
+    InteractionPresentation presentation)
     {
-        if (option == null)
-        {
-            ClearPresentation();
-            return;
-        }
-
-        InteractionPresentation presentation =
-            option.GetPresentation();
-
         if (categoryText != null)
         {
             string category =
@@ -117,7 +195,7 @@ public sealed class InteractionOptionButton :
 
             categoryText.text =
                 hasCategory
-                    ? $"[{category}]:"
+                    ? $"{category}:"
                     : string.Empty;
 
             categoryText.gameObject.SetActive(
@@ -130,23 +208,109 @@ public sealed class InteractionOptionButton :
             mainText.text =
                 presentation.Text;
         }
+    }
 
-        if (statusText != null)
+    public void RefreshDynamicStatus()
+    {
+        if (statusText == null)
+            return;
+
+        if (option == null)
         {
-            bool hasStatus =
-                !string.IsNullOrWhiteSpace(
-                    presentation.Status
-                );
-
             statusText.text =
-                hasStatus
-                    ? presentation.Status
-                    : string.Empty;
+                string.Empty;
 
             statusText.gameObject.SetActive(
-                hasStatus
+                false
+            );
+
+            return;
+        }
+
+        string status =
+            option.GetStatusText();
+
+        bool hasStatus =
+            !string.IsNullOrWhiteSpace(
+                status
+            );
+
+        statusText.text =
+            hasStatus
+                ? status
+                : string.Empty;
+
+        statusText.gameObject.SetActive(
+            hasStatus
+        );
+
+        if (hasStatus)
+        {
+            ApplyStatusColor(
+                status
             );
         }
+    }
+
+    private void ApplyStatusColor(
+    string status)
+    {
+        if (statusText == null)
+            return;
+
+        /*
+         * Statusfärgerna gäller endast Favour.
+         *
+         * Andra interaction-typer får defaultfärgen även
+         * om de i framtiden får någon status.
+         */
+        if (boundCategory !=
+            InteractionCategory.Favour)
+        {
+            statusText.color =
+                defaultStatusColor;
+
+            return;
+        }
+
+        if (status == "Available")
+        {
+            statusText.color =
+                favourAvailableColor;
+
+            return;
+        }
+
+        if (status == "Active")
+        {
+            statusText.color =
+                favourActiveColor;
+
+            return;
+        }
+
+        if (status == "Complete")
+        {
+            statusText.color =
+                favourCompleteColor;
+
+            return;
+        }
+
+        if (status == "Failed")
+        {
+            statusText.color =
+                favourFailedColor;
+
+            return;
+        }
+
+        /*
+         * Cooldown ("Retry in: ...") och alla okända
+         * framtida states förblir vita/default.
+         */
+        statusText.color =
+            defaultStatusColor;
     }
 
     private static string GetCategoryLabel(

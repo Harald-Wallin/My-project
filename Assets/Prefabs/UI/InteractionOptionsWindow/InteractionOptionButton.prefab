@@ -458,6 +458,11 @@ MonoBehaviour:
   categoryText: {fileID: 6161513624349919885}
   mainText: {fileID: 7200983687520834307}
   statusText: {fileID: 8600238133124004535}
+  favourAvailableColor: {r: 0.78, g: 0.50430524, b: 0.195, a: 1}
+  favourActiveColor: {r: 0.5660378, g: 0.5660378, b: 0.5660378, a: 1}
+  favourCompleteColor: {r: 0.9811321, g: 0.68639845, b: 0.0509078, a: 1}
+  favourFailedColor: {r: 0.7169812, g: 0.09807763, b: 0.09807763, a: 1}
+  defaultStatusColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!114 &4495547208290996914
 MonoBehaviour:
   m_ObjectHideFlags: 0

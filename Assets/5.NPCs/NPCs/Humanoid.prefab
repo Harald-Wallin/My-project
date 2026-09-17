@@ -29,7 +29,7 @@ GameObject:
   - component: {fileID: 3480348074587073127}
   m_Layer: 8
   m_Name: Humanoid
-  m_TagString: Enemy
+  m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -359,7 +359,6 @@ MonoBehaviour:
   maxDistanceFromSpawn: 8
   abilityDelayAfterAggro: 3
   stopDistanceDefault: 1
-  aggroDelayAfterSpawn: 2
   canAggro: 1
   aggroRange: 4
   threatDetectionLayers:
@@ -374,6 +373,8 @@ MonoBehaviour:
   safeDistanceFromThreat: 18
   resumeFleeDistance: 12
   maxHoldDistanceFromSpawn: 50
+  canRespawn: 0
+  respawnTime: 30
   selfStats: {fileID: 0}
   reaggroCooldown: 3
 --- !u!114 &-261900148879597633

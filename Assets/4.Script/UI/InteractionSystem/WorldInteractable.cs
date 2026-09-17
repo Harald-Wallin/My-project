@@ -66,6 +66,11 @@ public sealed class WorldInteractable :
         );
     }
 
+    public string GetStatusText()
+    {
+        return string.Empty;
+    }
+
     public bool CanInteract(
         in InteractionContext context)
     {

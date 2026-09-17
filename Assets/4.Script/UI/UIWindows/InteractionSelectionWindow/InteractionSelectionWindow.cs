@@ -33,6 +33,15 @@ public sealed class InteractionSelectionWindow :
     [SerializeField]
     private Button closeButton;
 
+    [Header("Dynamic Refresh")]
+
+    [SerializeField]
+    [Min(0.1f)]
+    private float statusRefreshInterval =
+    0.25f;
+
+    private float statusRefreshTimer;
+
     [Header("Options")]
 
     [SerializeField]
@@ -48,6 +57,12 @@ public sealed class InteractionSelectionWindow :
             new();
 
     private InteractionTarget currentTarget;
+    [Header("Presentation")]
+
+    [SerializeField]
+    private InteractionPresentationDatabase
+    presentationDatabase;
+
 
     public static InteractionSelectionWindow
         Instance
@@ -90,6 +105,42 @@ public sealed class InteractionSelectionWindow :
         );
     }
 
+    private void Update()
+    {
+        if (!IsOpen)
+            return;
+
+        statusRefreshTimer -=
+            Time.unscaledDeltaTime;
+
+        if (statusRefreshTimer > 0f)
+            return;
+
+        statusRefreshTimer =
+            Mathf.Max(
+                0.1f,
+                statusRefreshInterval
+            );
+
+        RefreshDynamicStatuses();
+    }
+
+    private void RefreshDynamicStatuses()
+    {
+        for (int i = 0;
+             i < spawnedButtons.Count;
+             i++)
+        {
+            InteractionOptionButton button =
+                spawnedButtons[i];
+
+            if (button == null)
+                continue;
+
+            button.RefreshDynamicStatus();
+        }
+    }
+
     private void OnDestroy()
     {
         if (closeButton != null)
@@ -123,6 +174,8 @@ public sealed class InteractionSelectionWindow :
 
         currentTarget =
             target;
+
+        statusRefreshTimer = 0f;
 
         ClearButtons();
 
@@ -178,10 +231,11 @@ public sealed class InteractionSelectionWindow :
     }
 
     private void CreateButton(
-        IInteractionOption option)
+    IInteractionOption option)
     {
         if (optionButtonPrefab == null ||
-            optionContainer == null)
+            optionContainer == null ||
+            option == null)
         {
             return;
         }
@@ -192,14 +246,57 @@ public sealed class InteractionSelectionWindow :
                 optionContainer
             );
 
+        string textOverride =
+            BuildPresentationTextOverride(
+                option
+            );
+
         button.Bind(
             option,
-            HandleOptionClicked
+            HandleOptionClicked,
+            textOverride
         );
 
         spawnedButtons.Add(
             button
         );
+    }
+
+    private string BuildPresentationTextOverride(
+    IInteractionOption option)
+    {
+        if (option == null ||
+            presentationDatabase == null)
+        {
+            return null;
+        }
+
+        switch (option.Category)
+        {
+            case InteractionCategory.Vendor:
+            case InteractionCategory.Tribute:
+
+                string dialogue =
+                    presentationDatabase
+                        .GetRandomLine(
+                            option.Category
+                        );
+
+                if (string.IsNullOrWhiteSpace(
+                        dialogue))
+                {
+                    return null;
+                }
+
+                /*
+                 * Dialogbaserade interaction-options visas
+                 * med citattecken.
+                 */
+                return $"\"{dialogue}\"";
+
+            default:
+                return null;
+        }
     }
 
     private void HandleOptionClicked(

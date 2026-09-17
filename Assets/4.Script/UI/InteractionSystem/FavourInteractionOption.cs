@@ -1,9 +1,11 @@
+using UnityEngine;
+
 /// <summary>
 /// Ett konkret interaction-alternativ för exakt en
 /// FavourRuntime hos en specifik FavourGiver.
 ///
-/// Objektet är endast ett tunt adapterlager mellan det
-/// generella interaction-systemet och befintlig Favour-logik.
+/// Objektet är ett tunt adapterlager mellan det generella
+/// interaction-systemet och befintlig Favour-logik.
 /// </summary>
 public sealed class FavourInteractionOption :
     IInteractionOption
@@ -29,15 +31,53 @@ public sealed class FavourInteractionOption :
         GetPresentation()
     {
         string title =
-            runtime?.Data != null
-                ? runtime.Data.DisplayName
+            runtime != null
+                ? runtime.DisplayName
                 : "Favour";
 
         return new InteractionPresentation(
             Category,
-            title,
-            GetStatusText()
+            title
         );
+    }
+
+    public string GetStatusText()
+    {
+        if (runtime == null)
+            return string.Empty;
+
+        switch (runtime.State)
+        {
+            case FavourState.Available:
+                return "Available";
+
+            case FavourState.Active:
+                return "Active";
+
+            case FavourState.ReadyToTurnIn:
+                return "Complete";
+
+            case FavourState.Failed:
+                return "Failed";
+
+            case FavourState.Cooldown:
+                return BuildCooldownText(
+                    runtime.CooldownRemaining
+                );
+
+            /*
+             * Completed ska normalt inte existera som
+             * ett selectable world-interaction-alternativ.
+             *
+             * Om ett sådant ändå skulle nå hit visar vi
+             * därför ingen historisk "Completed"-status.
+             */
+            case FavourState.Completed:
+                return string.Empty;
+
+            default:
+                return string.Empty;
+        }
     }
 
     public bool CanInteract(
@@ -51,14 +91,6 @@ public sealed class FavourInteractionOption :
             return false;
         }
 
-        /*
-         * FavourGiver är fortsatt auktoritativ för
-         * huruvida just denna runtime ska visas här.
-         *
-         * På så vis duplicerar vi inte regler för
-         * giver, completion target, delivery,
-         * escort eller annan Favour-logik.
-         */
         return giver.TryGetVisibleRuntime(
             runtime.Data,
             out FavourRuntime visibleRuntime
@@ -78,33 +110,55 @@ public sealed class FavourInteractionOption :
         );
     }
 
-    private string GetStatusText()
+    private static string BuildCooldownText(
+        float secondsRemaining)
     {
-        if (runtime == null)
-            return string.Empty;
+        int totalSeconds =
+            Mathf.Max(
+                0,
+                Mathf.CeilToInt(
+                    secondsRemaining
+                )
+            );
 
-        switch (runtime.State)
+        int hours =
+            totalSeconds / 3600;
+
+        int minutes =
+            (totalSeconds % 3600) / 60;
+
+        int seconds =
+            totalSeconds % 60;
+
+        if (hours > 0)
         {
-            case FavourState.Available:
-                return "Available";
+            /*
+             * Exempel:
+             * Retry in: 2h
+             * Retry in: 2h 14m
+             */
+            if (minutes > 0)
+            {
+                return
+                    $"Retry in: {hours}h {minutes}m";
+            }
 
-            case FavourState.Active:
-                return "Active";
-
-            case FavourState.ReadyToTurnIn:
-                return "Ready to turn in";
-
-            case FavourState.Completed:
-                return "Completed";
-
-            case FavourState.Failed:
-                return "Failed";
-
-            case FavourState.Cooldown:
-                return "Retry";
-
-            default:
-                return string.Empty;
+            return
+                $"Retry in: {hours}h";
         }
+
+        if (minutes > 0)
+        {
+            /*
+             * Under en timme visar vi även sekunder,
+             * eftersom spelaren faktiskt kan se
+             * countdownen ticka.
+             */
+            return
+                $"Retry in: {minutes}m {seconds}s";
+        }
+
+        return
+            $"Retry in: {seconds}s";
     }
 }

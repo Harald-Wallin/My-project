@@ -50,6 +50,11 @@ public sealed class ReputationDonationNPC :
         );
     }
 
+    public string GetStatusText()
+    {
+        return string.Empty;
+    }
+
     public ItemData RequiredItem =>
         requiredItem;
 

@@ -43,8 +43,8 @@ MonoBehaviour:
   requiredCompletedFavours: []
   forbiddenCompletedFavours: []
   failureSettings:
-    policy: 1
-    retryCooldownSeconds: 0
+    policy: 2
+    retryCooldownSeconds: 4200
   repeatSettings:
     repeatable: 0
     repeatCooldownSeconds: 0

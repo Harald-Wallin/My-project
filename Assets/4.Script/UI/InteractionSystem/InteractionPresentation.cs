@@ -10,23 +10,14 @@ public readonly struct InteractionPresentation
         get;
     }
 
-    public string Status
-    {
-        get;
-    }
-
     public InteractionPresentation(
         InteractionCategory category,
-        string text,
-        string status = "")
+        string text)
     {
         Category =
             category;
 
         Text =
             text ?? string.Empty;
-
-        Status =
-            status ?? string.Empty;
     }
 }

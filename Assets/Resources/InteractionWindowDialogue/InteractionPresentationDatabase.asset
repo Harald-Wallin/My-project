@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbc49847ac4ba14459872fc612033164, type: 3}
+  m_Name: InteractionPresentationDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::InteractionPresentationDatabase
+  vendorLines:
+  - Let me show you my wares
+  - Your coin for a fine product!
+  - Come, browse my wares!
+  - See anything you like?
+  - 
+  tributeLines:
+  - Aid the realm and give tribute!
+  - Make your contribution.
+  - Offer what you can.
+  - The thane favours your tribute.

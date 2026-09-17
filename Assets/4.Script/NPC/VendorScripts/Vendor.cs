@@ -48,6 +48,11 @@ public class Vendor : MonoBehaviour, IInteractionOption
         );
     }
 
+    public string GetStatusText()
+    {
+        return string.Empty;
+    }
+
 
     void Start()
     {
