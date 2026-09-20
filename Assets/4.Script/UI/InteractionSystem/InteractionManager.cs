@@ -133,39 +133,63 @@ public sealed class InteractionManager : MonoBehaviour
 
         Vector3 mouseWorldPosition =
             worldCamera.ScreenToWorldPoint(
-                Input.mousePosition);
+                Input.mousePosition
+            );
 
         Vector2 interactionPoint =
             new(
                 mouseWorldPosition.x,
-                mouseWorldPosition.y);
+                mouseWorldPosition.y
+            );
 
-        Collider2D hit =
-            Physics2D.OverlapPoint(
+        Collider2D[] hits =
+            Physics2D.OverlapPointAll(
                 interactionPoint,
-                interactionLayerMask);
+                interactionLayerMask
+            );
 
-        if (hit == null)
+        if (hits == null ||
+            hits.Length == 0)
         {
             ClearCurrentInteraction();
             return false;
         }
 
-        InteractionTarget target =
-            FindInteractionTarget(hit);
-
-        if (target == null)
+        for (int i = 0;
+             i < hits.Length;
+             i++)
         {
-            Debug.LogWarning(
-                $"Collider '{hit.name}' ligger på interaction-lagret " +
-                "men saknar InteractionTarget.",
-                hit);
+            Collider2D hit =
+                hits[i];
 
-            ClearCurrentInteraction();
-            return false;
+            if (hit == null)
+                continue;
+
+            InteractionTarget target =
+                FindInteractionTarget(
+                    hit
+                );
+
+            /*
+             * Hitbox-layern får även innehålla andra typer
+             * av hitboxes, exempelvis CombatHitbox.
+             *
+             * Endast hitboxes som faktiskt leder till ett
+             * InteractionTarget behandlas som interaktioner.
+             */
+            if (target == null)
+                continue;
+
+            if (TryInteract(
+                    target))
+            {
+                return true;
+            }
         }
 
-        return TryInteract(target);
+        ClearCurrentInteraction();
+
+        return false;
     }
 
     /// <summary>
@@ -197,9 +221,6 @@ public sealed class InteractionManager : MonoBehaviour
         target.GetInteractionOptions(
             context,
             availableOptions);
-
-        RemoveUnavailableOptions(
-            context);
 
         RemoveUnavailableOptions(
             context);
@@ -423,7 +444,8 @@ public sealed class InteractionManager : MonoBehaviour
         {
             interactionLayerMask =
                 LayerMask.GetMask(
-                    "Transparent Interactable");
+                    "Transparent Interactable, hitbox"
+                );
         }
     }
 #endif

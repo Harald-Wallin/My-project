@@ -44,8 +44,7 @@ public sealed class LootUI :
     [SerializeField]
     private float titleHeight = 40f;
 
-    private LootContainer currentContainer;
-    private string currentTitle;
+    private ILootSource currentSource;
 
     private void Awake()
     {
@@ -68,35 +67,31 @@ public sealed class LootUI :
     }
 
     public void Show(
-        LootContainer container,
-        string title)
+        ILootSource source)
     {
-        if (container == null)
+        if (source == null)
         {
             Close();
             return;
         }
 
-        currentContainer =
-            container;
-
-        currentTitle =
-            title;
+        currentSource =
+            source;
 
         if (titleText != null)
         {
             titleText.text =
-                title;
+                source.LootTitle;
         }
 
         ClearRows();
 
         BuildCoinRow(
-            container
+            source
         );
 
         BuildItemRows(
-            container
+            source
         );
 
         gameObject.SetActive(
@@ -105,9 +100,10 @@ public sealed class LootUI :
     }
 
     private void BuildCoinRow(
-        LootContainer container)
+        ILootSource source)
     {
-        if (container.CoinAmount <= 0 ||
+        if (source == null ||
+            source.CoinAmount <= 0 ||
             lootItemRowPrefab == null ||
             contentParent == null)
         {
@@ -160,15 +156,16 @@ public sealed class LootUI :
 
         lootRow.SetupCoins(
             currency,
-            container,
+            source,
             this
         );
     }
 
     private void BuildItemRows(
-        LootContainer container)
+        ILootSource source)
     {
-        if (container.items == null ||
+        if (source == null ||
+            source.LootItems == null ||
             lootItemRowPrefab == null ||
             contentParent == null)
         {
@@ -176,10 +173,10 @@ public sealed class LootUI :
         }
 
         List<ItemData> shownItems =
-            new List<ItemData>();
+            new();
 
         foreach (ItemData item
-                 in container.items)
+                 in source.LootItems)
         {
             if (item == null ||
                 ContainsMatchingItem(
@@ -219,7 +216,7 @@ public sealed class LootUI :
 
             lootRow.SetupItem(
                 item,
-                container,
+                source,
                 this
             );
         }
@@ -265,26 +262,22 @@ public sealed class LootUI :
 
     public void Refresh()
     {
-        if (currentContainer == null ||
-            !currentContainer.HasLoot)
+        if (currentSource == null ||
+            !currentSource.HasLoot)
         {
             Close();
             return;
         }
 
         Show(
-            currentContainer,
-            currentTitle
+            currentSource
         );
     }
 
     public void Close()
     {
-        currentContainer =
+        currentSource =
             null;
-
-        currentTitle =
-            string.Empty;
 
         ItemTooltip.Instance?.Hide();
 

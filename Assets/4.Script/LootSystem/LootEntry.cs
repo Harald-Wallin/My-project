@@ -6,6 +6,12 @@ public enum LootEntryType
     Coins
 }
 
+public enum PlayerLootPolicy
+{
+    Normal,
+    OncePerPlayer
+}
+
 [System.Serializable]
 public sealed class LootEntry
 {
@@ -15,6 +21,12 @@ public sealed class LootEntry
 
     [SerializeField]
     private ItemData item;
+
+    [Header("Player Loot")]
+
+    [SerializeField]
+    private PlayerLootPolicy playerLootPolicy =
+    PlayerLootPolicy.Normal;
 
     [SerializeField]
     [Range(0f, 1f)]
@@ -27,6 +39,9 @@ public sealed class LootEntry
     [SerializeField]
     [Min(1)]
     private int maxQuantity = 1;
+
+    public PlayerLootPolicy PlayerLootPolicy =>
+    playerLootPolicy;
 
     public LootEntryType Type =>
         type;

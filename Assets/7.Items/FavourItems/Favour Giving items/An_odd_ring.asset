@@ -27,7 +27,7 @@ MonoBehaviour:
   hideLegs: 0
   hideFeet: 0
   description: Seems like this has been forgotten for quite some time
-  icon: {fileID: 21300000, guid: 7f494be83e15c4e448e304df3c465a45, type: 3}
+  icon: {fileID: 21300000, guid: 2bfa1fbce22933e4385a0f3386305f61, type: 3}
   itemType: 9
   requiredFavour: {fileID: 0}
   favourUse:

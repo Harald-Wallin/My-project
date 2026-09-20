@@ -26,13 +26,6 @@ public class DeathReward :
 
     public GameObject corpsePrefab;
 
-    public List<LootTable>
-        lootTables =
-            new();
-
-    public int minLootRolls;
-    public int maxLootRolls = 3;
-
     [Header("Credit")]
 
     [SerializeField]
@@ -240,95 +233,21 @@ public class DeathReward :
 
         results.Clear();
 
-        if (lootTables == null)
+        if (corpsePrefab == null)
             return;
 
-        foreach (LootTable table
-                 in lootTables)
-        {
-            if (table == null ||
-                table.entries == null)
-            {
-                continue;
-            }
+        LootableCorpse corpse =
+            corpsePrefab.GetComponent<
+                LootableCorpse>();
 
-            foreach (LootEntry entry
-                     in table.entries)
-            {
-                if (entry == null ||
-                    !entry.IsValid ||
-                    entry.Type !=
-                        LootEntryType.Item)
-                {
-                    continue;
-                }
-
-                ItemData item =
-                    entry.Item;
-
-                if (item == null)
-                    continue;
-
-                bool alreadyAdded =
-                    false;
-
-                foreach (ItemData existing
-                         in results)
-                {
-                    if (Inventory.ItemsMatch(
-                            existing,
-                            item))
-                    {
-                        alreadyAdded =
-                            true;
-
-                        break;
-                    }
-                }
-
-                if (!alreadyAdded)
-                {
-                    results.Add(
-                        item
-                    );
-                }
-            }
-        }
-    }
-
-    public void GenerateLoot(
-        LootContainer container)
-    {
-        if (container == null)
+        if (corpse == null)
             return;
 
-        container.items.Clear();
-
-        container.SetCoins(
-            0
-        );
-
-        if (lootTables == null ||
-            lootTables.Count == 0)
-        {
-            return;
-        }
-
-        LootGenerationResult result =
-            LootGenerator.GenerateLootResult(
-                lootTables,
-                minLootRolls,
-                maxLootRolls
-            );
-
-        container.items.AddRange(
-            result.Items
-        );
-
-        container.SetCoins(
-            result.Coins
+        corpse.GetPossibleLootItems(
+            results
         );
     }
+
 
     // =========================================================
     // CORPSE
@@ -357,30 +276,26 @@ public class DeathReward :
     corpse
 );
 
-        LootContainer loot =
-            corpse.GetComponent<
-                LootContainer>();
+        LootableCorpse lootableCorpse =
+    corpse.GetComponent<
+        LootableCorpse>();
 
-        if (loot != null)
+        if (lootableCorpse != null)
         {
             /*
              * Corpse får bara player-loot om spelaren faktiskt
              * vann contribution.
              */
-            if (generatePlayerLoot)
-            {
-                GenerateLoot(
-                    loot
-                );
-            }
-            else
-            {
-                loot.items.Clear();
-
-                loot.SetCoins(
-                    0
-                );
-            }
+            lootableCorpse.Initialize(
+                generatePlayerLoot
+            );
+        }
+        else
+        {
+            Debug.LogError(
+                "DeathReward: Corpse prefab saknar LootableCorpse.",
+                corpse
+            );
         }
 
         CharacterStats corpseStats =
@@ -450,23 +365,4 @@ public class DeathReward :
             ui.SetCorpseMode();
         }
     }
-
-#if UNITY_EDITOR
-
-    private void OnValidate()
-    {
-        minLootRolls =
-            Mathf.Max(
-                0,
-                minLootRolls
-            );
-
-        maxLootRolls =
-            Mathf.Max(
-                minLootRolls,
-                maxLootRolls
-            );
-    }
-
-#endif
 }

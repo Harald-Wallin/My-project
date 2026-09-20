@@ -433,11 +433,6 @@ MonoBehaviour:
   - faction: {fileID: 11400000, guid: c5488bdfa9793df41979c93540acac0b, type: 2}
     reputation: 100
   corpsePrefab: {fileID: 2601435471124028453, guid: 842294279c20beb4f87504c8022b763c, type: 3}
-  lootTables:
-  - {fileID: 11400000, guid: 5ba0c18f228bad749a118d57dc4c6788, type: 2}
-  - {fileID: 11400000, guid: bace446e6b5a2e647a3e3fe6b614f7db, type: 2}
-  minLootRolls: 0
-  maxLootRolls: 1
   allowTiedTopContribution: 1
   floatingExpTextPrefab: {fileID: 8131224175839406369, guid: daad473c21b3e5a438a07220b6e1ac3c, type: 3}
   unlockStartZoneWolf: 0

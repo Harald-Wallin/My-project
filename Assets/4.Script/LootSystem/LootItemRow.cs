@@ -25,7 +25,7 @@ public sealed class LootItemRow :
     private ItemData item;
     private CurrencyData currency;
 
-    private LootContainer sourceContainer;
+    private ILootSource source;
     private LootUI lootUI;
 
     private Color originalBorderColor;
@@ -35,20 +35,20 @@ public sealed class LootItemRow :
 
     public void SetupItem(
         ItemData newItem,
-        LootContainer container,
+        ILootSource lootSource,
         LootUI ui)
     {
         item = newItem;
         currency = null;
 
-        sourceContainer =
-            container;
+        source =
+            lootSource;
 
         lootUI =
             ui;
 
         if (item == null ||
-            sourceContainer == null)
+            source == null)
         {
             gameObject.SetActive(
                 false
@@ -58,7 +58,9 @@ public sealed class LootItemRow :
         }
 
         int quantity =
-            CountItemQuantity();
+            source.GetItemQuantity(
+                item
+            );
 
         itemNameText.text =
             item.DisplayName;
@@ -91,21 +93,21 @@ public sealed class LootItemRow :
 
     public void SetupCoins(
         CurrencyData currencyData,
-        LootContainer container,
+        ILootSource lootSource,
         LootUI ui)
     {
         item = null;
         currency = currencyData;
 
-        sourceContainer =
-            container;
+        source =
+            lootSource;
 
         lootUI =
             ui;
 
         if (currency == null ||
-            sourceContainer == null ||
-            sourceContainer.CoinAmount <= 0)
+            source == null ||
+            source.CoinAmount <= 0)
         {
             gameObject.SetActive(
                 false
@@ -134,7 +136,7 @@ public sealed class LootItemRow :
         }
 
         SetAmountText(
-            sourceContainer.CoinAmount
+            source.CoinAmount
         );
     }
 
@@ -152,21 +154,25 @@ public sealed class LootItemRow :
     private void TakeInventoryItem()
     {
         if (item == null ||
-            sourceContainer == null ||
+            source == null ||
             Inventory.Instance == null)
         {
             return;
         }
 
         int quantity =
-            CountItemQuantity();
+            source.GetItemQuantity(
+                item
+            );
 
         if (quantity <= 0)
             return;
 
         /*
-         * Inventoryt modifieras först. Loot tas inte bort om
-         * inventoryt är fullt.
+         * Inventory modifieras först.
+         *
+         * Loot-source töms bara om inventory faktiskt
+         * kunde ta emot hela mängden.
          */
         bool added =
             Inventory.Instance.AddItem(
@@ -177,20 +183,21 @@ public sealed class LootItemRow :
         if (!added)
             return;
 
-        for (int i =
-                 sourceContainer.items.Count - 1;
-             i >= 0;
-             i--)
+        bool removed =
+            source.TryTakeItems(
+                item,
+                quantity
+            );
+
+        if (!removed)
         {
-            if (Inventory.ItemsMatch(
-                    sourceContainer.items[i],
-                    item))
-            {
-                sourceContainer.items
-                    .RemoveAt(
-                        i
-                    );
-            }
+            Debug.LogError(
+                "LootItemRow: Item lades till i inventory men " +
+                "kunde inte tas bort från loot source.",
+                this
+            );
+
+            return;
         }
 
         FinishTakingLoot();
@@ -198,7 +205,7 @@ public sealed class LootItemRow :
 
     private void TakeCoins()
     {
-        if (sourceContainer == null)
+        if (source == null)
             return;
 
         PlayerCurrency playerCurrency =
@@ -215,7 +222,7 @@ public sealed class LootItemRow :
         }
 
         int amount =
-            sourceContainer.CoinAmount;
+            source.CoinAmount;
 
         if (amount <= 0)
             return;
@@ -226,9 +233,19 @@ public sealed class LootItemRow :
             return;
         }
 
-        sourceContainer.SetCoins(
-            0
-        );
+        int taken =
+            source.TakeAllCoins();
+
+        if (taken <= 0)
+        {
+            Debug.LogError(
+                "LootItemRow: Coins lades till hos spelaren men " +
+                "kunde inte tas bort från loot source.",
+                this
+            );
+
+            return;
+        }
 
         FinishTakingLoot();
     }
@@ -237,43 +254,13 @@ public sealed class LootItemRow :
     {
         ItemTooltip.Instance?.Hide();
 
+        source?.RefreshLootVisuals();
+
         lootUI?.Refresh();
-
-        LootableCorpse corpse =
-            sourceContainer != null
-                ? sourceContainer.GetComponent<
-                    LootableCorpse>()
-                : null;
-
-        corpse?.RefreshVisuals();
 
         Destroy(
             gameObject
         );
-    }
-
-    private int CountItemQuantity()
-    {
-        if (item == null ||
-            sourceContainer?.items == null)
-        {
-            return 0;
-        }
-
-        int quantity = 0;
-
-        foreach (ItemData containedItem
-                 in sourceContainer.items)
-        {
-            if (Inventory.ItemsMatch(
-                    containedItem,
-                    item))
-            {
-                quantity++;
-            }
-        }
-
-        return quantity;
     }
 
     public void OnPointerEnter(
@@ -329,10 +316,9 @@ public sealed class LootItemRow :
         bool show =
             amount > 1;
 
-        amountText.gameObject
-            .SetActive(
-                show
-            );
+        amountText.gameObject.SetActive(
+            show
+        );
 
         amountText.text =
             show

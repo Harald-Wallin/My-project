@@ -1,12 +1,28 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public sealed class LootableCorpse :
-    MonoBehaviour
+    MonoBehaviour,
+    ILootSource
 {
     [Header("Identity")]
 
     [SerializeField]
     private string corpseName;
+
+    [Header("Loot")]
+
+    [SerializeField]
+    private List<LootTable> lootTables =
+        new();
+
+    [SerializeField]
+    [Min(0)]
+    private int minLootRolls;
+
+    [SerializeField]
+    [Min(0)]
+    private int maxLootRolls = 3;
 
     [Header("Interaction")]
 
@@ -26,27 +42,34 @@ public sealed class LootableCorpse :
     [SerializeField]
     private float lootCorpseLifetime = 60f;
 
-    private LootContainer loot;
+    private readonly LootContents contents =
+        new();
+
     private Transform player;
     private GameObject shimmerInstance;
+
+    private bool initialized;
 
     public string CorpseName =>
         corpseName;
 
+    public string LootTitle =>
+        !string.IsNullOrWhiteSpace(
+            corpseName)
+            ? corpseName
+            : gameObject.name;
+
+    public IReadOnlyList<ItemData> LootItems =>
+        contents.Items;
+
+    public int CoinAmount =>
+        contents.CoinAmount;
+
+    public bool HasLoot =>
+        contents.HasLoot;
+
     private void Awake()
     {
-        loot =
-            GetComponent<
-                LootContainer>();
-
-        if (loot == null)
-        {
-            Debug.LogError(
-                "LootableCorpse: Missing LootContainer.",
-                this
-            );
-        }
-
         PlayerMovement playerMovement =
             FindFirstObjectByType<
                 PlayerMovement>();
@@ -68,12 +91,21 @@ public sealed class LootableCorpse :
     private void Start()
     {
         /*
-         * Loot genereras efter Instantiate har anropat Awake.
-         * Därför bestäms lifetime först i Start.
+         * Normalt initialiseras corpset av DeathReward direkt
+         * efter Instantiate.
+         *
+         * Fallbacken gör att ett corpse som placeras direkt i
+         * scenen fortfarande får ett giltigt tomt state.
          */
+        if (!initialized)
+        {
+            Initialize(
+                false
+            );
+        }
+
         float lifetime =
-            loot != null &&
-            loot.HasLoot
+            HasLoot
                 ? lootCorpseLifetime
                 : emptyCorpseLifetime;
 
@@ -94,13 +126,153 @@ public sealed class LootableCorpse :
         }
     }
 
+    public void Initialize(
+        bool generatePlayerLoot)
+    {
+        contents.Clear();
+
+        if (generatePlayerLoot)
+        {
+            GenerateLoot();
+        }
+
+        initialized =
+            true;
+
+        UpdateShimmer();
+    }
+
+    private void GenerateLoot()
+    {
+        if (lootTables == null ||
+            lootTables.Count == 0)
+        {
+            return;
+        }
+
+        LootGenerationResult result =
+            LootGenerator.GenerateLootResult(
+                lootTables,
+                minLootRolls,
+                maxLootRolls
+            );
+
+        contents.Apply(
+            result
+        );
+    }
+
+    public void GetPossibleLootItems(
+    List<ItemData> results)
+    {
+        if (results == null)
+            return;
+
+        results.Clear();
+
+        if (lootTables == null)
+            return;
+
+        foreach (LootTable table
+                 in lootTables)
+        {
+            if (table == null ||
+                table.entries == null)
+            {
+                continue;
+            }
+
+            foreach (LootEntry entry
+                     in table.entries)
+            {
+                if (entry == null ||
+                    !entry.IsValid ||
+                    entry.Type !=
+                    LootEntryType.Item)
+                {
+                    continue;
+                }
+
+                ItemData item =
+                    entry.Item;
+
+                if (item == null)
+                    continue;
+
+                bool alreadyAdded =
+                    false;
+
+                foreach (ItemData existing
+                         in results)
+                {
+                    if (Inventory.ItemsMatch(
+                            existing,
+                            item))
+                    {
+                        alreadyAdded =
+                            true;
+
+                        break;
+                    }
+                }
+
+                if (!alreadyAdded)
+                {
+                    results.Add(
+                        item
+                    );
+                }
+            }
+        }
+    }
+
+    public int GetItemQuantity(
+        ItemData item)
+    {
+        return contents.GetItemQuantity(
+            item
+        );
+    }
+
+    public bool TryTakeItems(
+        ItemData item,
+        int quantity)
+    {
+        bool taken =
+            contents.TryTakeItems(
+                item,
+                quantity
+            );
+
+        if (taken)
+        {
+            RefreshLootVisuals();
+        }
+
+        return taken;
+    }
+
+    public int TakeAllCoins()
+    {
+        int taken =
+            contents.TakeAllCoins();
+
+        if (taken > 0)
+        {
+            RefreshLootVisuals();
+        }
+
+        return taken;
+    }
+
+    public void RefreshLootVisuals()
+    {
+        UpdateShimmer();
+    }
+
     private void UpdateShimmer()
     {
-        bool hasLoot =
-            loot != null &&
-            loot.HasLoot;
-
-        if (hasLoot)
+        if (HasLoot)
         {
             if (shimmerInstance == null &&
                 lootShimmer != null)
@@ -131,15 +303,9 @@ public sealed class LootableCorpse :
         }
     }
 
-    public void RefreshVisuals()
-    {
-        UpdateShimmer();
-    }
-
     private void TryLoot()
     {
-        if (loot == null ||
-            player == null ||
+        if (player == null ||
             LootUI.Instance == null)
         {
             return;
@@ -179,12 +345,51 @@ public sealed class LootableCorpse :
             return;
         }
 
-        if (!loot.HasLoot)
+        if (!HasLoot)
             return;
 
         LootUI.Instance.Show(
-            loot,
-            corpseName
+            this
         );
     }
+
+#if UNITY_EDITOR
+
+    private void OnValidate()
+    {
+        lootTables ??=
+            new List<LootTable>();
+
+        minLootRolls =
+            Mathf.Max(
+                0,
+                minLootRolls
+            );
+
+        maxLootRolls =
+            Mathf.Max(
+                minLootRolls,
+                maxLootRolls
+            );
+
+        lootRange =
+            Mathf.Max(
+                0f,
+                lootRange
+            );
+
+        emptyCorpseLifetime =
+            Mathf.Max(
+                0f,
+                emptyCorpseLifetime
+            );
+
+        lootCorpseLifetime =
+            Mathf.Max(
+                0f,
+                lootCorpseLifetime
+            );
+    }
+
+#endif
 }

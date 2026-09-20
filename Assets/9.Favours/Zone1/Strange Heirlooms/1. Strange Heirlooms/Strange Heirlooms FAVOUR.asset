@@ -19,8 +19,8 @@ MonoBehaviour:
   completionPolicy: 2
   isCourier: 1
   completionTarget:
-    entityId: master_umfrin
-    displayName: Master Umfrin
+    entityId: hirdman_fanarik
+    displayName: Hirdman Fanarik
   objectives: []
   dialogueSet: {fileID: 11400000, guid: 2e1d23f763b27b2479083825a81072b8, type: 2}
   completionDialogueSet: {fileID: 0}
