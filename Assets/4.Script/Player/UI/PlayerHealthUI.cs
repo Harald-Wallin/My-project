@@ -1,79 +1,121 @@
-﻿using System.Collections;
-using TMPro;
-using Unity.VisualScripting.Antlr3.Runtime.Misc;
+﻿using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class PlayerHealthUI : MonoBehaviour
+[DisallowMultipleComponent]
+public sealed class PlayerHealthUI :
+    MonoBehaviour
 {
-    public PlayerStats player;
-    public Slider healthSlider;
-    public TMP_Text hpText;
+    [Header("References")]
 
-    [Header("Visibility")]
-    public CanvasGroup canvasGroup;
-    public float hideDelay = 4f;
+    [SerializeField]
+    private PlayerStats player;
 
-    Coroutine hideRoutine;
+    [SerializeField]
+    private Image healthFill;
 
-    void Start()
+    [SerializeField]
+    private TMP_Text hpText;
+
+
+    private void Awake()
+    {
+        ConfigureFillImage(
+            healthFill
+        );
+    }
+
+
+    private void Start()
     {
         if (player == null)
-            player = PlayerReference.Player;
-
-        player.OnHealthChanged += OnHealthChanged;
-
-        healthSlider.maxValue = player.GetStat(StatType.MaxHP);
-
-        canvasGroup.alpha = 0f; // start osynlig
-    }
-
-
-    void OnDestroy()
-    {
-        if (player != null)
-            player.OnHealthChanged -= OnHealthChanged;
-    }
-
-
-    void OnHealthChanged()
-    {
-
-        UpdateHealth();
-        Show();
-
-        if (player.currentHP >= player.GetStat(StatType.MaxHP))
         {
-            if (hideRoutine != null)
-                StopCoroutine(hideRoutine);
-
-            hideRoutine = StartCoroutine(HideAfterDelay());
+            player =
+                PlayerReference.Player;
         }
+
+        if (player == null)
+        {
+            Debug.LogWarning(
+                $"{nameof(PlayerHealthUI)} kunde inte hitta spelaren.",
+                this
+            );
+
+            return;
+        }
+
+        player.OnHealthChanged -=
+            HandleHealthChanged;
+
+        player.OnHealthChanged +=
+            HandleHealthChanged;
+
+        Refresh();
     }
 
-    void UpdateHealth()
+
+    private void OnDestroy()
     {
-        healthSlider.maxValue = player.GetStat(StatType.MaxHP);
-        healthSlider.value = player.currentHP;
+        if (player == null)
+            return;
+
+        player.OnHealthChanged -=
+            HandleHealthChanged;
+    }
+
+
+    private void HandleHealthChanged()
+    {
+        Refresh();
+    }
+
+
+    private void Refresh()
+    {
+        if (player == null)
+            return;
+
+        float maximumHealth =
+            Mathf.Max(
+                0f,
+                player.GetStat(
+                    StatType.MaxHP
+                )
+            );
+
+        if (healthFill != null)
+        {
+            healthFill.fillAmount =
+                maximumHealth > 0f
+                    ? Mathf.Clamp01(
+                        player.currentHP /
+                        maximumHealth
+                    )
+                    : 0f;
+        }
 
         if (hpText != null)
         {
             hpText.text =
-            $"{Mathf.CeilToInt(player.currentHP)} / {Mathf.CeilToInt(player.GetStat(StatType.MaxHP))}"; 
+                $"{Mathf.CeilToInt(player.currentHP)} / " +
+                $"{Mathf.CeilToInt(maximumHealth)}";
         }
     }
 
-    void Show()
-    {
-        canvasGroup.alpha = 1f;
-    }
 
-    IEnumerator HideAfterDelay()
+    private static void ConfigureFillImage(
+        Image image)
     {
-        yield return new WaitForSeconds(hideDelay);
-        canvasGroup.alpha = 0f;
+        if (image == null)
+            return;
+
+        image.type =
+            Image.Type.Filled;
+
+        image.fillMethod =
+            Image.FillMethod.Horizontal;
+
+        image.fillOrigin =
+            (int)Image.OriginHorizontal.Left;
     }
 }
-
-
-

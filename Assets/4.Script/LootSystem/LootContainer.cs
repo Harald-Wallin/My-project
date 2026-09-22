@@ -2,6 +2,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum LootContainerLifecycleMode
+{
+    DespawnAndRespawn,
+    RefillInPlace
+}
+
 [DisallowMultipleComponent]
 public sealed class LootContainer :
     MonoBehaviour,
@@ -83,14 +89,21 @@ public sealed class LootContainer :
     [Header("Lifecycle")]
 
     [Tooltip(
-        "Sekunder från första öppningen tills containern despawnar, " +
-        "även om loot finns kvar. 0 stänger av denna timer.")]
+    "Despawn And Respawn: objektet lämnar världen mellan loot-cykler. " +
+    "Refill In Place: objektet stannar kvar och får ny loot på samma plats.")]
+    [SerializeField]
+    private LootContainerLifecycleMode lifecycleMode =
+    LootContainerLifecycleMode.DespawnAndRespawn;
+
+    [Tooltip(
+    "Sekunder från första öppningen tills den aktuella loot-cykeln avslutas, " +
+    "även om loot finns kvar. 0 stänger av denna timer.")]
     [SerializeField, Min(0f)]
     private float lifetimeAfterFirstOpen =
         1800f;
 
     [Tooltip(
-        "Hur länge en tom container ligger kvar innan den despawnar.")]
+    "Hur länge en tom container väntar innan den aktuella loot-cykeln avslutas.")]
     [SerializeField, Min(0f)]
     private float emptyDespawnDelay =
         7f;
@@ -103,10 +116,11 @@ public sealed class LootContainer :
     [Header("Respawn")]
 
     [SerializeField]
+    [InspectorName("Can Respawn / Refill")]
     private bool canRespawn;
 
     [Tooltip(
-        "Sekunder mellan despawn och nästa spawn.")]
+    "Sekunder mellan avslutad loot-cykel och nästa spawn/refill.")]
     [SerializeField, Min(0f)]
     private float respawnTime =
         3600f;
@@ -118,6 +132,46 @@ public sealed class LootContainer :
     [SerializeField]
     private List<WeightedRespawnNode> respawnNodes =
         new();
+
+
+    // =====================================================
+    // SPAWN VALIDATION
+    // =====================================================
+
+    [Header("Spawn Validation")]
+
+    [Tooltip(
+    "Containerns fysiska collider. " +
+    "Kan vara exempelvis EdgeCollider2D eller BoxCollider2D. " +
+    "InteractionHitbox ska INTE användas här. " +
+    "Om fältet lämnas tomt används automatiskt den första " +
+    "icke-trigger Collider2D på samma GameObject.")]
+    [SerializeField]
+    private Collider2D spawnFootprintCollider;
+
+    [Tooltip(
+        "Extra säkerhetsmarginal runt den fysiska colliderns bounds " +
+        "vid spawn-validation. Särskilt användbart för EdgeCollider2D.")]
+    [SerializeField]
+    private Vector2 spawnFootprintPadding =
+        new Vector2(
+            0.05f,
+            0.05f
+        );
+
+    [Tooltip(
+        "Vilka layers som får blockera en spawn. " +
+        "Default är Everything. Trigger-colliders ignoreras alltid.")]
+    [SerializeField]
+    private LayerMask spawnBlockingMask =
+        ~0;
+
+    [Tooltip(
+        "Hur många sekunder containern väntar innan den " +
+        "försöker hitta en ledig spawnpunkt igen.")]
+    [SerializeField, Min(0.1f)]
+    private float blockedRespawnRetryDelay =
+        2f;
 
 
     // =====================================================
@@ -142,6 +196,24 @@ public sealed class LootContainer :
 
 
     // =====================================================
+    // SPAWN VALIDATION STATE
+    // =====================================================
+
+    private readonly List<WeightedRespawnNode>
+        availableRespawnNodes =
+            new();
+
+    private readonly Collider2D[]
+        spawnOverlapResults =
+            new Collider2D[8];
+
+    private Vector2 spawnFootprintCenterOffset;
+    private Vector2 spawnFootprintSize;
+
+    private bool spawnFootprintReady;
+
+
+    // =====================================================
     // LIFECYCLE STATE
     // =====================================================
 
@@ -154,6 +226,7 @@ public sealed class LootContainer :
     private Coroutine lifetimeCoroutine;
     private Coroutine emptyDespawnCoroutine;
     private Coroutine respawnCoroutine;
+    private Coroutine refillCoroutine;
 
 
     // =====================================================
@@ -242,6 +315,16 @@ public sealed class LootContainer :
             transform.position;
 
         CachePresentationState();
+
+        CacheSpawnFootprint();
+
+        /*
+         * Objektet hålls dolt tills Start har verifierat
+         * att den initiala spawnpositionen faktiskt är fri.
+         */
+        SetWorldPresentationVisible(
+            false
+        );
     }
 
 
@@ -249,7 +332,18 @@ public sealed class LootContainer :
     {
         initialized = true;
 
-        BeginSpawnLifecycle();
+        /*
+         * Även den första spawnen valideras.
+         *
+         * Om exempelvis spelaren redan står på platsen
+         * väntar containern tills ytan är fri.
+         */
+        if (!TrySpawnAtAvailablePosition())
+        {
+            StartSpawnAttemptRoutine(
+                blockedRespawnRetryDelay
+            );
+        }
     }
 
 
@@ -276,17 +370,21 @@ public sealed class LootContainer :
             true
         );
 
+        /*
+         * Ny lifecycle = ny loot-generation.
+         *
+         * Öppna/stäng aldrig rerollar loot.
+         */
         GenerateLoot();
 
         UpdateShimmer();
 
         /*
          * En generation kan legitimt resultera i noll loot.
-         * Då ska inte ett dött, permanent tomt objekt stå kvar.
          */
         if (!HasLoot)
         {
-            ScheduleEmptyDespawn();
+            ScheduleEmptyLifecycleEnd();
         }
     }
 
@@ -344,33 +442,33 @@ public sealed class LootContainer :
 
         lifetimeCoroutine = null;
 
-        Despawn();
+        EndCurrentLifecycle();
     }
 
-
-    private void ScheduleEmptyDespawn()
+    private void ScheduleEmptyLifecycleEnd()
     {
         if (!isSpawned ||
             HasLoot ||
-            emptyDespawnCoroutine != null)
+            emptyDespawnCoroutine != null ||
+            refillCoroutine != null)
         {
             return;
         }
 
         if (emptyDespawnDelay <= 0f)
         {
-            Despawn();
+            EndCurrentLifecycle();
             return;
         }
 
         emptyDespawnCoroutine =
             StartCoroutine(
-                EmptyDespawnRoutine()
+                EmptyLifecycleEndRoutine()
             );
     }
 
 
-    private IEnumerator EmptyDespawnRoutine()
+    private IEnumerator EmptyLifecycleEndRoutine()
     {
         yield return new WaitForSeconds(
             emptyDespawnDelay
@@ -380,7 +478,7 @@ public sealed class LootContainer :
 
         if (!HasLoot)
         {
-            Despawn();
+            EndCurrentLifecycle();
         }
     }
 
@@ -389,12 +487,11 @@ public sealed class LootContainer :
     // DESPAWN
     // =====================================================
 
-    private void Despawn()
+    private void EndCurrentLifecycle()
     {
         if (!isSpawned)
             return;
 
-        isSpawned = false;
         lifetimeStarted = false;
 
         StopSpawnTimers();
@@ -402,30 +499,66 @@ public sealed class LootContainer :
         DestroyShimmer();
 
         /*
-         * Loot hör till just denna lifecycle.
-         * När containern despawnar är den generationen slut.
+         * All kvarvarande loot hörde till den lifecycle
+         * som nu avslutas.
          */
         contents.Clear();
 
-        SetWorldPresentationVisible(
-            false
-        );
 
         /*
-         * Om just denna source visas i LootUI kommer Refresh()
-         * se att den nu saknar loot och stänga fönstret.
+         * LootUI kan fortfarande visa denna source när exempelvis
+         * lifetime-timern löper ut.
          *
-         * Om ett annat loot source visas refreshas bara det
-         * aktuella fönstret.
+         * Refresh gör att den gamla loot-vyn stängs/uppdateras.
          */
         if (LootUI.Instance != null)
         {
             LootUI.Instance.Refresh();
         }
 
-        if (canRespawn)
+
+        switch (lifecycleMode)
         {
-            StartRespawnTimer();
+            case LootContainerLifecycleMode.RefillInPlace:
+
+                /*
+                 * World-objektet är fortfarande spawnat.
+                 *
+                 * Renderer, fysisk collider och InteractionHitbox
+                 * lämnas helt orörda.
+                 *
+                 * Eftersom HasLoot nu är false kan LootContainer
+                 * inte interageras med förrän ny loot genereras.
+                 */
+                if (canRespawn)
+                {
+                    StartRefillTimer();
+                }
+
+                break;
+
+
+            case LootContainerLifecycleMode.DespawnAndRespawn:
+            default:
+
+                isSpawned = false;
+
+                /*
+                 * Här behåller vi exakt det gamla beteendet:
+                 * world-presentationen försvinner helt.
+                 */
+                SetWorldPresentationVisible(
+                    false
+                );
+
+                if (canRespawn)
+                {
+                    StartSpawnAttemptRoutine(
+                        respawnTime
+                    );
+                }
+
+                break;
         }
     }
 
@@ -456,19 +589,74 @@ public sealed class LootContainer :
     // RESPAWN
     // =====================================================
 
-    private void StartRespawnTimer()
+    private void StartSpawnAttemptRoutine(
+        float delayBeforeFirstAttempt)
     {
         if (respawnCoroutine != null)
             return;
 
         respawnCoroutine =
             StartCoroutine(
-                RespawnRoutine()
+                SpawnAttemptRoutine(
+                    delayBeforeFirstAttempt
+                )
             );
     }
 
 
-    private IEnumerator RespawnRoutine()
+    private IEnumerator SpawnAttemptRoutine(
+        float delayBeforeFirstAttempt)
+    {
+        if (delayBeforeFirstAttempt > 0f)
+        {
+            yield return new WaitForSeconds(
+                delayBeforeFirstAttempt
+            );
+        }
+        else
+        {
+            /*
+             * Undvik despawn + respawn under exakt samma frame.
+             */
+            yield return null;
+        }
+
+        while (!isSpawned)
+        {
+            if (TrySpawnAtAvailablePosition())
+            {
+                respawnCoroutine = null;
+                yield break;
+            }
+
+            yield return new WaitForSeconds(
+                Mathf.Max(
+                    0.1f,
+                    blockedRespawnRetryDelay
+                )
+            );
+        }
+
+        respawnCoroutine = null;
+    }
+
+    // =====================================================
+    // REFILL IN PLACE
+    // =====================================================
+
+    private void StartRefillTimer()
+    {
+        if (refillCoroutine != null)
+            return;
+
+        refillCoroutine =
+            StartCoroutine(
+                RefillRoutine()
+            );
+    }
+
+
+    private IEnumerator RefillRoutine()
     {
         if (respawnTime > 0f)
         {
@@ -479,50 +667,181 @@ public sealed class LootContainer :
         else
         {
             /*
-             * Minst en frame mellan despawn och respawn.
-             * Undviker samma-frame-loopar om både delays
-             * och respawn time är 0.
+             * Även instant refill väntar minst en frame.
+             *
+             * Det förhindrar en same-frame loop om en
+             * loot-generation skulle ge noll loot.
              */
             yield return null;
         }
 
-        respawnCoroutine = null;
+        refillCoroutine = null;
 
-        Respawn();
-    }
-
-
-    private void Respawn()
-    {
-        if (isSpawned)
-            return;
-
-        transform.position =
-            GetRespawnPosition();
-
-        BeginSpawnLifecycle();
-    }
-
-
-    private Vector3 GetRespawnPosition()
-    {
-        if (respawnNodes == null ||
-            respawnNodes.Count == 0)
+        if (!isSpawned ||
+            lifecycleMode !=
+                LootContainerLifecycleMode.RefillInPlace)
         {
-            return originalPosition;
+            yield break;
         }
 
+        BeginRefillLifecycle();
+    }
+
+
+    private void BeginRefillLifecycle()
+    {
+        if (!isSpawned)
+            return;
+
+        contents.Clear();
+
+        lifetimeStarted = false;
+
+        /*
+         * Viktigt:
+         * ingen position ändras,
+         * ingen spawn-validation görs,
+         * inga renderers/colliders togglas.
+         *
+         * Objektet har stått kvar hela tiden.
+         */
+        GenerateLoot();
+
+        UpdateShimmer();
+
+        /*
+         * Även en refill får legitimt rolla noll loot.
+         *
+         * Då avslutas den tomma cykeln på samma generella sätt
+         * och kan därefter försöka refill:a igen.
+         */
+        if (!HasLoot)
+        {
+            ScheduleEmptyLifecycleEnd();
+        }
+    }
+
+    private bool TrySpawnAtAvailablePosition()
+    {
+        if (isSpawned)
+            return true;
+
+        if (!TryGetAvailableSpawnPosition(
+                out Vector3 spawnPosition))
+        {
+            return false;
+        }
+
+        transform.position =
+            spawnPosition;
+
+        BeginSpawnLifecycle();
+
+        return true;
+    }
+
+
+    // =====================================================
+    // SPAWN POSITION SELECTION
+    // =====================================================
+
+    private bool TryGetAvailableSpawnPosition(
+        out Vector3 spawnPosition)
+    {
+        spawnPosition =
+            originalPosition;
+
+        availableRespawnNodes.Clear();
+
+        bool hasValidAuthoredNode =
+            false;
+
+        /*
+         * Om riktiga respawn nodes finns:
+         * filtrera först bort blockerade punkter.
+         *
+         * Weight används EFTER spatial validation.
+         */
+        if (respawnNodes != null)
+        {
+            for (int i = 0;
+                 i < respawnNodes.Count;
+                 i++)
+            {
+                WeightedRespawnNode node =
+                    respawnNodes[i];
+
+                if (node == null ||
+                    node.Node == null ||
+                    node.Weight <= 0f)
+                {
+                    continue;
+                }
+
+                hasValidAuthoredNode =
+                    true;
+
+                if (!IsSpawnPositionClear(
+                        node.Node.position))
+                {
+                    continue;
+                }
+
+                availableRespawnNodes.Add(
+                    node
+                );
+            }
+        }
+
+        /*
+         * Authorade nodes finns, men alla är blockerade.
+         *
+         * Då får vi INTE falla tillbaka till originalpositionen.
+         * Vi väntar istället tills en node blir ledig.
+         */
+        if (hasValidAuthoredNode)
+        {
+            if (availableRespawnNodes.Count == 0)
+            {
+                return false;
+            }
+
+            spawnPosition =
+                SelectWeightedAvailableNode();
+
+            return true;
+        }
+
+        /*
+         * Inga giltiga authored nodes:
+         * originalpositionen är spawnpunkten.
+         */
+        if (!IsSpawnPositionClear(
+                originalPosition))
+        {
+            return false;
+        }
+
+        spawnPosition =
+            originalPosition;
+
+        return true;
+    }
+
+
+    private Vector3 SelectWeightedAvailableNode()
+    {
         float totalWeight = 0f;
 
-        WeightedRespawnNode lastValidNode =
+        WeightedRespawnNode lastNode =
             null;
 
         for (int i = 0;
-             i < respawnNodes.Count;
+             i < availableRespawnNodes.Count;
              i++)
         {
             WeightedRespawnNode node =
-                respawnNodes[i];
+                availableRespawnNodes[i];
 
             if (node == null ||
                 node.Node == null ||
@@ -534,12 +853,12 @@ public sealed class LootContainer :
             totalWeight +=
                 node.Weight;
 
-            lastValidNode =
+            lastNode =
                 node;
         }
 
-        if (totalWeight <= 0f ||
-            lastValidNode == null)
+        if (lastNode == null ||
+            totalWeight <= 0f)
         {
             return originalPosition;
         }
@@ -551,11 +870,11 @@ public sealed class LootContainer :
             );
 
         for (int i = 0;
-             i < respawnNodes.Count;
+             i < availableRespawnNodes.Count;
              i++)
         {
             WeightedRespawnNode node =
-                respawnNodes[i];
+                availableRespawnNodes[i];
 
             if (node == null ||
                 node.Node == null ||
@@ -576,7 +895,128 @@ public sealed class LootContainer :
         /*
          * Floating-point fallback.
          */
-        return lastValidNode.Node.position;
+        return lastNode.Node.position;
+    }
+
+
+    // =====================================================
+    // SPAWN VALIDATION
+    // =====================================================
+
+    private void CacheSpawnFootprint()
+    {
+        ResolveSpawnFootprintCollider();
+
+        if (spawnFootprintCollider == null)
+        {
+            Debug.LogError(
+                $"LootContainer '{name}' saknar en fysisk " +
+                "Collider2D för Spawn Validation.",
+                this
+            );
+
+            spawnFootprintReady = false;
+            return;
+        }
+
+        Bounds bounds =
+            spawnFootprintCollider.bounds;
+
+        spawnFootprintCenterOffset =
+            (Vector2)bounds.center -
+            (Vector2)transform.position;
+
+        /*
+         * Collider2D.bounds fungerar för både exempelvis
+         * BoxCollider2D och EdgeCollider2D.
+         *
+         * EdgeCollider2D kan ha nästan noll tjocklek på en axel,
+         * därför lägger vi på authorable padding.
+         */
+        spawnFootprintSize =
+            new Vector2(
+                Mathf.Max(
+                    0.01f,
+                    bounds.size.x +
+                    spawnFootprintPadding.x * 2f
+                ),
+                Mathf.Max(
+                    0.01f,
+                    bounds.size.y +
+                    spawnFootprintPadding.y * 2f
+                )
+            );
+
+        spawnFootprintReady =
+            spawnFootprintSize.x > 0f &&
+            spawnFootprintSize.y > 0f;
+    }
+
+    private void ResolveSpawnFootprintCollider()
+    {
+        if (spawnFootprintCollider != null)
+            return;
+
+        Collider2D[] rootColliders =
+            GetComponents<Collider2D>();
+
+        for (int i = 0;
+             i < rootColliders.Length;
+             i++)
+        {
+            Collider2D candidate =
+                rootColliders[i];
+
+            if (candidate == null ||
+                candidate.isTrigger)
+            {
+                continue;
+            }
+
+            spawnFootprintCollider =
+                candidate;
+
+            return;
+        }
+    }
+
+
+    private bool IsSpawnPositionClear(
+        Vector3 candidatePosition)
+    {
+        if (!spawnFootprintReady)
+            return false;
+
+        Vector2 footprintCenter =
+            (Vector2)candidatePosition +
+            spawnFootprintCenterOffset;
+
+
+        ContactFilter2D filter =
+            new ContactFilter2D();
+
+        filter.SetLayerMask(
+            spawnBlockingMask
+        );
+
+        /*
+         * InteractionHitbox, CombatHitbox och andra
+         * trigger-volymer ska inte blockera en fysisk spawn.
+         */
+        filter.useTriggers =
+            false;
+
+
+        int hitCount =
+            Physics2D.OverlapBox(
+            footprintCenter,
+            spawnFootprintSize,
+            0f,
+            filter,
+            spawnOverlapResults
+            );
+
+        return hitCount == 0;
     }
 
 
@@ -638,7 +1078,7 @@ public sealed class LootContainer :
 
         if (!HasLoot)
         {
-            ScheduleEmptyDespawn();
+            ScheduleEmptyLifecycleEnd();
         }
     }
 
@@ -822,6 +1262,55 @@ public sealed class LootContainer :
             Mathf.Max(
                 0f,
                 respawnTime
+            );
+
+        blockedRespawnRetryDelay =
+            Mathf.Max(
+                0.1f,
+                blockedRespawnRetryDelay
+            );
+
+        /*
+         * Auto-hitta rootens fysiska collider.
+         *
+         * Eftersom InteractionHitbox ligger på ett child-object
+         * kommer den inte råka väljas här.
+         */
+        if (spawnFootprintCollider == null)
+        {
+            Collider2D[] rootColliders =
+                GetComponents<Collider2D>();
+
+            for (int i = 0;
+                 i < rootColliders.Length;
+                 i++)
+            {
+                Collider2D candidate =
+                    rootColliders[i];
+
+                if (candidate == null ||
+                    candidate.isTrigger)
+                {
+                    continue;
+                }
+
+                spawnFootprintCollider =
+                    candidate;
+
+                break;
+            }
+        }
+
+        spawnFootprintPadding =
+            new Vector2(
+                Mathf.Max(
+                    0f,
+                    spawnFootprintPadding.x
+                ),
+                Mathf.Max(
+                    0f,
+                    spawnFootprintPadding.y
+                )
             );
 
         if (respawnNodes == null)

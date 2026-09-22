@@ -499,15 +499,7 @@ public sealed class ActionSlot :
             null;
 
         icon.enabled =
-            true;
-
-        icon.color =
-            new Color(
-                1f,
-                1f,
-                1f,
-                0.2f
-            );
+            false;
 
         if (drag != null)
         {

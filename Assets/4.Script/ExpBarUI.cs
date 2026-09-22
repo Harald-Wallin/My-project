@@ -1,36 +1,130 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
-public class ExpBarUI : MonoBehaviour
+[DisallowMultipleComponent]
+public sealed class ExpBarUI :
+    MonoBehaviour
 {
-    public PlayerStats player;
-    public Slider expSlider;
-    public TMP_Text levelText;
-    public TMP_Text expText;
+    [Header("References")]
 
-    void Start()
+    [SerializeField]
+    private PlayerStats player;
+
+    [SerializeField]
+    private Image expFill;
+
+    [SerializeField]
+    private TMP_Text levelText;
+
+    [SerializeField]
+    private TMP_Text expText;
+
+
+    private void Awake()
     {
-        if (player != null)
+        ConfigureFillImage(
+            expFill
+        );
+    }
+
+
+    private void Start()
+    {
+        if (player == null)
         {
-            player.OnExpChanged += UpdateUI;
-            player.OnLevelChanged += UpdateUI;
+            player =
+                PlayerReference.Player;
         }
+
+        if (player == null)
+        {
+            Debug.LogWarning(
+                $"{nameof(ExpBarUI)} kunde inte hitta spelaren.",
+                this
+            );
+
+            return;
+        }
+
+        player.OnExpChanged -=
+            UpdateUI;
+
+        player.OnLevelChanged -=
+            UpdateUI;
+
+        player.OnExpChanged +=
+            UpdateUI;
+
+        player.OnLevelChanged +=
+            UpdateUI;
 
         UpdateUI();
     }
 
-    void UpdateUI()
+
+    private void OnDestroy()
     {
-        if (player == null || expSlider == null)
+        if (player == null)
             return;
 
-        expSlider.maxValue = player.expToNextLevel;
-        expSlider.value = player.currentExp;
-        levelText.text = $"Lv {player.level}";
+        player.OnExpChanged -=
+            UpdateUI;
+
+        player.OnLevelChanged -=
+            UpdateUI;
+    }
+
+
+    private void UpdateUI()
+    {
+        if (player == null)
+            return;
+
+        if (expFill != null)
+        {
+            float maximum =
+                Mathf.Max(
+                    0f,
+                    player.expToNextLevel
+                );
+
+            expFill.fillAmount =
+                maximum > 0f
+                    ? Mathf.Clamp01(
+                        player.currentExp /
+                        maximum
+                    )
+                    : 0f;
+        }
+
+        if (levelText != null)
+        {
+            levelText.text =
+                $"Lv {player.level}";
+        }
 
         if (expText != null)
-            expText.text = $"{player.currentExp}/{player.expToNextLevel}";
+        {
+            expText.text =
+                $"{player.currentExp}/{player.expToNextLevel}";
+        }
+    }
+
+
+    private static void ConfigureFillImage(
+        Image image)
+    {
+        if (image == null)
+            return;
+
+        image.type =
+            Image.Type.Filled;
+
+        image.fillMethod =
+            Image.FillMethod.Horizontal;
+
+        image.fillOrigin =
+            (int)Image.OriginHorizontal.Left;
     }
 }
-

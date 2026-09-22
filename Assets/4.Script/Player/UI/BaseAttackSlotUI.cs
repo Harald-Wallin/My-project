@@ -294,15 +294,7 @@ public sealed class BaseAttackSlotUI :
                 null;
 
             icon.enabled =
-                true;
-
-            icon.color =
-                new Color(
-                    1f,
-                    1f,
-                    1f,
-                    0.2f
-                );
+                false;
 
             if (draggable != null)
             {
